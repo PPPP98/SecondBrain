@@ -12,32 +12,6 @@
 *_LOCAL_*.txt
 *_REMOTE_*.txt
 
-### Java ###
-# 컴파일된 클래스 파일
-*.class
-
-# 로그 파일
-*.log
-
-# BlueJ 파일
-*.ctxt
-
-# Mobile Tools for Java (J2ME)
-.mtj.tmp/
-
-# 패키지 파일
-*.jar
-*.war
-*.nar
-*.ear
-*.zip
-*.tar.gz
-*.rar
-
-# JVM 크래시 로그
-hs_err_pid*
-replay_pid*
-
 ### macOS ###
 # macOS 시스템 파일
 .DS_Store
@@ -69,6 +43,63 @@ Temporary Items
 
 # iCloud 생성 파일
 *.icloud
+
+### Windows ###
+# Windows 썸네일 캐시
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+
+# 덤프 파일
+*.stackdump
+
+# 폴더 설정 파일
+[Dd]esktop.ini
+
+# 휴지통
+$RECYCLE.BIN/
+
+# Windows 설치 파일
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+
+# Windows 바로가기
+*.lnk
+
+### VisualStudioCode & Cursor ###
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets
+
+# VSCode 로컬 히스토리
+.history/
+.history
+.ionide
+
+# VSCode 확장 프로그램
+*.vsix
+
+# Cursor IDE
+.cursor/
+.cursorrules
+
+# Claude 설정
+.claude/
+CLAUDE.md
+
+### IntelliJ IDEA ###
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
 
 ### Python ###
 # 바이트코드 및 최적화 파일
@@ -194,62 +225,31 @@ pyrightconfig.json
 # Cython
 cython_debug/
 
-### VisualStudioCode & Cursor ###
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
-!.vscode/*.code-snippets
+### Java ###
+# 컴파일된 클래스 파일
+*.class
 
-# VSCode 로컬 히스토리
-.history/
-.history
-.ionide
+# 로그 파일
+*.log
 
-# VSCode 확장 프로그램
-*.vsix
+# BlueJ 파일
+*.ctxt
 
-# Cursor IDE
-.cursor/
-.cursorrules
+# Mobile Tools for Java (J2ME)
+.mtj.tmp/
 
-# Claude 설정
-.claude/
-CLAUDE.md
+# 패키지 파일
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
 
-### Windows ###
-# Windows 썸네일 캐시
-Thumbs.db
-Thumbs.db:encryptable
-ehthumbs.db
-ehthumbs_vista.db
-
-# 덤프 파일
-*.stackdump
-
-# 폴더 설정 파일
-[Dd]esktop.ini
-
-# 휴지통
-$RECYCLE.BIN/
-
-# Windows 설치 파일
-*.cab
-*.msi
-*.msix
-*.msm
-*.msp
-
-# Windows 바로가기
-*.lnk
-
-### IntelliJ IDEA ###
-.idea/
-*.iml
-*.iws
-*.ipr
-out/
+# JVM 크래시 로그
+hs_err_pid*
+replay_pid*
 
 ### Spring Boot ###
 # Gradle
