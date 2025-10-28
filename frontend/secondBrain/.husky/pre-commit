@@ -1,0 +1,17 @@
+#!/usr/bin/env sh
+
+# Load Husky environment
+. "$(dirname "$0")/_/husky.sh"
+
+# Frontend 디렉토리로 이동
+cd frontend/secondBrain
+
+echo "🔍 린트 스테이지 실행 중"
+pnpm exec lint-staged
+
+if [ $? -ne 0 ]; then
+  echo "❌ 린트 스테이지 실패했습니다. 에러 수정 후 다시 시도해주세요."
+  exit 1
+fi
+
+echo "✅ 프리커밋 확인 통과!"
