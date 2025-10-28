@@ -254,11 +254,7 @@ replay_pid*
 ### Spring Boot ###
 # Gradle
 .gradle/
-gradle/
 !gradle/wrapper/gradle-wrapper.jar
-gradlew
-gradlew.bat
-
 # Maven
 .mvn/
 !.mvn/wrapper/maven-wrapper.jar
