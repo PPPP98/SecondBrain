@@ -1,6 +1,6 @@
 # Frontend 디렉토리로 이동
-cd frontend/secondBrain || {
-  echo "❌ 디렉토리를 찾을 수 없습니다: frontend/secondBrain"
+cd frontend/secondbrain || {
+  echo "❌ 디렉토리를 찾을 수 없습니다: frontend/secondbrain"
   exit 1
 }
 

@@ -11,7 +11,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "preview": "vite preview",
-    "prepare": "cd ../.. && husky frontend/secondBrain/.husky"
+    "prepare": "cd ../.. && husky frontend/secondbrain/.husky"
   },
   "dependencies": {
     "class-variance-authority": "^0.7.1",
