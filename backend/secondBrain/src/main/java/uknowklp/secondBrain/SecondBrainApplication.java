@@ -1,4 +1,4 @@
-package uknowklp.SecondBrain;
+package uknowklp.secondBrain;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
