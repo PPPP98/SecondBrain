@@ -1,0 +1,492 @@
+// Common helpers
+@NonCPS
+def short(String s, int maxLen = 600) {
+  if (!s) return ""
+  return s.size() > maxLen ? (s.take(maxLen) + "\n... (truncated)") : s
+}
+
+def mmNotify(Map m = [:]) {
+  // m: [status: success|failure|info, template: merge_open|merge_success|failure|plain,
+  //     category, title, url, targetBranch, assignee, reviewer, extra]
+  def status  = (m.status ?: 'info').toLowerCase()
+  def color   = status == 'success' ? 'good' : (status == 'failure' ? 'danger' : '#888888')
+  def title   = m.title ?: (env.GL_MR_TITLE ?: 'No title')
+  def url     = m.url   ?: (env.GL_MR_URL   ?: env.BUILD_URL)
+  def target  = m.targetBranch ?: (env.GL_MR_TARGET ?: 'develop')
+  def assign  = m.assignee ?: (env.GL_ASSIGNEE ?: '9526yu')
+  def reviewer= m.reviewer ?: (env.GL_REVIEWER ?: '9526yu')
+  def extra   = m.extra ? "\n" + m.extra : ""
+
+  String body
+  switch ((m.template ?: 'plain')) {
+    case 'merge_success':
+      body = """
+#### :homer_bush: Successfully Merged :homer_bush:
+
+##### [${title}](${url})
+:pencil2: Assignee: @${assign}
+
+:gun_cat: **Target**: `${target}`
+
+##### Pipeline Success!
+---
+##### 서비스 점검하러 가기
+:springboot: [Backend Spring Server](https://api.brainsecond.site/swagger-ui/index.html)
+:react: [Frontend React Server](https://brainsecond.site)
+${extra}
+"""
+      break
+    case 'merge_open':
+      body = """
+#### :green_frog: `${env.GL_USER_NAME ?: 'E104'}` MR Generated!!!!!!!!! :green_frog:
+
+##### [${title}](${url})
+*서둘러서 코드 리뷰 해주세요~! 수정 필요할 경우 작성자 태그해주세요!!*
+:pencil2: Assignee: @${assign}
+:eyes_5s: Reviewer: @${reviewer}
+
+:gun_cat: **Target**: `${target}`
+
+##### Pipeline Success!
+${extra}
+"""
+      break
+    case 'failure':
+      body = """
+#### :x: Jenkins Pipeline Failed :x:
+
+##### [${title}](${url})
+:pencil2: Assignee: @${assign}
+
+:gun_cat: **Target**: `${target}`
+
+##### Error
+${extra}
+"""
+      break
+    default:
+      body = """
+#### ${ status == 'success' ? ':white_check_mark:' : (status == 'failure' ? ':x:' : ':information_source:') } ${(m.category ?: 'INFO').toUpperCase()}
+**[${title}](${url})**
+:label: **Target**: \`${target}\`
+:pencil2: **Assignee**: @${assign}
+${extra}
+"""
+  }
+
+  withCredentials([string(credentialsId: 'MM_WEBHOOK', variable: 'MM_WEBHOOK')]) {
+    mattermostSend(endpoint: MM_WEBHOOK, color: color, message: body)
+  }
+}
+
+// Pipeline
+pipeline {
+  agent any
+
+  options {
+    timestamps()
+    ansiColor('xterm')
+    disableConcurrentBuilds()
+    buildDiscarder(logRotator(numToKeepStr: '30', artifactNumToKeepStr: '10'))
+    timeout(time: 60, unit: 'MINUTES')   // 전체 파이프라인 상한
+  }
+
+  parameters {
+    // git & branch
+    string(name: 'GIT_PAT_CRED_ID',  defaultValue: 'seok', description: 'Jenkins credentialsId for GitLab PAT (Username/Password)')
+    string(name: 'GIT_URL_HTTPS', defaultValue: 'https://lab.ssafy.com/s13-final/S13P31E107.git', description: 'Git repository (HTTPS)')
+    string(name: 'DEVELOP_BRANCH', defaultValue: 'develop', description: 'Develop branch name')
+    string(name: 'RELEASE_BRANCH', defaultValue: 'master', description: 'Release branch name')
+    // compose
+    string(name: 'COMPOSE_FILE',   defaultValue: 'deploy/docker-compose.yml', description: 'Main compose file')
+    string(name: 'COMPOSE_AI_FILE',defaultValue: 'deploy/docker-compose.ai.yml', description: 'AI compose file')
+    // compose file의 서비스 키
+    string(name: 'BACK_SERVICE',  defaultValue: 'klp_back',  description: 'Compose service name for backend')
+    string(name: 'FRONT_SERVICE', defaultValue: 'klp_front', description: 'Compose service name for frontend')
+    string(name: 'AI_SERVICE',    defaultValue: 'klp_ai',    description: 'Compose service name for ai')
+
+    string(name: 'BACK_DIR',  defaultValue: 'backend/secondbrain', description: 'Backend root dir')
+    string(name: 'FRONT_DIR', defaultValue: 'frontend/secondbrain', description: 'Frontend root dir')
+    string(name: 'AI_DIR',    defaultValue: 'ai', description: 'AI root dir')
+  }
+
+  triggers {
+    GenericTrigger(
+      genericVariables: [
+        [key:'GL_EVENT',        value:'$.object_kind'],
+        [key:'GL_MR_ACTION',    value:'$.object_attributes.action'],
+        [key:'GL_MR_STATE',     value:'$.object_attributes.state'],
+        [key:'GL_MR_TITLE',     value:'$.object_attributes.title'],
+        [key:'GL_MR_SOURCE',    value:'$.object_attributes.source_branch'],
+        [key:'GL_MR_TARGET',    value:'$.object_attributes.target_branch'],
+        [key:'GL_MR_IID',       value:'$.object_attributes.iid'],
+        [key:'GL_PROJECT',      value:'$.project.path_with_namespace'],
+        [key:'GL_MR_SHA',       value:'$.object_attributes.last_commit.id'],
+        [key:'GL_MR_URL',       value:'$.object_attributes.url'],
+        [key:'GL_ASSIGNEE',     value:'$.assignees[0].username'],
+        [key:'GL_REVIEWER',     value:'$.reviewers[0].username'],
+        [key:'GL_USER_NAME',    value:'$.user.name']
+      ],
+      token: 'uknow-mr',
+      printContributedVariables: false,
+      printPostContent: false,
+      regexpFilterText: '$GL_EVENT:$GL_MR_ACTION',
+      regexpFilterExpression: '^merge_request:(open|reopen|merge|update)$'
+    )
+  }
+
+  environment {
+    GIT_URL_HTTPS   = "${params.GIT_URL_HTTPS}"
+    GIT_CREDS_HTTPS = "${params.GIT_PAT_CRED_ID}"
+    DEVELOP_BRANCH  = "${params.DEVELOP_BRANCH}"
+    RELEASE_BRANCH  = "${params.RELEASE_BRANCH}"
+    COMPOSE_FILE    = "${params.COMPOSE_FILE}"
+    COMPOSE_AI_FILE = "${params.COMPOSE_AI_FILE}"
+    BACK_SERVICE    = "${params.BACK_SERVICE}"
+    FRONT_SERVICE   = "${params.FRONT_SERVICE}"
+    AI_SERVICE      = "${params.AI_SERVICE}"
+    BACK_DIR        = "${params.BACK_DIR}"
+    FRONT_DIR       = "${params.FRONT_DIR}"
+    AI_DIR          = "${params.AI_DIR}"
+  }
+
+  stages {
+
+    stage('Validate Environment') {
+      steps {
+        sh '''
+          set -eu
+          [ -n "${GL_EVENT:-}" ]      || { echo "GL_EVENT is required"; exit 1; }
+          [ -n "${GL_MR_ACTION:-}" ]  || { echo "GL_MR_ACTION is required"; exit 1; }
+          [ -n "${GL_MR_TITLE:-}" ]   || { echo "GL_MR_TITLE is required"; exit 1; }
+          [ -n "${GL_MR_SOURCE:-}" ]  || { echo "GL_MR_SOURCE is required"; exit 1; }
+          [ -n "${GL_MR_TARGET:-}" ]  || { echo "GL_MR_TARGET is required"; exit 1; }
+        '''
+      }
+    }
+
+    stage('Checkout') {
+      steps {
+        script {
+          try {
+            checkout([$class: 'GitSCM',
+              branches: [[name: "*/${env.GL_MR_SOURCE ?: env.DEVELOP_BRANCH}"]],
+              userRemoteConfigs: [[url: env.GIT_URL_HTTPS, credentialsId: env.GIT_CREDS_HTTPS]]
+            ])
+            sh '''
+              set -eu
+              git fetch --no-tags origin "${GL_MR_TARGET}:${GL_MR_TARGET}" || true
+            '''
+          } catch (e) {
+            mmNotify(status:'failure', category:'checkout', template:'failure', extra: short(e.toString()))
+            error "Checkout failed: ${e}"
+          }
+        }
+      }
+    }
+
+    stage('Load conventions & Validate MR title') {
+      steps {
+        script {
+          try {
+            sh '''
+              set -eu
+              MR_TITLE_COMMON='^(\\[🔀\\s+(FE|BE|INFRA|AI)\\]|\\[⛑️\\s+(FE|BE|INFRA|AI)\\]|\\[🛫\\s+(FE|BE|INFRA|AI)\\])\\s+.+$'
+              MR_TITLE_DEV='^\\[🔀\\s+(FE|BE|INFRA|AI)\\]\\s+.+$'
+              MR_TITLE_HOT='^\\[⛑️\\s+(FE|BE|INFRA|AI)\\]\\s+.+$'
+              MR_TITLE_REL='^\\[🛫\\s+(FE|BE|INFRA|AI)\\]\\s+.+$'
+              RELEASE_REGEX='v[0-9]+\\.[0-9]+\\.[0-9]+(-\\S+)?$'
+              {
+                echo "MR_TITLE_COMMON='${MR_TITLE_COMMON}'"
+                echo "MR_TITLE_DEV='${MR_TITLE_DEV}'"
+                echo "MR_TITLE_HOT='${MR_TITLE_HOT}'"
+                echo "MR_TITLE_REL='${MR_TITLE_REL}'"
+                echo "RELEASE_REGEX='${RELEASE_REGEX}'"
+              } > .conventions.env
+            '''
+            sh '''
+              set -eu
+              . ./.conventions.env
+              TITLE="${GL_MR_TITLE}"
+              echo "Validating MR title: $TITLE"
+              echo "$TITLE" | grep -Pq "$MR_TITLE_COMMON" || { echo "❌ Not matching common pattern"; exit 4; }
+              echo "✅ MR title OK"
+            '''
+
+            // ✅ open / reopen 때만 MR 생성 알림
+            def action = (env.GL_MR_ACTION ?: "").toLowerCase()
+            if (action == "open" || action == "reopen") {
+              mmNotify(status:'success', category:'mr-open', template:'merge_open')
+            }
+          } catch (e) {
+            mmNotify(status:'failure', category:'mr-title', template:'failure', extra: short(e.toString()))
+            error "MR title validation failed: ${e}"
+          }
+        }
+      }
+    }
+
+    stage('Detect changes') {
+      steps {
+        script {
+          try {
+            // 브랜치 이름만으로 감지
+            def srcBranch = (env.GL_MR_SOURCE ?: "").toLowerCase()
+            echo "Detect by branch name only: ${srcBranch}"
+
+            // 백엔드 감지
+            def isBE     = (srcBranch =~ /(^|\/)(be)(\/|$)/)
+            // 프론트 감지
+            def isFE     = (srcBranch =~ /(^|\/)(fe)(\/|$)/)
+            // AI 감지
+            def isAI     = (srcBranch =~ /(^|\/)(ai)(\/|$)/)
+            // 인프라 감지
+            def isINFRA  = (srcBranch =~ /(^|\/)(infra)(\/|$)/)
+
+            // infra면 전부 1로 간주
+            env.CHANGED_BACK   = (isBE || isINFRA) ? "1" : "0"
+            env.CHANGED_FRONT  = (isFE || isINFRA) ? "1" : "0"
+            env.CHANGED_AI     = (isAI || isINFRA) ? "1" : "0"
+            // deploy도 infra가 건드렸다고 가정
+            env.CHANGED_DEPLOY = isINFRA ? "1" : "0"
+
+            echo "RESULT | BACK:${env.CHANGED_BACK}, FRONT:${env.CHANGED_FRONT}, AI:${env.CHANGED_AI}, INFRA:${env.CHANGED_DEPLOY}"
+          } catch (e) {
+            mmNotify(status:'failure', category:'change-detect', template:'failure', extra: short(e.toString()))
+            error "Change detection failed: ${e}"
+          }
+        }
+      }
+    }
+
+    stage('Report status to GitLab (title check)') {
+      when { expression { (env.GL_MR_ACTION ?: "") != "merge" } }
+      steps {
+        script {
+          try {
+            withCredentials([usernamePassword(credentialsId: env.GIT_CREDS_HTTPS, usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS')]) {
+              sh '''
+                set -eu
+                SHA="${GL_MR_SHA:-}"
+                [ -n "$SHA" ] || { echo "No MR last_commit SHA to report"; exit 0; }
+                CONTEXT="jenkins:mr-title-check"
+                DESC="MR title check passed"
+                TARGET="${BUILD_URL:-}"
+                PROJECT_ENC="$(printf '%s' "${GL_PROJECT:-}" | sed 's#/#%2F#g')"
+                curl -sS -X POST \
+                  -H "PRIVATE-TOKEN: ${GIT_PASS}" \
+                  "https://lab.ssafy.com/api/v4/projects/${PROJECT_ENC}/statuses/${SHA}" \
+                  --fail \
+                  --data "state=success&context=${CONTEXT}&description=${DESC}&target_url=${TARGET}"
+              '''
+            }
+          } catch (e) {
+            mmNotify(status:'failure', category:'gitlab-status', template:'failure', extra: short(e.toString()))
+          }
+        }
+      }
+    }
+
+    stage('Prepare env file (for deploy)') {
+      when {
+        expression {
+          ((env.GL_MR_ACTION ?: "") == "merge" && (env.GL_MR_STATE ?: "") == "merged")
+        }
+      }
+      steps {
+        script {
+          try {
+            withCredentials([file(credentialsId: 'ENV_FILE', variable: 'ENV_FILE')]) {
+              sh '''
+                set -eu
+                install -m 600 "$ENV_FILE" deploy/.env
+              '''
+            }
+          } catch (e) {
+            mmNotify(status:'failure', category:'prepare-env', template:'failure', extra: short(e.toString()))
+            error "Prepare env failed: ${e}"
+          }
+        }
+      }
+    }
+
+    stage('Docker Image Push to DockerHub (changed only)') {
+      when {
+        expression {
+          ((env.GL_MR_ACTION ?: "") == "merge" || (env.GL_MR_STATE ?: "") == "merged") &&
+          (env.GL_MR_TARGET == env.RELEASE_BRANCH)
+        }
+      }
+      environment {
+        IMG_SHA = "${(env.GL_MR_SHA ?: env.GIT_COMMIT ?: 'manual').take(12)}"
+      }
+      steps {
+        withCredentials([
+          usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')
+        ]) {
+          script {
+            def targets = [
+              [flag: env.CHANGED_BACK,  name: 'backend',  ctx: env.BACK_DIR,  df: 'Dockerfile', image: 'seok1419/klp-backend'],
+              [flag: env.CHANGED_FRONT, name: 'frontend', ctx: env.FRONT_DIR, df: 'Dockerfile', image: 'seok1419/klp-frontend'],
+              [flag: env.CHANGED_AI,    name: 'ai',       ctx: env.AI_DIR,    df: 'Dockerfile', image: 'seok1419/klp-ai']
+            ]
+
+            sh "echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin"
+
+            def anyPushed = false
+            targets.each { t ->
+              if (t.flag == "1") {
+                anyPushed = true
+                sh """
+                  set -eu
+                  export DOCKER_BUILDKIT=1
+                  test -d "${t.ctx}"
+                  test -f "${t.ctx}/${t.df}"
+
+                  docker build --pull \
+                    -t "${t.image}:${IMG_SHA}" \
+                    -f "${t.ctx}/${t.df}" \
+                    "${t.ctx}"
+
+                  docker tag "${t.image}:${IMG_SHA}" "${t.image}:latest"
+                  docker push "${t.image}:${IMG_SHA}"
+                  docker push "${t.image}:latest"
+                """
+              } else {
+                echo "Skip Docker build/push for ${t.name} (no changes)"
+              }
+            }
+
+            sh '''
+              docker logout || true
+              docker image prune -f || true
+            '''
+
+            if (!anyPushed) {
+              echo "No image to push."
+            }
+          }
+        }
+      }
+    }
+
+    // stage('Deploy (compose up — changed services only)') {
+    //   when {
+    //     expression {
+    //       ((env.GL_MR_ACTION ?: "") == "merge" && (env.GL_MR_STATE ?: "") == "merged")
+    //     }
+    //   }
+    //   steps {
+    //     script {
+    //       try {
+    //         timeout(time: 20, unit: 'MINUTES') {
+    //           sh '''
+    //             set -eux
+    //             docker compose --env-file deploy/.env -f "$COMPOSE_FILE" pull || true
+    //           '''
+    //           if (env.CHANGED_BACK == "1" || env.CHANGED_DEPLOY == "1") {
+    //             sh """
+    //               set -eux
+    //               docker compose --env-file deploy/.env -f "$COMPOSE_FILE" up -d --build ${env.BACK_SERVICE}
+    //             """
+    //           } else { echo "Skip compose up for ${env.BACK_SERVICE}" }
+
+    //           if (env.CHANGED_FRONT == "1" || env.CHANGED_DEPLOY == "1") {
+    //             sh """
+    //               set -eux
+    //               docker compose --env-file deploy/.env -f "$COMPOSE_FILE" up -d --build ${env.FRONT_SERVICE}
+    //             """
+    //           } else { echo "Skip compose up for ${env.FRONT_SERVICE}" }
+
+    //           if (env.CHANGED_AI == "1") {
+    //             sh """
+    //               set -eux
+    //               if [ -f "$COMPOSE_AI_FILE" ]; then
+    //                 docker compose --env-file deploy/.env -f "$COMPOSE_FILE" up -d --build ${env.AI_SERVICE}
+    //               else
+    //                 docker compose --env-file deploy/.env -f "$COMPOSE_FILE" up -d --build ${env.AI_SERVICE}
+    //               fi
+    //             """
+    //           } else { echo "Skip compose up for ${env.AI_SERVICE}" }
+
+    //           if (env.CHANGED_BACK != "1" && env.CHANGED_FRONT != "1" && env.CHANGED_AI != "1" && env.CHANGED_DEPLOY != "1") {
+    //             echo "No relevant changes — nothing to deploy."
+    //           }
+    //         }
+    //         mmNotify(status:'success', category:'deploy', template:'merge_success', targetBranch: env.GL_MR_TARGET)
+    //       } catch (e) {
+    //         mmNotify(status:'failure', category:'deploy', template:'failure', targetBranch: env.GL_MR_TARGET, extra: short(e.toString()))
+    //         error "Deploy failed: ${e}"
+    //       }
+    //     }
+    //   }
+    // }
+
+    stage('Tag & Push (release only)') {
+      when {
+        expression {
+          ((env.GL_MR_ACTION ?: "") == "merge" || (env.GL_MR_STATE ?: "") == "merged") &&
+          (env.GL_MR_TARGET == env.RELEASE_BRANCH)
+        }
+      }
+      steps {
+        script {
+          try {
+            withCredentials([usernamePassword(credentialsId: env.GIT_CREDS_HTTPS, usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS')]) {
+              sh '''
+                set -eu
+                . ./.conventions.env
+                TITLE="${GL_MR_TITLE:-}"
+                IID="${GL_MR_IID:-}"
+                VERSION="$( echo "$TITLE" | grep -Po "$RELEASE_REGEX" | head -n1 || true )"
+                [ -n "${VERSION:-}" ] || VERSION="release-$(date +%Y%m%d)-!${IID}"
+                echo "📦 Tagging: ${VERSION}"
+
+                git config user.email "9526yu@naver.com"
+                git config user.name  "jungseokyu"
+
+                BASE_URL="${GIT_URL_HTTPS}"
+                case "$BASE_URL" in
+                  https://*) : ;;
+                  https//*)   BASE_URL="https://${BASE_URL#https//}";;
+                  *)          BASE_URL="https://${BASE_URL#https://}";;
+                esac
+
+                git tag -a "${VERSION}" -m "Release ${VERSION}"
+                git push "https://${GIT_USER}:${GIT_PASS}@${BASE_URL#https://}" "${VERSION}"
+              '''
+            }
+            mmNotify(status:'success', category:'tagging')
+          } catch (e) {
+            mmNotify(status:'failure', category:'tagging', template:'failure', extra: short(e.toString()))
+            error "Tag & push failed: ${e}"
+          }
+        }
+      }
+    }
+  }
+
+  post {
+    success {
+      // 파이프라인 자체 성공 알림: update는 제외, open/reopen만 보내고 싶으면 여기서도 한 번 필터 가능
+      def action = (env.GL_MR_ACTION ?: "").toLowerCase()
+      if (action == "open" || action == "reopen") {
+        mmNotify(status:'success', category:'pipeline', template:'merge_open')
+      } else if (action != "merge") {
+        // update 등은 너무 시끄러우면 여기서 아예 안 보냄
+        // 아무것도 안 함
+      } else {
+        // merge 케이스는 Deploy 스테이지에서 이미 보냈으니 심플하게
+        mmNotify(status:'success', category:'pipeline')
+      }
+    }
+    failure {
+      mmNotify(status:'failure', category:'pipeline', template:'failure',
+               extra: short("Job: ${env.JOB_NAME} #${env.BUILD_NUMBER}\nSee console for details."))
+    }
+    unstable {
+      mmNotify(status:'info', category:'pipeline',
+               extra: "Marked UNSTABLE: ${env.JOB_NAME} #${env.BUILD_NUMBER}")
+    }
+  }
+}
