@@ -16,7 +16,9 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import uknowklp.secondbrain.global.security.filter.JwtAuthenticationFilter;
+import uknowklp.secondbrain.global.security.handler.OAuth2AuthenticationFailureHandler;
 import uknowklp.secondbrain.global.security.handler.OAuth2LoginSuccessHandler;
+import uknowklp.secondbrain.global.security.oauth2.service.CustomOAuth2UserService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -25,8 +27,12 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-	// success handler
+	// OAuth2 관련 컴포넌트
+	private final CustomOAuth2UserService customOAuth2UserService;
 	private final OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
+	private final OAuth2AuthenticationFailureHandler oAuth2AuthenticationFailureHandler;
+
+	// JWT 인증 필터
 	private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
 	@Bean
@@ -58,7 +64,10 @@ public class SecurityConfig {
 
 			// OAuth2 로그인 설정
 			.oauth2Login(oauth2 -> oauth2
-				.successHandler(oAuth2LoginSuccessHandler))
+				.userInfoEndpoint(userInfo -> userInfo
+					.userService(customOAuth2UserService))
+				.successHandler(oAuth2LoginSuccessHandler)
+				.failureHandler(oAuth2AuthenticationFailureHandler))
 
 			// JWT 인증 필터 추가
 			.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
