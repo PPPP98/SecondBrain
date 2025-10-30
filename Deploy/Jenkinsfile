@@ -68,7 +68,7 @@ ${extra}
       body = """
 #### ${ status == 'success' ? ':white_check_mark:' : (status == 'failure' ? ':x:' : ':information_source:') } ${(m.category ?: 'INFO').toUpperCase()}
 **[${title}](${url})**
-:label: **Target**: \`${target}\`
+:label: **Target**: `${target}`
 :pencil2: **Assignee**: @${assign}
 ${extra}
 """
