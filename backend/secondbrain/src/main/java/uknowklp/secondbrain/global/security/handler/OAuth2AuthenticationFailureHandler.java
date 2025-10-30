@@ -14,6 +14,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
+import uknowklp.secondbrain.global.response.BaseResponseStatus;
 
 /**
  * OAuth2 인증 실패 시 처리하는 핸들러
@@ -70,15 +71,15 @@ public class OAuth2AuthenticationFailureHandler extends SimpleUrlAuthenticationF
 
 		// OAuth2 인증 거부 (사용자가 권한 승인 거부)
 		if (message != null && message.contains("access_denied")) {
-			return "로그인이 취소되었습니다. 다시 시도해주세요.";
+			return BaseResponseStatus.OAUTH_ACCESS_DENIED.getMessage();
 		}
 
 		// OAuth2 제공자 연결 실패
 		if (message != null && message.contains("server_error")) {
-			return "인증 서버 연결에 실패했습니다. 잠시 후 다시 시도해주세요.";
+			return BaseResponseStatus.OAUTH_SERVER_ERROR.getMessage();
 		}
 
 		// 기타 OAuth2 에러
-		return "로그인 중 오류가 발생했습니다. 다시 시도해주세요.";
+		return BaseResponseStatus.OAUTH_UNKNOWN_ERROR.getMessage();
 	}
 }

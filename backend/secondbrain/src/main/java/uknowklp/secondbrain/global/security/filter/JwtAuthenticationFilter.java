@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+import uknowklp.secondbrain.global.response.BaseResponseStatus;
 import uknowklp.secondbrain.global.security.jwt.JwtProvider;
 
 import io.jsonwebtoken.ExpiredJwtException;
@@ -54,22 +55,34 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 		} catch (ExpiredJwtException e) {
 			// JWT 토큰 만료
 			log.warn("Expired JWT token for request: {} {}", request.getMethod(), request.getRequestURI());
-			response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "토큰이 만료되었습니다. 다시 로그인해주세요.");
+			response.sendError(
+				BaseResponseStatus.JWT_EXPIRED.getHttpStatus().value(),
+				BaseResponseStatus.JWT_EXPIRED.getMessage()
+			);
 
 		} catch (MalformedJwtException e) {
 			// JWT 토큰 형식 오류
 			log.warn("Malformed JWT token for request: {} {}", request.getMethod(), request.getRequestURI());
-			response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "유효하지 않은 토큰입니다.");
+			response.sendError(
+				BaseResponseStatus.JWT_MALFORMED.getHttpStatus().value(),
+				BaseResponseStatus.JWT_MALFORMED.getMessage()
+			);
 
 		} catch (SignatureException e) {
 			// JWT 서명 검증 실패
 			log.warn("Invalid JWT signature for request: {} {}", request.getMethod(), request.getRequestURI());
-			response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "토큰 서명이 유효하지 않습니다.");
+			response.sendError(
+				BaseResponseStatus.JWT_INVALID_SIGNATURE.getHttpStatus().value(),
+				BaseResponseStatus.JWT_INVALID_SIGNATURE.getMessage()
+			);
 
 		} catch (Exception e) {
 			// 기타 예외
 			log.error("JWT authentication error for request: {} {}", request.getMethod(), request.getRequestURI(), e);
-			response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "인증 처리 중 오류가 발생했습니다.");
+			response.sendError(
+				BaseResponseStatus.JWT_AUTHENTICATION_ERROR.getHttpStatus().value(),
+				BaseResponseStatus.JWT_AUTHENTICATION_ERROR.getMessage()
+			);
 		}
 	}
 
