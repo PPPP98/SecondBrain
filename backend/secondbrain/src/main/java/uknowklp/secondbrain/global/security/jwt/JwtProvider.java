@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 
 import javax.crypto.SecretKey;
 
@@ -68,18 +69,58 @@ public class JwtProvider {
 		log.info("JWT SecretKey initialized successfully (length: {} bytes)", keyBytes.length);
 	}
 
-	public String createToken(User user) {
+	/**
+	 * Access Token 생성
+	 *
+	 * @param user 사용자 정보
+	 * @return 생성된 access token
+	 */
+	public String createAccessToken(User user) {
 		Date now = new Date();
 		Date expiryDate = new Date(now.getTime() + accessExpireTime);
+		String tokenId = UUID.randomUUID().toString();
 
 		return Jwts.builder()
 			.subject(user.getEmail())
 			.claim("userId", user.getId())
 			.claim("role", "ROLE_USER")
+			.claim("tokenType", "ACCESS")
+			.claim("tokenId", tokenId)
 			.issuedAt(now)
 			.expiration(expiryDate)
 			.signWith(secretKey, Jwts.SIG.HS256)
 			.compact();
+	}
+
+	/**
+	 * Refresh Token 생성
+	 *
+	 * @param user 사용자 정보
+	 * @return 생성된 refresh token
+	 */
+	public String createRefreshToken(User user) {
+		Date now = new Date();
+		Date expiryDate = new Date(now.getTime() + refreshExpireTime);
+		String tokenId = UUID.randomUUID().toString();
+
+		return Jwts.builder()
+			.subject(user.getEmail())
+			.claim("userId", user.getId())
+			.claim("tokenType", "REFRESH")
+			.claim("tokenId", tokenId)
+			.issuedAt(now)
+			.expiration(expiryDate)
+			.signWith(secretKey, Jwts.SIG.HS256)
+			.compact();
+	}
+
+	/**
+	 * 하위 호환성을 위한 메서드 (기존 createToken → createAccessToken)
+	 * @deprecated 대신 createAccessToken을 사용하세요
+	 */
+	@Deprecated
+	public String createToken(User user) {
+		return createAccessToken(user);
 	}
 
 	// 토큰 유효성 검증
@@ -121,5 +162,56 @@ public class JwtProvider {
 			}
 		}
 		return null;
+	}
+
+	/**
+	 * 토큰에서 tokenId를 추출
+	 *
+	 * @param token JWT 토큰
+	 * @return tokenId
+	 */
+	public String getTokenId(String token) {
+		Claims claims = getClaims(token);
+		return claims.get("tokenId", String.class);
+	}
+
+	/**
+	 * 토큰에서 userId를 추출
+	 *
+	 * @param token JWT 토큰
+	 * @return userId
+	 */
+	public Long getUserId(String token) {
+		Claims claims = getClaims(token);
+		return claims.get("userId", Long.class);
+	}
+
+	/**
+	 * 토큰 타입 확인 (ACCESS 또는 REFRESH)
+	 *
+	 * @param token JWT 토큰
+	 * @return 토큰 타입
+	 */
+	public String getTokenType(String token) {
+		Claims claims = getClaims(token);
+		return claims.get("tokenType", String.class);
+	}
+
+	/**
+	 * Access Token 만료 시간을 반환 (밀리초)
+	 *
+	 * @return access token 만료 시간
+	 */
+	public long getAccessExpireTime() {
+		return accessExpireTime;
+	}
+
+	/**
+	 * Refresh Token 만료 시간을 반환 (밀리초)
+	 *
+	 * @return refresh token 만료 시간
+	 */
+	public long getRefreshExpireTime() {
+		return refreshExpireTime;
 	}
 }
