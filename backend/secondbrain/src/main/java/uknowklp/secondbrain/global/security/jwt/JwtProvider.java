@@ -51,10 +51,21 @@ public class JwtProvider {
 
 	@PostConstruct
 	private void init() {
-		// Base64 디코딩하여 SecretKey 객체로
-		this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
-		log.info("JWT SecretKey initialized successfully");
-		log.info("JWT SecretKey length = {}", secretKey.getEncoded().length);
+		// JWT Secret 키 길이 검증 (HS256은 최소 256비트/32바이트 필요)
+		byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
+		if (keyBytes.length < 32) {
+			throw new IllegalArgumentException(
+				String.format(
+					"JWT secret must be at least 256 bits (32 bytes). Current length: %d bytes. " +
+						"Please use a longer secret key for security.",
+					keyBytes.length
+				)
+			);
+		}
+
+		// SecretKey 객체 생성
+		this.secretKey = Keys.hmacShaKeyFor(keyBytes);
+		log.info("JWT SecretKey initialized successfully (length: {} bytes)", keyBytes.length);
 	}
 
 	public String createToken(User user) {
