@@ -104,8 +104,8 @@ pipeline {
     string(name: 'GIT_URL_HTTPS', defaultValue: 'https://lab.ssafy.com/s13-final/S13P31E107.git', description: 'Git repository (HTTPS)')
     string(name: 'DEVELOP_BRANCH', defaultValue: 'develop', description: 'Develop branch name')
     string(name: 'RELEASE_BRANCH', defaultValue: 'master', description: 'Release branch name')
-    string(name: 'COMPOSE_FILE',   defaultValue: 'deploy/docker-compose.yml', description: 'Main compose file')
-    string(name: 'COMPOSE_AI_FILE',defaultValue: 'deploy/docker-compose.ai.yml', description: 'AI compose file')
+    string(name: 'COMPOSE_FILE',   defaultValue: 'Deploy/docker-compose.yml', description: 'Main compose file')
+    string(name: 'COMPOSE_AI_FILE',defaultValue: 'Deploy/docker-compose.ai.yml', description: 'AI compose file')
     string(name: 'BACK_SERVICE',  defaultValue: 'klp_back',  description: 'Compose service name for backend')
     string(name: 'FRONT_SERVICE', defaultValue: 'klp_front', description: 'Compose service name for frontend')
     string(name: 'AI_SERVICE',    defaultValue: 'klp_ai',    description: 'Compose service name for ai')
@@ -295,7 +295,7 @@ pipeline {
             withCredentials([file(credentialsId: 'ENV_FILE', variable: 'ENV_FILE')]) {
               sh '''
                 set -eu
-                install -m 600 "$ENV_FILE" deploy/.env
+                install -m 600 "$ENV_FILE" Deploy/.env
               '''
             }
           } catch (e) {
@@ -378,19 +378,19 @@ pipeline {
     //         timeout(time: 20, unit: 'MINUTES') {
     //           sh '''
     //             set -eux
-    //             docker compose --env-file deploy/.env -f "$COMPOSE_FILE" pull || true
+    //             docker compose --env-file Deploy/.env -f "$COMPOSE_FILE" pull || true
     //           '''
     //           if (env.CHANGED_BACK == "1" || env.CHANGED_DEPLOY == "1") {
     //             sh """
     //               set -eux
-    //               docker compose --env-file deploy/.env -f "$COMPOSE_FILE" up -d --build ${env.BACK_SERVICE}
+    //               docker compose --env-file Deploy/.env -f "$COMPOSE_FILE" up -d --build ${env.BACK_SERVICE}
     //             """
     //           } else { echo "Skip compose up for ${env.BACK_SERVICE}" }
 
     //           if (env.CHANGED_FRONT == "1" || env.CHANGED_DEPLOY == "1") {
     //             sh """
     //               set -eux
-    //               docker compose --env-file deploy/.env -f "$COMPOSE_FILE" up -d --build ${env.FRONT_SERVICE}
+    //               docker compose --env-file Deploy/.env -f "$COMPOSE_FILE" up -d --build ${env.FRONT_SERVICE}
     //             """
     //           } else { echo "Skip compose up for ${env.FRONT_SERVICE}" }
 
@@ -398,9 +398,9 @@ pipeline {
     //             sh """
     //               set -eux
     //               if [ -f "$COMPOSE_FILE" ]; then
-    //                 docker compose --env-file deploy/.env -f "$COMPOSE_FILE" up -d --build ${env.AI_SERVICE}
+    //                 docker compose --env-file Deploy/.env -f "$COMPOSE_FILE" up -d --build ${env.AI_SERVICE}
     //               else
-    //                 docker compose --env-file deploy/.env -f "$COMPOSE_FILE" up -d --build ${env.AI_SERVICE}
+    //                 docker compose --env-file Deploy/.env -f "$COMPOSE_FILE" up -d --build ${env.AI_SERVICE}
     //               fi
     //             """
     //           } else { echo "Skip compose up for ${env.AI_SERVICE}" }
