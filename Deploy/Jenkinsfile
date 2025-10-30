@@ -402,7 +402,7 @@ pipeline {
                 sh """
                   set -eux
                   if [ -f "$COMPOSE_AI_FILE" ]; then
-                    docker compose --env-file deploy/.env -f "$COMPOSE_AI_FILE" up -d --build ${env.AI_SERVICE}
+                    docker compose --env-file deploy/.env -f "$COMPOSE_FILE" up -d --build ${env.AI_SERVICE}
                   else
                     docker compose --env-file deploy/.env -f "$COMPOSE_FILE" up -d --build ${env.AI_SERVICE}
                   fi
