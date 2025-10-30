@@ -1,5 +1,6 @@
 package uknowklp.secondbrain.api.auth.controller;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -45,6 +46,9 @@ public class AuthController {
 	private final TokenBlacklistService blacklistService;
 	private final UserService userService;
 	private final RedisTemplate<String, Object> redisTemplate;
+
+	@Value("${security.jwt.cookie.secure}")
+	private boolean cookieSecure;
 
 	private static final String AUTH_CODE_PREFIX = "auth_code:";
 
@@ -161,9 +165,10 @@ public class AuthController {
 		// 10. 새 refresh token을 HttpOnly 쿠키로 설정
 		Cookie refreshCookie = new Cookie("refreshToken", newRefreshToken);
 		refreshCookie.setHttpOnly(true);
-		refreshCookie.setSecure(true);  // HTTPS only (프로덕션)
+		refreshCookie.setSecure(cookieSecure);
 		refreshCookie.setPath("/");
 		refreshCookie.setMaxAge((int)refreshExpireSeconds);
+		refreshCookie.setAttribute("SameSite", "Lax");  // CSRF 보호
 		response.addCookie(refreshCookie);
 
 		log.info("Token refreshed successfully. UserId: {}", userId);
@@ -219,9 +224,10 @@ public class AuthController {
 		// 3. Refresh token 쿠키 삭제
 		Cookie refreshCookie = new Cookie("refreshToken", null);
 		refreshCookie.setHttpOnly(true);
-		refreshCookie.setSecure(true);
+		refreshCookie.setSecure(cookieSecure);
 		refreshCookie.setPath("/");
 		refreshCookie.setMaxAge(0);
+		refreshCookie.setAttribute("SameSite", "Lax");  // CSRF 보호
 		response.addCookie(refreshCookie);
 
 		log.info("User logged out successfully. UserId: {}, Email: {}", userId, userDetails.getUsername());

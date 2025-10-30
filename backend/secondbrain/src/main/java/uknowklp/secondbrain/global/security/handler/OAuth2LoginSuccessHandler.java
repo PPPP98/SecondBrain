@@ -7,6 +7,7 @@ import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
@@ -61,12 +62,19 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
 
 		// 2. Refresh Token을 Redis에 저장
 		long refreshExpireSeconds = jwtProvider.getRefreshExpireTime() / 1000;
-		refreshTokenService.storeRefreshToken(
-			String.valueOf(user.getId()),
-			refreshToken,
-			refreshTokenId,
-			refreshExpireSeconds
-		);
+		try {
+			refreshTokenService.storeRefreshToken(
+				String.valueOf(user.getId()),
+				refreshToken,
+				refreshTokenId,
+				refreshExpireSeconds
+			);
+		} catch (Exception e) {
+			log.error("Failed to store refresh token in Redis. UserId: {}, TokenId: {}, Email: {}",
+				user.getId(), refreshTokenId, user.getEmail(), e);
+			throw new AuthenticationServiceException(
+				"Unable to complete authentication due to system error. Please try again.", e);
+		}
 
 		// 3. Refresh Token을 HttpOnly 쿠키에 저장 (보안 강화)
 		Cookie refreshCookie = new Cookie("refreshToken", refreshToken);
@@ -74,6 +82,7 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
 		refreshCookie.setSecure(cookieSecure);  // 환경별 설정 (프로덕션: true, 로컬: false)
 		refreshCookie.setPath("/");        // 모든 경로에서 전송
 		refreshCookie.setMaxAge((int)refreshExpireSeconds);  // 30일
+		refreshCookie.setAttribute("SameSite", "Lax");  // CSRF 보호 (OAuth2 리다이렉트 지원)
 		response.addCookie(refreshCookie);
 
 		log.debug("Refresh token cookie set - Secure: {}, MaxAge: {} days", cookieSecure, refreshExpireSeconds / 86400);
@@ -83,11 +92,18 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
 
 		// 5. Redis에 인증 코드 저장 (5분 만료, 일회용)
 		String authCodeKey = AUTH_CODE_PREFIX + authCode;
-		redisTemplate.opsForValue().set(
-			authCodeKey,
-			user.getId().toString(),
-			Duration.ofMinutes(5)
-		);
+		try {
+			redisTemplate.opsForValue().set(
+				authCodeKey,
+				user.getId().toString(),
+				Duration.ofMinutes(5)
+			);
+		} catch (Exception e) {
+			log.error("Failed to store authorization code in Redis. UserId: {}, Code: {}, Email: {}",
+				user.getId(), authCode, user.getEmail(), e);
+			throw new AuthenticationServiceException(
+				"Unable to complete authentication due to system error. Please try again.", e);
+		}
 
 		log.info("Authorization code generated for user: {}, expires in 5 minutes", user.getEmail());
 
