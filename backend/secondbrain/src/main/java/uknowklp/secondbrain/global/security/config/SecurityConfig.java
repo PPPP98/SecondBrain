@@ -56,7 +56,7 @@ public class SecurityConfig {
 				.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // CORS Preflight
 
 				// 보호된 엔드포인트 (인증 필수)
-				.requestMatchers("/api/**", "/my/**").authenticated()
+				.requestMatchers("/api/**").authenticated()
 
 				// 나머지 모든 요청은 인증 필요
 				.anyRequest().authenticated()
