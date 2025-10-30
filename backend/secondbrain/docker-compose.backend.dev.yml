@@ -38,70 +38,12 @@ services:
       retries: 5
     restart: unless-stopped
 
-  # Neo4j 그래프 데이터베이스
-  neo4j:
-    image: neo4j:5-community
-    container_name: secondbrain-neo4j
-    environment:
-      NEO4J_AUTH: ${NEO4J_USER}/${NEO4J_PASSWORD}
-      NEO4J_dbms_memory_pagecache_size: 512M
-      NEO4J_dbms_memory_heap_initial__size: 512M
-      NEO4J_dbms_memory_heap_max__size: 1G
-    ports:
-      - "${NEO4J_HTTP_PORT}:${NEO4J_INTERNAL_HTTP_PORT}"   # HTTP
-      - "${NEO4J_BOLT_PORT}:${NEO4J_INTERNAL_BOLT_PORT}"   # Bolt
-    volumes:
-      - neo4j_data:/data
-      - neo4j_logs:/logs
-    networks:
-      - secondbrain-network
-    healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:${NEO4J_INTERNAL_HTTP_PORT} || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    restart: unless-stopped
-
-  # Spring Boot 애플리케이션 (선택사항 - Docker에서 앱 실행 시 주석 해제)
-  # app:
-  #   build:
-  #     context: .
-  #     dockerfile: Dockerfile.backend.dev
-  #   container_name: secondbrain-app
-  #   environment:
-  #     SPRING_PROFILES_ACTIVE: docker
-  #     SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:${POSTGRES_INTERNAL_PORT}/${POSTGRES_DB}
-  #     SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
-  #     SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
-  #     SPRING_DATA_REDIS_HOST: redis
-  #     SPRING_DATA_REDIS_PORT: ${REDIS_INTERNAL_PORT}
-  #     SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD}
-  #     SPRING_NEO4J_URI: bolt://neo4j:${NEO4J_INTERNAL_BOLT_PORT}
-  #     SPRING_NEO4J_AUTHENTICATION_USERNAME: ${NEO4J_USER}
-  #     SPRING_NEO4J_AUTHENTICATION_PASSWORD: ${NEO4J_PASSWORD}
-  #   ports:
-  #     - "${APP_PORT}:${APP_INTERNAL_PORT}"
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #     redis:
-  #       condition: service_healthy
-  #     neo4j:
-  #       condition: service_healthy
-  #   networks:
-  #     - secondbrain-network
-  #   restart: unless-stopped
-
 volumes:
   postgres_data:
     driver: local
   redis_data:
     driver: local
-  neo4j_data:
-    driver: local
-  neo4j_logs:
-    driver: local
-
+    
 networks:
   secondbrain-network:
     driver: bridge
