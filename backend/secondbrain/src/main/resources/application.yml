@@ -65,4 +65,4 @@ swagger:
 logging:
   level:
     root: INFO
-    uknowklp.secondBrain: DEBUG
+    uknowklp.secondbrain: DEBUG
