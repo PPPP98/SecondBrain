@@ -66,14 +66,15 @@ public class JwtProvider {
 	}
 
 	/**
-	 * Access Token 생성
+	 * JWT 토큰 생성 (공통 메서드)
 	 *
 	 * @param user 사용자 정보
-	 * @return 생성된 access token
+	 * @param expireTime 만료 시간 (밀리초)
+	 * @return 생성된 JWT 토큰
 	 */
-	public String createAccessToken(User user) {
+	private String createToken(User user, long expireTime) {
 		Date now = new Date();
-		Date expiryDate = new Date(now.getTime() + accessExpireTime);
+		Date expiryDate = new Date(now.getTime() + expireTime);
 
 		return Jwts.builder()
 			.subject(user.getEmail())
@@ -86,22 +87,23 @@ public class JwtProvider {
 	}
 
 	/**
+	 * Access Token 생성
+	 *
+	 * @param user 사용자 정보
+	 * @return 생성된 access token
+	 */
+	public String createAccessToken(User user) {
+		return createToken(user, accessExpireTime);
+	}
+
+	/**
 	 * Refresh Token 생성
 	 *
 	 * @param user 사용자 정보
 	 * @return 생성된 refresh token
 	 */
 	public String createRefreshToken(User user) {
-		Date now = new Date();
-		Date expiryDate = new Date(now.getTime() + refreshExpireTime);
-
-		return Jwts.builder()
-			.subject(user.getEmail())
-			.claim("userId", user.getId())
-			.issuedAt(now)
-			.expiration(expiryDate)
-			.signWith(secretKey, Jwts.SIG.HS256)
-			.compact();
+		return createToken(user, refreshExpireTime);
 	}
 
 	// 토큰 유효성 검증
@@ -159,31 +161,31 @@ public class JwtProvider {
 	 * <p>
 	 * 성능 최적화: DB 조회 없이 JWT claims만으로 User 객체 생성
 	 * 인증에는 userId, email, role만 필요하며 모두 JWT에 포함되어 있음
+	 * 토큰 파싱 최적화: getClaimsIfValid()를 사용하여 한 번만 파싱
 	 * </p>
 	 *
 	 * @param token JWT 토큰
 	 * @return Authentication 객체 또는 null
 	 */
 	public Authentication getAuthentication(String token) {
-		if (validateToken(token)) {
-			Claims claims = getClaims(token);
+		return getClaimsIfValid(token)
+			.map(claims -> {
+				// JWT claims로부터 직접 User 객체 생성 (DB 조회 불필요)
+				User user = User.builder()
+					.id(claims.get("userId", Long.class))
+					.email(claims.getSubject())
+					.build();
 
-			// JWT claims로부터 직접 User 객체 생성 (DB 조회 불필요)
-			User user = User.builder()
-				.id(claims.get("userId", Long.class))
-				.email(claims.getSubject())
-				.build();
+				UserDetails userDetails = new CustomUserDetails(user);
+				String role = claims.get("role", String.class);
+				Set<GrantedAuthority> authorities = Collections.singleton(new SimpleGrantedAuthority(role));
+				UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
+					userDetails, "", authorities);
 
-			UserDetails userDetails = new CustomUserDetails(user);
-			String role = claims.get("role", String.class);
-			Set<GrantedAuthority> authorities = Collections.singleton(new SimpleGrantedAuthority(role));
-			UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
-				userDetails, "", authorities);
-
-			log.debug("Authenticated user from JWT: {}", user.getEmail());
-			return auth;
-		}
-		return null;
+				log.debug("Authenticated user from JWT: {}", user.getEmail());
+				return auth;
+			})
+			.orElse(null);
 	}
 
 	/**

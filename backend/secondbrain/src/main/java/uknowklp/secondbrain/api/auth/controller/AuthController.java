@@ -9,6 +9,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import io.jsonwebtoken.Claims;
@@ -25,14 +26,14 @@ import uknowklp.secondbrain.global.security.jwt.JwtProvider;
 import uknowklp.secondbrain.global.security.jwt.dto.CustomUserDetails;
 import uknowklp.secondbrain.global.security.jwt.dto.TokenResponse;
 import uknowklp.secondbrain.global.security.jwt.service.RefreshTokenService;
+import uknowklp.secondbrain.global.security.oauth2.dto.AuthCodeData;
+import uknowklp.secondbrain.global.security.oauth2.service.AuthorizationCodeService;
 
 /**
- * 인증 관련 REST API 컨트롤러 (단순화된 버전)
+ * 인증 관련 REST API 컨트롤러
+ * - Token exchange (authorization code → JWT tokens)
  * - Token refresh (access token 갱신)
  * - Logout (token 무효화)
- *
- * Authorization Code 패턴 제거 - OAuth2 로그인 후 직접 JWT 발급
- * Token Rotation 제거 - 단순 갱신 방식 사용
  */
 @Slf4j
 @RestController
@@ -42,10 +43,88 @@ public class AuthController {
 
 	private final JwtProvider jwtProvider;
 	private final RefreshTokenService refreshTokenService;
+	private final AuthorizationCodeService authorizationCodeService;
 	private final UserService userService;
 
 	@Value("${security.jwt.cookie.secure}")
 	private boolean cookieSecure;
+
+	/**
+	 * Authorization Code를 JWT 토큰으로 교환
+	 * OAuth2 로그인 후 프론트엔드가 받은 authorization code를 access token과 refresh token으로 교환합니다.
+	 *
+	 * 보안 특징:
+	 * - One-time use: Code는 사용 후 즉시 삭제
+	 * - Short TTL: Code는 5분 제한
+	 * - Refresh Token: HttpOnly Cookie로 전달
+	 * - Access Token: JSON Response로 전달
+	 *
+	 * @param authorizationCode OAuth2 인증 후 발급받은 authorization code (required)
+	 * @param response          HTTP 응답 (쿠키 설정용)
+	 * @return Access Token 정보 (JSON Body)
+	 */
+	@PostMapping("/token")
+	public ResponseEntity<BaseResponse<TokenResponse>> exchangeToken(
+		@RequestParam(name = "code", required = false) String authorizationCode,
+		HttpServletResponse response) {
+
+		// 1. Authorization Code 존재 여부 확인
+		if (authorizationCode == null || authorizationCode.isEmpty()) {
+			log.warn("Authorization code not provided in request");
+			throw new BaseException(BaseResponseStatus.CODE_NOT_PROVIDED);
+		}
+
+		// 2. Authorization Code 검증 및 소비 (one-time use, atomic operation)
+		AuthCodeData authCodeData = authorizationCodeService.validateAndConsume(authorizationCode);
+
+		// 3. 사용자 조회
+		User user = userService.findById(authCodeData.getUserId())
+			.orElseThrow(() -> {
+				log.error("User not found for authorization code. UserId: {}", authCodeData.getUserId());
+				return new BaseException(BaseResponseStatus.USER_NOT_FOUND);
+			});
+
+		log.info("User authenticated via authorization code. UserId: {}, Email: {}",
+			user.getId(), user.getEmail());
+
+		// 4. Refresh Token 생성 및 Redis 저장 (Access Token 생성 전에 수행하여 트랜잭션 일관성 보장)
+		String refreshToken = jwtProvider.createRefreshToken(user);
+		long refreshExpireSeconds = jwtProvider.getRefreshExpireTime() / 1000;
+
+		try {
+			refreshTokenService.storeRefreshToken(
+				user.getId(),
+				refreshToken,
+				refreshExpireSeconds
+			);
+			log.debug("Refresh token stored in Redis - UserId: {}, TTL: {}s",
+				user.getId(), refreshExpireSeconds);
+		} catch (Exception e) {
+			log.error("Failed to store refresh token in Redis. UserId: {}, Email: {}",
+				user.getId(), user.getEmail(), e);
+			throw new BaseException(BaseResponseStatus.SERVER_ERROR);
+		}
+
+		// 5. Redis 저장 성공 후 Access Token 생성
+		String accessToken = jwtProvider.createAccessToken(user);
+		log.debug("Access token generated - UserId: {}, Email: {}", user.getId(), user.getEmail());
+
+		// 6. Refresh Token을 HttpOnly 쿠키로 설정 (ResponseCookie 사용)
+		ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", refreshToken)
+			.httpOnly(true)
+			.secure(cookieSecure)
+			.path("/")
+			.maxAge(Duration.ofSeconds(refreshExpireSeconds))
+			.sameSite("Lax")
+			.build();
+		response.addHeader("Set-Cookie", refreshCookie.toString());
+
+		log.info("Token exchange successful. UserId: {}, Email: {}", user.getId(), user.getEmail());
+
+		// 7. Access Token은 JSON Body로 응답
+		TokenResponse tokenResponse = TokenResponse.of(accessToken, jwtProvider.getAccessExpireTime());
+		return ResponseEntity.ok(new BaseResponse<>(tokenResponse));
+	}
 
 	/**
 	 * Refresh Token으로 새로운 토큰 쌍 발급 (단순화 버전)

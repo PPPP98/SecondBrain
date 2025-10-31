@@ -53,6 +53,8 @@ secondbrain:
   oauth2:
     redirect-url: ${OAUTH2_REDIRECT_URL}
     failure-redirect-url: ${OAUTH2_FAILURE_REDIRECT_URL:${OAUTH2_REDIRECT_URL}?error=true}
+    authorization-code:
+      ttl-seconds: 300  # Authorization Code 유효 시간 (5분)
 
 security:
   jwt:

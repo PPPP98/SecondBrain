@@ -46,10 +46,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 			// 1. 요청에서 JWT 토큰 추출
 			String token = resolveToken(request);
 
-			// 2. 토큰이 존재하고 유효한 경우 인증 처리
-			if (token != null && jwtProvider.validateToken(token)) {
+			// 2. 토큰이 존재하면 인증 처리 (getAuthentication에서 검증 수행)
+			if (token != null) {
 				// 3. Authentication 객체 생성 및 SecurityContext에 설정
-				// tokenType 검증 제거 - 이 필터는 Access Token 전용
+				// getAuthentication이 내부적으로 토큰 검증을 수행하므로 별도 validateToken 호출 불필요
 				Authentication authentication = jwtProvider.getAuthentication(token);
 				if (authentication != null) {
 					SecurityContextHolder.getContext().setAuthentication(authentication);
