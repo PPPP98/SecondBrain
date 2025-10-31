@@ -60,6 +60,10 @@ security:
   jwt:
     cookie:
       secure: ${JWT_COOKIE_SECURE}   # HTTPS 환경에서 쿠키 보안 설정
+  cors:
+    allowed-origins:
+      - ${CORS_ALLOWED_ORIGIN_1}
+      - ${CORS_ALLOWED_ORIGIN_2}
 
 swagger:
   url: ${BASE_URL}

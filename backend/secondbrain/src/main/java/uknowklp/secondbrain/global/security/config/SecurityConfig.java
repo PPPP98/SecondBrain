@@ -1,7 +1,9 @@
 package uknowklp.secondbrain.global.security.config;
 
 import java.util.Arrays;
+import java.util.List;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -33,6 +35,10 @@ public class SecurityConfig {
 
 	// JWT 인증 필터
 	private final JwtAuthenticationFilter jwtAuthenticationFilter;
+
+	// CORS 허용 출처 (환경변수로 override 가능)
+	@Value("${security.cors.allowed-origins}")
+	private List<String> allowedOrigins;
 
 	@Bean
 	public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -85,11 +91,8 @@ public class SecurityConfig {
 	public CorsConfigurationSource corsConfigurationSource() {
 		CorsConfiguration configuration = new CorsConfiguration();
 
-		// 허용된 출처 (프로덕션 도메인 + 개발 환경)
-		configuration.setAllowedOrigins(Arrays.asList(
-			"https://brainsecond.site",
-			"http://localhost:5173"
-		));
+		// 허용된 출처 (환경변수로 동적 설정 가능)
+		configuration.setAllowedOrigins(allowedOrigins);
 
 		// 허용 헤더
 		configuration.setAllowedHeaders(Arrays.asList("*"));

@@ -33,11 +33,17 @@ public class RefreshTokenService {
 	 * @param userId       사용자 ID
 	 * @param refreshToken Refresh token 문자열
 	 * @param ttlSeconds   만료 시간 (초 단위)
+	 * @throws RuntimeException Redis 연결 실패 시 (caller에서 처리 필요)
 	 */
 	public void storeRefreshToken(Long userId, String refreshToken, long ttlSeconds) {
-		String key = REFRESH_TOKEN_PREFIX + userId;
-		redisTemplate.opsForValue().set(key, refreshToken, Duration.ofSeconds(ttlSeconds));
-		log.debug("Refresh token stored. UserId: {}, TTL: {}s", userId, ttlSeconds);
+		try {
+			String key = REFRESH_TOKEN_PREFIX + userId;
+			redisTemplate.opsForValue().set(key, refreshToken, Duration.ofSeconds(ttlSeconds));
+			log.debug("Refresh token stored. UserId: {}, TTL: {}s", userId, ttlSeconds);
+		} catch (Exception e) {
+			log.error("Redis connection error during refresh token storage. UserId: {}", userId, e);
+			throw e; // Caller에서 적절히 처리하도록 예외 전파
+		}
 	}
 
 	/**
@@ -45,15 +51,20 @@ public class RefreshTokenService {
 	 *
 	 * @param userId       사용자 ID
 	 * @param refreshToken 검증할 토큰
-	 * @return 유효 여부
+	 * @return 유효 여부 (Redis 연결 실패 시 false 반환)
 	 */
 	public boolean validateRefreshToken(Long userId, String refreshToken) {
-		String key = REFRESH_TOKEN_PREFIX + userId;
-		String storedToken = (String) redisTemplate.opsForValue().get(key);
+		try {
+			String key = REFRESH_TOKEN_PREFIX + userId;
+			String storedToken = (String) redisTemplate.opsForValue().get(key);
 
-		boolean isValid = refreshToken != null && refreshToken.equals(storedToken);
-		log.debug("Refresh token validation. UserId: {}, Valid: {}", userId, isValid);
-		return isValid;
+			boolean isValid = refreshToken != null && refreshToken.equals(storedToken);
+			log.debug("Refresh token validation. UserId: {}, Valid: {}", userId, isValid);
+			return isValid;
+		} catch (Exception e) {
+			log.error("Redis connection error during refresh token validation. UserId: {}", userId, e);
+			return false; // Redis 장애 시 검증 실패로 처리
+		}
 	}
 
 	/**
@@ -76,8 +87,13 @@ public class RefreshTokenService {
 	 * @param userId 사용자 ID
 	 */
 	public void revokeRefreshToken(Long userId) {
-		String key = REFRESH_TOKEN_PREFIX + userId;
-		Boolean deleted = redisTemplate.delete(key);
-		log.info("Refresh token revoked. UserId: {}, Deleted: {}", userId, deleted);
+		try {
+			String key = REFRESH_TOKEN_PREFIX + userId;
+			Boolean deleted = redisTemplate.delete(key);
+			log.info("Refresh token revoked. UserId: {}, Deleted: {}", userId, deleted);
+		} catch (Exception e) {
+			log.error("Redis connection error during refresh token revocation. UserId: {}", userId, e);
+			// 로그아웃은 best-effort로 처리 (실패해도 예외 던지지 않음)
+		}
 	}
 }

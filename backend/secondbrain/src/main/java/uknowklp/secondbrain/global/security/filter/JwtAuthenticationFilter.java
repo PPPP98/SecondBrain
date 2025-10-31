@@ -46,22 +46,24 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 			// 1. 요청에서 JWT 토큰 추출
 			String token = resolveToken(request);
 
-			// 2. 토큰이 존재하면 인증 처리 (getAuthentication에서 검증 수행)
+			// 2. 토큰이 존재하면 검증 및 인증 처리
 			if (token != null) {
-				// 3. Authentication 객체 생성 및 SecurityContext에 설정
-				// getAuthentication이 내부적으로 토큰 검증을 수행하므로 별도 validateToken 호출 불필요
-				Authentication authentication = jwtProvider.getAuthentication(token);
-				if (authentication != null) {
-					SecurityContextHolder.getContext().setAuthentication(authentication);
+				// 3. JWT 토큰 유효성 검증 (서명, 만료 시간 등)
+				if (jwtProvider.validateToken(token)) {
+					// 4. 검증된 토큰으로 Authentication 객체 생성 및 SecurityContext에 설정
+					Authentication authentication = jwtProvider.getAuthentication(token);
+					if (authentication != null) {
+						SecurityContextHolder.getContext().setAuthentication(authentication);
 
-					if (log.isDebugEnabled()) {
-						log.debug("Authentication set for user: {}, URI: {}",
-							authentication.getName(), request.getRequestURI());
+						if (log.isDebugEnabled()) {
+							log.debug("Authentication set for user: {}, URI: {}",
+								authentication.getName(), request.getRequestURI());
+						}
 					}
 				}
 			}
 
-			// 4. 다음 필터로 진행
+			// 5. 다음 필터로 진행
 			filterChain.doFilter(request, response);
 
 		} catch (ExpiredJwtException e) {
