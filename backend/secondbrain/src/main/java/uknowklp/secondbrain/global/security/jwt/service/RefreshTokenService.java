@@ -10,12 +10,12 @@ import lombok.extern.slf4j.Slf4j;
 
 /**
  * Refresh Token 관리 서비스 (단순화 버전)
- * Redis를 사용하여 refresh token을 단순하게 저장하고 검증합니다.
+ * Redis를 사용하여 refresh token을 저장하고 검증합니다.
  *
  * 개선사항:
- * - 복잡한 메타데이터 제거
- * - Token rotation 제거
- * - 단순 key-value 저장
+ * - 불필요한 재사용 감지 메커니즘 제거
+ * - 단순한 Token Rotation 유지
+ * - Redis 접근 최소화
  */
 @Slf4j
 @Service
@@ -24,51 +24,60 @@ public class RefreshTokenService {
 
 	private final RedisTemplate<String, Object> redisTemplate;
 
-	// Redis key pattern: refresh_token:{userId}:{tokenId}
+	// Redis key pattern
 	private static final String REFRESH_TOKEN_PREFIX = "refresh_token:";
 
 	/**
-	 * Refresh token을 Redis에 저장 (단순화)
+	 * Refresh token을 Redis에 저장
 	 *
 	 * @param userId       사용자 ID
 	 * @param refreshToken Refresh token 문자열
-	 * @param tokenId      Token의 고유 ID
 	 * @param ttlSeconds   만료 시간 (초 단위)
 	 */
-	public void storeRefreshToken(String userId, String refreshToken, String tokenId, long ttlSeconds) {
-		String key = REFRESH_TOKEN_PREFIX + userId + ":" + tokenId;
-
-		// 단순하게 토큰 존재 여부만 저장 (값은 "valid" 문자열)
-		redisTemplate.opsForValue().set(key, "valid", Duration.ofSeconds(ttlSeconds));
-
-		log.debug("Refresh token stored. UserId: {}, TokenId: {}, TTL: {}s", userId, tokenId, ttlSeconds);
+	public void storeRefreshToken(Long userId, String refreshToken, long ttlSeconds) {
+		String key = REFRESH_TOKEN_PREFIX + userId;
+		redisTemplate.opsForValue().set(key, refreshToken, Duration.ofSeconds(ttlSeconds));
+		log.debug("Refresh token stored. UserId: {}, TTL: {}s", userId, ttlSeconds);
 	}
 
 	/**
-	 * Refresh token이 Redis에 존재하는지 검증
+	 * Refresh token 검증 (단순 버전)
 	 *
-	 * @param userId  사용자 ID
-	 * @param tokenId Token의 고유 ID
-	 * @return 존재 여부
+	 * @param userId       사용자 ID
+	 * @param refreshToken 검증할 토큰
+	 * @return 유효 여부
 	 */
-	public boolean validateRefreshToken(String userId, String tokenId) {
-		String key = REFRESH_TOKEN_PREFIX + userId + ":" + tokenId;
-		Boolean exists = redisTemplate.hasKey(key);
+	public boolean validateRefreshToken(Long userId, String refreshToken) {
+		String key = REFRESH_TOKEN_PREFIX + userId;
+		String storedToken = (String) redisTemplate.opsForValue().get(key);
 
-		log.debug("Refresh token validation. UserId: {}, TokenId: {}, Exists: {}", userId, tokenId, exists);
-		return Boolean.TRUE.equals(exists);
+		boolean isValid = refreshToken != null && refreshToken.equals(storedToken);
+		log.debug("Refresh token validation. UserId: {}, Valid: {}", userId, isValid);
+		return isValid;
 	}
 
 	/**
-	 * 특정 refresh token을 무효화 (삭제)
+	 * Token Rotation 수행 (단순화 버전)
+	 * 기존 토큰을 새 토큰으로 교체
 	 *
-	 * @param userId  사용자 ID
-	 * @param tokenId Token의 고유 ID
+	 * @param userId          사용자 ID
+	 * @param newRefreshToken 새 토큰
+	 * @param ttlSeconds      만료 시간
 	 */
-	public void revokeRefreshToken(String userId, String tokenId) {
-		String key = REFRESH_TOKEN_PREFIX + userId + ":" + tokenId;
+	public void rotateRefreshToken(Long userId, String newRefreshToken, long ttlSeconds) {
+		// 단순히 새 토큰으로 덮어쓰기 (기존 토큰은 자동으로 무효화됨)
+		storeRefreshToken(userId, newRefreshToken, ttlSeconds);
+		log.info("Token rotation completed. UserId: {}", userId);
+	}
+
+	/**
+	 * Refresh token 무효화 (삭제)
+	 *
+	 * @param userId 사용자 ID
+	 */
+	public void revokeRefreshToken(Long userId) {
+		String key = REFRESH_TOKEN_PREFIX + userId;
 		Boolean deleted = redisTemplate.delete(key);
-
-		log.info("Refresh token revoked. UserId: {}, TokenId: {}, Deleted: {}", userId, tokenId, deleted);
+		log.info("Refresh token revoked. UserId: {}, Deleted: {}", userId, deleted);
 	}
 }

@@ -48,18 +48,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
 			// 2. 토큰이 존재하고 유효한 경우 인증 처리
 			if (token != null && jwtProvider.validateToken(token)) {
-				// 3. 토큰에서 Claims 추출
-				Claims claims = jwtProvider.getClaims(token);
-
-				// 4. 토큰 타입 확인 (ACCESS 토큰만 허용)
-				String tokenType = claims.get("tokenType", String.class);
-				if (!"ACCESS".equals(tokenType)) {
-					log.warn("Invalid token type: {}. Expected ACCESS token", tokenType);
-					sendUnauthorizedError(response, "Invalid token type");
-					return;
-				}
-
-				// 5. Authentication 객체 생성 및 SecurityContext에 설정
+				// 3. Authentication 객체 생성 및 SecurityContext에 설정
+				// tokenType 검증 제거 - 이 필터는 Access Token 전용
 				Authentication authentication = jwtProvider.getAuthentication(token);
 				if (authentication != null) {
 					SecurityContextHolder.getContext().setAuthentication(authentication);
@@ -71,7 +61,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 				}
 			}
 
-			// 6. 다음 필터로 진행
+			// 4. 다음 필터로 진행
 			filterChain.doFilter(request, response);
 
 		} catch (ExpiredJwtException e) {

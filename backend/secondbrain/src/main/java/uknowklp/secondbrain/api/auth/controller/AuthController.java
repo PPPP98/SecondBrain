@@ -1,6 +1,9 @@
 package uknowklp.secondbrain.api.auth.controller;
 
+import java.time.Duration;
+
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.CookieValue;
@@ -45,61 +48,69 @@ public class AuthController {
 	private boolean cookieSecure;
 
 	/**
-	 * Refresh Token으로 새로운 Access Token 발급 (단순화)
-	 * - Token Rotation 제거
-	 * - Blacklist 체크 제거
-	 * - 단순히 새로운 Access Token만 발급
+	 * Refresh Token으로 새로운 토큰 쌍 발급 (단순화 버전)
+	 * - Token Rotation: 매 갱신 시 새로운 Refresh Token 발급
+	 * - 재사용 감지 제거: 일반 웹 서비스에 적합한 수준으로 단순화
 	 *
-	 * @param refreshToken Refresh token (쿠키에서 자동 추출)
-	 * @return 새로운 access token
+	 * @param oldRefreshToken 기존 Refresh token (쿠키에서 자동 추출)
+	 * @param response HTTP 응답 (새 쿠키 설정용)
+	 * @return 새로운 access token (JSON Body)
 	 */
 	@PostMapping("/refresh")
 	public ResponseEntity<BaseResponse<TokenResponse>> refresh(
-		@CookieValue(name = "refreshToken", required = false) String refreshToken) {
+		@CookieValue(name = "refreshToken", required = false) String oldRefreshToken,
+		HttpServletResponse response) {
 
 		// 1. Refresh token 존재 여부 확인
-		if (refreshToken == null || refreshToken.isEmpty()) {
+		if (oldRefreshToken == null || oldRefreshToken.isEmpty()) {
 			log.warn("Refresh token not found in cookie");
 			throw new BaseException(BaseResponseStatus.REFRESH_TOKEN_NOT_FOUND);
 		}
 
 		// 2. Refresh token JWT 검증
-		if (!jwtProvider.validateToken(refreshToken)) {
+		if (!jwtProvider.validateToken(oldRefreshToken)) {
 			log.warn("Invalid refresh token");
 			throw new BaseException(BaseResponseStatus.INVALID_REFRESH_TOKEN);
 		}
 
 		// 3. Claims에서 사용자 정보 추출
-		Claims claims = jwtProvider.getClaims(refreshToken);
+		Claims claims = jwtProvider.getClaims(oldRefreshToken);
 		Long userId = claims.get("userId", Long.class);
-		String tokenType = claims.get("tokenType", String.class);
-		String tokenId = claims.get("tokenId", String.class);
 
-		// 4. Token 타입 확인
-		if (!"REFRESH".equals(tokenType)) {
-			log.warn("Invalid token type: {}", tokenType);
+		// 4. Redis에서 Refresh Token 검증 (단순 검증)
+		if (!refreshTokenService.validateRefreshToken(userId, oldRefreshToken)) {
+			log.warn("Refresh token validation failed. UserId: {}", userId);
 			throw new BaseException(BaseResponseStatus.INVALID_REFRESH_TOKEN);
 		}
 
-		// 5. Redis에서 Refresh Token 검증 (단순 존재 여부만 확인)
-		if (!refreshTokenService.validateRefreshToken(String.valueOf(userId), tokenId)) {
-			log.warn("Refresh token not found in Redis. UserId: {}", userId);
-			throw new BaseException(BaseResponseStatus.REFRESH_TOKEN_NOT_FOUND);
-		}
-
-		// 6. 사용자 조회
+		// 5. 사용자 조회
 		User user = userService.findById(userId)
 			.orElseThrow(() -> {
 				log.error("User not found. UserId: {}", userId);
 				return new BaseException(BaseResponseStatus.USER_NOT_FOUND);
 			});
 
-		// 7. 새 Access Token 발급 (Refresh Token은 그대로 유지)
+		// 6. 새로운 토큰 쌍 생성
 		String newAccessToken = jwtProvider.createAccessToken(user);
+		String newRefreshToken = jwtProvider.createRefreshToken(user);
 
-		log.info("Access token refreshed successfully. UserId: {}, Email: {}", userId, user.getEmail());
+		// 7. Redis 업데이트 (단순 교체)
+		long refreshExpireSeconds = jwtProvider.getRefreshExpireTime() / 1000;
+		refreshTokenService.rotateRefreshToken(userId, newRefreshToken, refreshExpireSeconds);
 
-		// 8. 응답
+		// 8. 새 Refresh Token을 HttpOnly Cookie로 설정 (ResponseCookie 사용)
+		ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", newRefreshToken)
+			.httpOnly(true)
+			.secure(cookieSecure)
+			.path("/")
+			.maxAge(Duration.ofSeconds(refreshExpireSeconds))
+			.sameSite("Lax")
+			.build();
+		response.addHeader("Set-Cookie", refreshCookie.toString());
+
+		log.info("Token refresh successful. UserId: {}, Email: {}", userId, user.getEmail());
+
+		// 9. Access Token은 JSON Body로 응답
 		TokenResponse tokenResponse = TokenResponse.of(newAccessToken, jwtProvider.getAccessExpireTime());
 		return ResponseEntity.ok(new BaseResponse<>(tokenResponse));
 	}
@@ -126,25 +137,23 @@ public class AuthController {
 		// 1. Refresh token이 존재하면 Redis에서 삭제
 		if (refreshToken != null) {
 			try {
-				if (jwtProvider.validateToken(refreshToken)) {
-					String tokenId = jwtProvider.getTokenId(refreshToken);
-					refreshTokenService.revokeRefreshToken(String.valueOf(userId), tokenId);
-					log.debug("Refresh token revoked from Redis. UserId: {}", userId);
-				}
+				refreshTokenService.revokeRefreshToken(userId);
+				log.debug("Refresh token revoked from Redis. UserId: {}", userId);
 			} catch (Exception e) {
-				// 이미 만료되거나 잘못된 토큰인 경우 무시
+				// 이미 삭제되었거나 만료된 경우 무시
 				log.debug("Failed to revoke refresh token, may be already expired. UserId: {}", userId);
 			}
 		}
 
-		// 2. Refresh token 쿠키 삭제
-		Cookie refreshCookie = new Cookie("refreshToken", null);
-		refreshCookie.setHttpOnly(true);
-		refreshCookie.setSecure(cookieSecure);
-		refreshCookie.setPath("/");
-		refreshCookie.setMaxAge(0);  // 즉시 삭제
-		refreshCookie.setAttribute("SameSite", "Lax");
-		response.addCookie(refreshCookie);
+		// 2. Refresh token 쿠키 삭제 (ResponseCookie 사용)
+		ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", "")
+			.httpOnly(true)
+			.secure(cookieSecure)
+			.path("/")
+			.maxAge(0)  // 즉시 삭제
+			.sameSite("Lax")
+			.build();
+		response.addHeader("Set-Cookie", refreshCookie.toString());
 
 		log.info("User logged out successfully. UserId: {}, Email: {}", userId, userDetails.getUsername());
 
