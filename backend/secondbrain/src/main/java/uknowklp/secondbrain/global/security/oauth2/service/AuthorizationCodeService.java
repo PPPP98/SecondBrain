@@ -6,9 +6,6 @@ import java.util.UUID;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import uknowklp.secondbrain.global.exception.BaseException;
@@ -30,7 +27,6 @@ import uknowklp.secondbrain.global.security.oauth2.dto.AuthCodeData;
 public class AuthorizationCodeService {
 
 	private final RedisTemplate<String, Object> redisTemplate;
-	private final ObjectMapper objectMapper;
 
 	// Redis key pattern
 	private static final String AUTH_CODE_PREFIX = "auth:code:";
@@ -51,16 +47,11 @@ public class AuthorizationCodeService {
 
 		AuthCodeData data = new AuthCodeData(userId, email, System.currentTimeMillis());
 
-		try {
-			String value = objectMapper.writeValueAsString(data);
-			redisTemplate.opsForValue().set(key, value, Duration.ofSeconds(CODE_TTL_SECONDS));
-			log.debug("Authorization code generated and stored. UserId: {}, Code: {}, TTL: {}s",
-				userId, code, CODE_TTL_SECONDS);
-			return code;
-		} catch (JsonProcessingException e) {
-			log.error("Failed to serialize AuthCodeData. UserId: {}, Email: {}", userId, email, e);
-			throw new BaseException(BaseResponseStatus.SERVER_ERROR);
-		}
+		// RedisTemplate이 GenericJackson2JsonRedisSerializer를 사용하므로 객체를 직접 저장
+		redisTemplate.opsForValue().set(key, data, Duration.ofSeconds(CODE_TTL_SECONDS));
+		log.debug("Authorization code generated and stored. UserId: {}, Code: {}, TTL: {}s",
+			userId, code, CODE_TTL_SECONDS);
+		return code;
 	}
 
 	/**
@@ -75,21 +66,18 @@ public class AuthorizationCodeService {
 		String key = AUTH_CODE_PREFIX + code;
 
 		// Redis에서 코드 조회 및 즉시 삭제 (atomic operation)
-		String value = (String)redisTemplate.opsForValue().getAndDelete(key);
+		// RedisTemplate의 GenericJackson2JsonRedisSerializer가 자동으로 역직렬화
+		Object value = redisTemplate.opsForValue().getAndDelete(key);
 
 		if (value == null) {
 			log.warn("Invalid or expired authorization code: {}", code);
 			throw new BaseException(BaseResponseStatus.INVALID_AUTHORIZATION_CODE);
 		}
 
-		try {
-			AuthCodeData data = objectMapper.readValue(value, AuthCodeData.class);
-			log.info("Authorization code validated and consumed. UserId: {}, Email: {}",
-				data.getUserId(), data.getEmail());
-			return data;
-		} catch (JsonProcessingException e) {
-			log.error("Failed to deserialize AuthCodeData. Code: {}", code, e);
-			throw new BaseException(BaseResponseStatus.SERVER_ERROR);
-		}
+		// 타입 캐스팅으로 AuthCodeData 객체 복원
+		AuthCodeData data = (AuthCodeData)value;
+		log.info("Authorization code validated and consumed. UserId: {}, Email: {}",
+			data.getUserId(), data.getEmail());
+		return data;
 	}
 }

@@ -87,10 +87,15 @@ public class AuthController {
 		log.info("User authenticated via authorization code. UserId: {}, Email: {}",
 			user.getId(), user.getEmail());
 
-		// 4. Refresh Token 생성 및 Redis 저장 (Access Token 생성 전에 수행하여 트랜잭션 일관성 보장)
+		// 4. Access Token 생성 (먼저 실행하여 실패 시 Redis 저장 방지)
+		String accessToken = jwtProvider.createAccessToken(user);
+		log.debug("Access token generated - UserId: {}, Email: {}", user.getId(), user.getEmail());
+
+		// 5. Refresh Token 생성
 		String refreshToken = jwtProvider.createRefreshToken(user);
 		long refreshExpireSeconds = jwtProvider.getRefreshExpireTime() / 1000;
 
+		// 6. Access Token 생성 성공 후 Refresh Token Redis 저장 (트랜잭션 일관성 보장)
 		try {
 			refreshTokenService.storeRefreshToken(
 				user.getId(),
@@ -105,11 +110,7 @@ public class AuthController {
 			throw new BaseException(BaseResponseStatus.SERVER_ERROR);
 		}
 
-		// 5. Redis 저장 성공 후 Access Token 생성
-		String accessToken = jwtProvider.createAccessToken(user);
-		log.debug("Access token generated - UserId: {}, Email: {}", user.getId(), user.getEmail());
-
-		// 6. Refresh Token을 HttpOnly 쿠키로 설정 (ResponseCookie 사용)
+		// 7. Refresh Token을 HttpOnly 쿠키로 설정 (ResponseCookie 사용)
 		ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", refreshToken)
 			.httpOnly(true)
 			.secure(cookieSecure)
@@ -121,7 +122,7 @@ public class AuthController {
 
 		log.info("Token exchange successful. UserId: {}, Email: {}", user.getId(), user.getEmail());
 
-		// 7. Access Token은 JSON Body로 응답
+		// 8. Access Token은 JSON Body로 응답
 		TokenResponse tokenResponse = TokenResponse.of(accessToken, jwtProvider.getAccessExpireTime());
 		return ResponseEntity.ok(new BaseResponse<>(tokenResponse));
 	}

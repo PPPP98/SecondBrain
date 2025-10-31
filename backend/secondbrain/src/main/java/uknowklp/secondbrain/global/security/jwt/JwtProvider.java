@@ -163,6 +163,12 @@ public class JwtProvider {
 	 * 인증에는 userId, email, role만 필요하며 모두 JWT에 포함되어 있음
 	 * 토큰 파싱 최적화: getClaimsIfValid()를 사용하여 한 번만 파싱
 	 * </p>
+	 * <p>
+	 * ⚠️ 중요: 생성된 User 객체는 인증(Authentication) 전용입니다.
+	 * - User 엔티티의 필수 필드(name, setAlarm)가 null입니다.
+	 * - 비즈니스 로직에서 이 User 객체를 직접 사용하지 마세요.
+	 * - 필요 시 UserService.findById()로 완전한 User 엔티티를 조회하세요.
+	 * </p>
 	 *
 	 * @param token JWT 토큰
 	 * @return Authentication 객체 또는 null
@@ -171,6 +177,7 @@ public class JwtProvider {
 		return getClaimsIfValid(token)
 			.map(claims -> {
 				// JWT claims로부터 직접 User 객체 생성 (DB 조회 불필요)
+				// ⚠️ 주의: 이 User 객체는 인증 전용이며 name, setAlarm 필드가 null입니다.
 				User user = User.builder()
 					.id(claims.get("userId", Long.class))
 					.email(claims.getSubject())
