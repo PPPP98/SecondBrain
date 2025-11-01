@@ -47,11 +47,11 @@ public class Note {
 	private LocalDateTime updatedAt;
 
 	@Length(max = 64)
-	@Column(nullable = false)
+	@Column(nullable = false, length = 64)
 	private String title;
 
 	@Length(max = 2048)
-	@Column(nullable = false)
+	@Column(nullable = false, length = 2048)
 	private String content;
 
 	@Column(name = "remind_at")
