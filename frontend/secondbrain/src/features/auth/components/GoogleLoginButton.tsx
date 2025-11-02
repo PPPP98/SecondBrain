@@ -1,5 +1,3 @@
-import React from 'react';
-
 interface GoogleLoginButtonProps {
   onClick?: () => void;
   text?: 'signin' | 'signup' | 'continue';
@@ -16,7 +14,7 @@ interface GoogleLoginButtonProps {
  * - Font: Roboto Medium, 14px, 20px line-height
  * - Padding: 12px left/right, 10px gap between logo and text
  */
-const GoogleLoginButton: React.FC<GoogleLoginButtonProps> = ({ onClick, text = 'signin' }) => {
+export function GoogleLoginButton({ onClick, text = 'signin' }: GoogleLoginButtonProps) {
   const buttonText = {
     signin: 'Sign in with Google',
     signup: 'Sign up with Google',
@@ -63,6 +61,4 @@ const GoogleLoginButton: React.FC<GoogleLoginButtonProps> = ({ onClick, text = '
       <span className="font-medium">{buttonText[text]}</span>
     </button>
   );
-};
-
-export default GoogleLoginButton;
+}
