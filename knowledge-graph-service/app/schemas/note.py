@@ -6,6 +6,7 @@ from datetime import datetime
 class NoteCreate(BaseModel):
     """노트 생성 요청"""
 
+    note_id: str = Field(..., description="노트 ID (Spring Boot에서 생성)")
     title: str = Field(..., min_length=1, max_length=500, description="노트 제목")
     content: str = Field(..., min_length=1, description="노트 내용(임베딩 생성용)")
 
@@ -13,6 +14,7 @@ class NoteCreate(BaseModel):
         # just for swagger UI
         json_schema_extra={
             "example": {
+                "note_id": "550e8400-e29b-41d4-a716-446655440000",
                 "title": "Neo4j 기초",
                 "content": "Neo4j는 그래프 데이터베이스입니다.",
             }
