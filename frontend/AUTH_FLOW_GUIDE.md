@@ -52,15 +52,31 @@
 - `withCredentials: true` 설정 (쿠키 전송 허용)
 - Request/Response 인터셉터 준비 (2단계에서 구현)
 
-#### 1-2. 인증 타입 정의 (`types/auth.ts`)
+#### 1-2. 공통 응답 타입 정의 (`types/api.ts`)
+
+⚠️ **중요**: 백엔드는 대부분의 API에서 `BaseResponse` 구조를 사용합니다.
+
 ```typescript
-interface TokenResponse {
+// 공통 응답 형식 (대부분의 API가 사용)
+export interface BaseResponse<T> {
+  success: boolean;
+  code: number;
+  message: string;
+  data: T | null;
+}
+```
+
+#### 1-3. 인증 타입 정의 (`types/auth.ts`)
+```typescript
+// Token 응답 데이터 (BaseResponse의 data 필드)
+export interface TokenResponse {
   accessToken: string;
   tokenType: string;
   expiresIn: number;
 }
 
-interface UserInfo {
+// 사용자 정보 (GET /api/users/me는 BaseResponse 없이 직접 반환)
+export interface UserInfo {
   id: number;
   email: string;
   name: string;
@@ -69,7 +85,7 @@ interface UserInfo {
 }
 ```
 
-#### 1-3. 인증 Store 생성 (`stores/authStore.ts`)
+#### 1-4. 인증 Store 생성 (`stores/authStore.ts`)
 - Zustand를 사용하여 인증 상태 관리
 - 상태: `accessToken`, `user`, `isAuthenticated`
 - 액션: `setToken`, `setUser`, `clearAuth`
@@ -79,17 +95,27 @@ interface UserInfo {
 ### 2단계: 인증 API 구현
 
 #### 2-1. 인증 API 함수 작성 (`api/auth.ts`)
+
+⚠️ **주의**: 인증 API는 `BaseResponse`로 감싸져 있지만, `GET /api/users/me`는 예외입니다.
+
 ```typescript
+import { BaseResponse } from '@/types/api';
+import { TokenResponse, UserInfo } from '@/types/auth';
+
 // POST /api/auth/token - Authorization Code 교환
-exchangeToken(code: string): Promise<TokenResponse>
+// 반환: BaseResponse<TokenResponse>
+exchangeToken(code: string): Promise<BaseResponse<TokenResponse>>
 
 // POST /api/auth/refresh - Access Token 갱신
-refreshToken(): Promise<TokenResponse>
+// 반환: BaseResponse<TokenResponse>
+refreshToken(): Promise<BaseResponse<TokenResponse>>
 
 // POST /api/auth/logout - 로그아웃
-logout(): Promise<void>
+// 반환: BaseResponse<null>
+logout(): Promise<BaseResponse<null>>
 
 // GET /api/users/me - 현재 사용자 정보 조회
+// ⚠️ 예외: BaseResponse 없이 UserInfo 직접 반환
 getCurrentUser(): Promise<UserInfo>
 ```
 
@@ -98,9 +124,47 @@ getCurrentUser(): Promise<UserInfo>
 - `Authorization: Bearer {accessToken}` 헤더 설정
 
 #### 2-3. Response 인터셉터 구현
-- 401 에러 시 자동으로 Token Refresh 시도
-- Refresh 성공 시 원래 요청 재시도
-- Refresh 실패 시 로그아웃 처리 및 로그인 페이지로 이동
+
+**BaseResponse 처리 로직**:
+```typescript
+axios.interceptors.response.use(
+  (response) => {
+    // BaseResponse 구조 확인 및 처리
+    if (response.data && typeof response.data === 'object') {
+      // BaseResponse인 경우
+      if ('success' in response.data && 'data' in response.data) {
+        // 성공 응답이면 전체 BaseResponse 반환
+        if (response.data.success) {
+          return response.data;
+        }
+        // 실패 응답이면 에러로 처리
+        throw new Error(response.data.message);
+      }
+    }
+    // GET /api/users/me는 직접 UserInfo 반환
+    return response.data;
+  },
+  async (error) => {
+    // 401 에러 시 자동으로 Token Refresh 시도
+    if (error.response?.status === 401) {
+      try {
+        const refreshResponse = await refreshToken();
+        if (refreshResponse.success) {
+          // 새 Access Token 저장
+          setAccessToken(refreshResponse.data.accessToken);
+          // 원래 요청 재시도
+          return axios.request(error.config);
+        }
+      } catch (refreshError) {
+        // Refresh 실패 시 로그아웃 처리 및 로그인 페이지로 이동
+        clearAuth();
+        window.location.href = '/login';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+```
 
 ---
 
@@ -111,20 +175,75 @@ getCurrentUser(): Promise<UserInfo>
 - 클릭 시 `window.location.href = 'http://localhost:8080/oauth2/authorization/google'`
 
 #### 3-2. Callback 페이지 구현 (`/auth/callback`)
-- URL에서 `code` 파라미터 추출 (`useSearch` 또는 `URLSearchParams`)
-- `code`가 있으면:
-  1. `exchangeToken(code)` API 호출
-  2. 받은 `accessToken`을 Zustand 스토어에 저장
-  3. `getCurrentUser()` API 호출하여 사용자 정보 저장
-  4. 메인 페이지로 리다이렉트
-- `error` 파라미터가 있으면:
-  - 로그인 실패 메시지 표시
-  - 로그인 페이지로 리다이렉트
 
-#### 3-3. 로그인 상태 확인 로직
-- 페이지 로드 시 `accessToken`이 있으면 `getCurrentUser()` 호출
-- 성공 시 사용자 정보 저장 및 인증 상태 유지
-- 실패 시 토큰 삭제 및 로그인 페이지로 이동
+**URL에서 `code` 파라미터 추출** (`useSearch` 또는 `URLSearchParams`)
+
+**처리 로직**:
+```typescript
+const handleCallback = async (code: string) => {
+  try {
+    // 1. Authorization Code를 JWT 토큰으로 교환
+    const response = await exchangeToken(code);
+
+    // 2. BaseResponse에서 data 필드 추출
+    if (response.success && response.data) {
+      const { accessToken, tokenType, expiresIn } = response.data;
+
+      // 3. Access Token을 Zustand 스토어에 저장
+      setAccessToken(accessToken);
+
+      // 4. 사용자 정보 조회 (BaseResponse 없이 직접 반환)
+      const userInfo = await getCurrentUser();
+      setUser(userInfo);
+
+      // 5. 메인 페이지로 리다이렉트
+      navigate('/dashboard');
+    }
+  } catch (error) {
+    console.error('Login failed:', error);
+    // 로그인 실패 메시지 표시
+    navigate('/login?error=true');
+  }
+};
+
+// error 파라미터가 있으면 로그인 페이지로 리다이렉트
+if (errorParam) {
+  navigate('/login?error=true');
+}
+```
+
+#### 3-3. 세션 복원 로직 (페이지 새로고침 시)
+
+⚠️ **중요**: Access Token은 메모리에 저장되므로 페이지 새로고침 시 사라집니다. Refresh Token으로 세션을 복원해야 합니다.
+
+```typescript
+useEffect(() => {
+  const restoreSession = async () => {
+    try {
+      // 1. Refresh Token으로 새 Access Token 받기
+      // (Refresh Token은 HttpOnly 쿠키에 있어 자동 전송됨)
+      const response = await refreshToken();
+
+      if (response.success && response.data) {
+        // 2. Access Token 저장
+        setAccessToken(response.data.accessToken);
+
+        // 3. 사용자 정보 조회 (BaseResponse 없이 직접 반환)
+        const userInfo = await getCurrentUser();
+        setUser(userInfo);
+
+        // 4. 세션 복원 완료
+        console.log('Session restored');
+      }
+    } catch (error) {
+      // Refresh Token 없거나 만료됨 → 로그인 페이지 유지
+      console.log('No active session');
+    }
+  };
+
+  restoreSession();
+}, []);
+```
 
 ---
 
@@ -135,21 +254,73 @@ getCurrentUser(): Promise<UserInfo>
 - `staleTime`, `cacheTime`, `retry` 등 설정
 
 #### 4-2. 인증 Mutation 작성
+
+⚠️ **주의**: 인증 API는 `BaseResponse`로 감싸져 있으므로 `response.data` 필드를 추출해야 합니다.
+
 ```typescript
+import { useMutation } from '@tanstack/react-query';
+import { exchangeToken, refreshToken, logout } from '@/api/auth';
+
 // Token 교환 Mutation
-useExchangeToken()
+export function useExchangeToken() {
+  return useMutation({
+    mutationFn: (code: string) => exchangeToken(code),
+    onSuccess: (response) => {
+      if (response.success && response.data) {
+        // BaseResponse.data에서 TokenResponse 추출
+        const { accessToken } = response.data;
+        setAccessToken(accessToken);
+      }
+    },
+  });
+}
 
 // Token 갱신 Mutation
-useRefreshToken()
+export function useRefreshToken() {
+  return useMutation({
+    mutationFn: () => refreshToken(),
+    onSuccess: (response) => {
+      if (response.success && response.data) {
+        const { accessToken } = response.data;
+        setAccessToken(accessToken);
+      }
+    },
+  });
+}
 
 // 로그아웃 Mutation
-useLogout()
+export function useLogout() {
+  return useMutation({
+    mutationFn: () => logout(),
+    onSuccess: (response) => {
+      if (response.success) {
+        clearAuth();
+        navigate('/login');
+      }
+    },
+  });
+}
 ```
 
 #### 4-3. 사용자 정보 Query 작성
+
+⚠️ **주의**: `GET /api/users/me`는 `BaseResponse` 없이 `UserInfo`를 직접 반환합니다.
+
 ```typescript
+import { useQuery } from '@tanstack/react-query';
+import { getCurrentUser } from '@/api/user';
+
 // 현재 사용자 정보 Query
-useCurrentUser()
+export function useCurrentUser() {
+  const { accessToken } = useAuthStore();
+
+  return useQuery({
+    queryKey: ['user', 'me'],
+    queryFn: () => getCurrentUser(),
+    enabled: !!accessToken, // Access Token이 있을 때만 실행
+    staleTime: 5 * 60 * 1000, // 5분
+  });
+}
 ```
 
 ---
@@ -228,21 +399,25 @@ useCurrentUser()
 ## 구현 체크리스트
 
 ### 필수 구현 항목
+
+- [ ] BaseResponse 타입 정의 (`types/api.ts`)
+- [ ] 인증 타입 정의 (`types/auth.ts`)
 - [ ] API 클라이언트 설정 (`withCredentials: true`)
 - [ ] 인증 Store (Zustand)
 - [ ] 인증 API 함수 (`exchangeToken`, `refreshToken`, `logout`, `getCurrentUser`)
 - [ ] Request 인터셉터 (Access Token 자동 추가)
-- [ ] Response 인터셉터 (401 에러 시 Token Refresh)
+- [ ] Response 인터셉터 (BaseResponse 처리 + 401 에러 시 Token Refresh)
 - [ ] 로그인 페이지 (Google OAuth2 시작)
 - [ ] Callback 페이지 (Authorization Code 처리)
+- [ ] 세션 복원 로직 (페이지 새로고침 시 Refresh Token으로 복원)
 - [ ] 보호된 라우트 Guard
 - [ ] 로그아웃 기능
 
 ### 선택 구현 항목
+
 - [ ] Access Token 자동 갱신 (만료 5분 전)
 - [ ] 로딩 상태 UI
 - [ ] 에러 토스트 또는 알림
-- [ ] 로그인 상태 유지 (페이지 새로고침 시)
 - [ ] 리다이렉트 URL 저장 (로그인 후 원래 페이지로 복귀)
 
 ---
@@ -297,6 +472,7 @@ src/
 ├── stores/
 │   └── authStore.ts       # Zustand 인증 스토어
 ├── types/
+│   ├── api.ts             # 공통 API 타입 (BaseResponse)
 │   └── auth.ts            # 인증 관련 타입
 ├── lib/
 │   ├── query-client.ts    # TanStack Query 클라이언트
