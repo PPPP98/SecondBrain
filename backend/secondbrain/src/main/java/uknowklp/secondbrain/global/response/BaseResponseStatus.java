@@ -40,7 +40,14 @@ public enum BaseResponseStatus {
 	 * -10500 : 서버 에러
 	 */
 	SERVER_ERROR(false, HttpStatus.INTERNAL_SERVER_ERROR, -10500, "요청 처리 중 서버 오류가 발생했습니다."),
-	UNEXPECTED_ERROR(false, HttpStatus.INTERNAL_SERVER_ERROR, -10503, "예기치 못한 이유로 오류가 발생했습니다.");
+	UNEXPECTED_ERROR(false, HttpStatus.INTERNAL_SERVER_ERROR, -10503, "예기치 못한 이유로 오류가 발생했습니다."),
+
+	/**
+	 * -10600 : 노트 검색 에러
+	 */
+	NOTE_NOT_FOUND(false, HttpStatus.NOT_FOUND, -10600, "노트를 찾을 수 없습니다."),
+	INVALID_SEARCH_KEYWORD(false, HttpStatus.BAD_REQUEST, -10601, "검색 키워드가 유효하지 않습니다."),
+	ELASTICSEARCH_ERROR(false, HttpStatus.INTERNAL_SERVER_ERROR, -10602, "검색 서비스 오류가 발생했습니다.");
 
 
 	private final boolean isSuccess;

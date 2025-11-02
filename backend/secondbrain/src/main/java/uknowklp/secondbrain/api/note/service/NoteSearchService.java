@@ -131,4 +131,71 @@ public class NoteSearchService {
 	public void deleteNote(Long noteId) {
 		noteSearchRepository.deleteById(noteId.toString());
 	}
+
+	// 테스트 데이터 생성 (개발용)
+	public void createTestData() {
+		List<NoteDocument> testNotes = List.of(
+			NoteDocument.builder()
+				.id(1L)
+				.title("Spring Boot와 Elasticsearch 연동 방법")
+				.content("Spring Boot 3.x에서 Elasticsearch를 사용하는 방법을 정리했습니다. Spring Data Elasticsearch를 활용하면 쉽게 연동할 수 있습니다.")
+				.memberId(1L)
+				.createdAt(java.time.LocalDateTime.now().minusDays(1))
+				.updatedAt(java.time.LocalDateTime.now().minusDays(1))
+				.remindCount(0)
+				.build(),
+
+			NoteDocument.builder()
+				.id(2L)
+				.title("망각곡선 기반 학습 시스템")
+				.content("에빙하우스의 망각곡선 이론을 활용한 효과적인 학습 방법입니다. 반복 학습 간격을 조절하여 장기 기억으로 전환할 수 있습니다.")
+				.memberId(1L)
+				.createdAt(java.time.LocalDateTime.now().minusDays(2))
+				.updatedAt(java.time.LocalDateTime.now().minusDays(2))
+				.remindCount(1)
+				.build(),
+
+			NoteDocument.builder()
+				.id(3L)
+				.title("RabbitMQ 메시지 큐 설정")
+				.content("RabbitMQ를 사용하여 비동기 메시지 처리를 구현합니다. Exchange와 Queue를 바인딩하여 메시지를 라우팅할 수 있습니다.")
+				.memberId(1L)
+				.createdAt(java.time.LocalDateTime.now().minusDays(3))
+				.updatedAt(java.time.LocalDateTime.now().minusDays(3))
+				.remindCount(0)
+				.build(),
+
+			NoteDocument.builder()
+				.id(4L)
+				.title("자바스크립트 비동기 프로그래밍")
+				.content("자바스크립트의 Promise와 async/await를 사용한 비동기 처리 방법을 정리했습니다. 콜백 지옥을 피하고 가독성 좋은 코드를 작성할 수 있습니다.")
+				.memberId(1L)
+				.createdAt(java.time.LocalDateTime.now().minusDays(4))
+				.updatedAt(java.time.LocalDateTime.now().minusDays(4))
+				.remindCount(2)
+				.build(),
+
+			NoteDocument.builder()
+				.id(5L)
+				.title("Docker 컨테이너 최적화 방법")
+				.content("Docker 이미지 크기를 줄이고 빌드 속도를 개선하는 방법입니다. 멀티 스테이지 빌드와 .dockerignore를 활용합니다.")
+				.memberId(1L)
+				.createdAt(java.time.LocalDateTime.now().minusDays(5))
+				.updatedAt(java.time.LocalDateTime.now().minusDays(5))
+				.remindCount(0)
+				.build(),
+
+			NoteDocument.builder()
+				.id(6L)
+				.title("JWT 인증 시스템 구현")
+				.content("Spring Security와 JWT를 사용한 인증 시스템 구현 방법입니다. Access Token과 Refresh Token을 분리하여 보안을 강화합니다.")
+				.memberId(2L)
+				.createdAt(java.time.LocalDateTime.now().minusDays(6))
+				.updatedAt(java.time.LocalDateTime.now().minusDays(6))
+				.remindCount(1)
+				.build()
+		);
+
+		noteSearchRepository.saveAll(testNotes);
+	}
 }
