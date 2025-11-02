@@ -65,6 +65,7 @@ public class SecurityConfig {
 
 				// 인증 API (인증 불필요)
 				.requestMatchers(HttpMethod.POST, "/api/auth/token").permitAll()
+				.requestMatchers(HttpMethod.POST, "/api/auth/refresh").permitAll()
 
 				// 보호된 엔드포인트 (인증 필수)
 				.requestMatchers("/api/**").authenticated()
