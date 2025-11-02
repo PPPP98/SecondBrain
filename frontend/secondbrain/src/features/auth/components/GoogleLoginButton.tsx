@@ -1,5 +1,4 @@
 interface GoogleLoginButtonProps {
-  onClick?: () => void;
   text?: 'signin' | 'signup' | 'continue';
 }
 
@@ -13,17 +12,23 @@ interface GoogleLoginButtonProps {
  * - Text color: #1F1F1F
  * - Font: Roboto Medium, 14px, 20px line-height
  * - Padding: 12px left/right, 10px gap between logo and text
+ *
+ * Redirects user to backend OAuth2 endpoint for Google login
  */
-export function GoogleLoginButton({ onClick, text = 'signin' }: GoogleLoginButtonProps) {
+export function GoogleLoginButton({ text = 'signin' }: GoogleLoginButtonProps) {
   const buttonText = {
     signin: 'Sign in with Google',
     signup: 'Sign up with Google',
     continue: 'Continue with Google',
   };
 
+  function handleLogin() {
+    window.location.href = import.meta.env.VITE_OAUTH2_LOGIN_URL as string;
+  }
+
   return (
     <button
-      onClick={onClick}
+      onClick={handleLogin}
       type="button"
       aria-label={buttonText[text]}
       className="flex min-w-[200px] cursor-pointer items-center justify-center rounded border border-[#747775] bg-white px-3 py-2.5 text-sm font-medium leading-5 text-[#1F1F1F] transition-colors duration-200 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 active:bg-gray-100"
