@@ -6,7 +6,7 @@ import logging
 from app.core.config import get_settings
 from app.db.init_db import initialize_schema
 from app.db.neo4j_client import neo4j_client
-from app.api.v1 import router # noqa: F401
+from app.api.v1.routers import router
 
 # 로깅 설정
 logging.basicConfig(
