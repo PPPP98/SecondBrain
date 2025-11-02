@@ -5,7 +5,7 @@ from datetime import datetime
 class NoteCreate(BaseModel):
     """노트 생성 요청"""
     title: str = Field(..., min_length=1, max_length=500, description="노트 제목")
-    content: str = Field(..., min_length=1, description="노트 내용")
+    content: str = Field(..., min_length=1, description="노트 내용(임베딩 생성용)")
     
     model_config = ConfigDict(
         # just for swagger UI
@@ -22,8 +22,6 @@ class NoteResponse(BaseModel):
     user_id: str
     note_id: str
     title: str
-    content_preview: str
-    token_count: int
     created_at: datetime
     updated_at: Optional[datetime] = None
     
@@ -45,7 +43,6 @@ class EmbeddingResponse(BaseModel):
     user_id: str
     note_id: str
     embedding_dimension: int
-    token_count: int
     linked_notes_count: int
 
 class GraphStats(BaseModel):
