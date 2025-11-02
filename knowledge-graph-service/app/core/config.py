@@ -1,8 +1,9 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from functools import lru_cache
+from typing import Optional
 
 class Settings(BaseSettings):
-    """애플리케이션 설정"""
+    """애플리케이션 환경 변수 설정"""
     
     # Neo4j 설정
     neo4j_uri: str
@@ -11,16 +12,17 @@ class Settings(BaseSettings):
     
     # OpenAI 설정
     openai_api_key: str
+    openai_base_url: Optional[str] = None
     openai_model: str
     
     # 애플리케이션 설정
     similarity_threshold: float
     max_relationships: int
     
-    # Pydantic v2 설정
+    # Pydantic 설정
     model_config = SettingsConfigDict(
         env_file=".env",
-        case_sensitive=False,
+        case_sensitive=False, 
         extra="ignore"
     )
 
