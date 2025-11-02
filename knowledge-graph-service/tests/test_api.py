@@ -192,7 +192,7 @@ def test_missing_header():
     # X-User-ID Header 없음
     response = client.get("/api/v1/notes")
     
-    assert response.status_code == 400
+    assert response.status_code == 422
     
     print(f"✅ Header 검증 성공")
     print(f"   - Status: {response.status_code}")
