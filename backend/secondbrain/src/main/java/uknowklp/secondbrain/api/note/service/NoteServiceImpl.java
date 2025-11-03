@@ -1,5 +1,6 @@
 package uknowklp.secondbrain.api.note.service;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -137,6 +138,12 @@ public class NoteServiceImpl implements NoteService {
 	@Override
 	public void deleteNotes(List<Long> noteIds, Long userId) {
 		log.info("Deleting {} notes for user ID: {}", noteIds.size(), userId);
+
+		// 중복 ID 검증: UI에서 정상적으로 선택한 경우 중복이 없어야 함
+		if (noteIds.size() != new HashSet<>(noteIds).size()) {
+			log.warn("Duplicate note IDs detected in delete request - User ID: {}", userId);
+			throw new BaseException(BaseResponseStatus.BAD_REQUEST);
+		}
 
 		// 1단계: 모든 노트를 한 번에 조회 (N+1 쿼리 방지)
 		List<Note> notesToDelete = noteRepository.findAllById(noteIds);
