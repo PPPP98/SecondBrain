@@ -3,6 +3,7 @@ package uknowklp.secondbrain.api.note.domain;
 import java.time.LocalDateTime;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.elasticsearch.annotations.DateFormat;
 import org.springframework.data.elasticsearch.annotations.Document;
 import org.springframework.data.elasticsearch.annotations.Field;
 import org.springframework.data.elasticsearch.annotations.FieldType;
@@ -31,13 +32,13 @@ public class NoteDocument {
 	@Field(type = FieldType.Keyword)
 	private Long memberId; // member_id (User의 ID)
 
-	@Field(type = FieldType.Date, pattern = "uuuu-MM-dd'T'HH:mm:ss.SSS||uuuu-MM-dd'T'HH:mm:ss||uuuu-MM-dd")
+	@Field(type = FieldType.Date, format = DateFormat.date_hour_minute_second_millis)
 	private LocalDateTime createdAt;
 
-	@Field(type = FieldType.Date, pattern = "uuuu-MM-dd'T'HH:mm:ss.SSS||uuuu-MM-dd'T'HH:mm:ss||uuuu-MM-dd")
+	@Field(type = FieldType.Date, format = DateFormat.date_hour_minute_second_millis)
 	private LocalDateTime updatedAt;
 
-	@Field(type = FieldType.Date, pattern = "uuuu-MM-dd'T'HH:mm:ss.SSS||uuuu-MM-dd'T'HH:mm:ss||uuuu-MM-dd")
+	@Field(type = FieldType.Date, format = DateFormat.date_hour_minute_second_millis)
 	private LocalDateTime remindAt;
 
 	@Field(type = FieldType.Integer)
