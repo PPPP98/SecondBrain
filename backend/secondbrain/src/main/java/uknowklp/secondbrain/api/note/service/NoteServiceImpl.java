@@ -1,5 +1,6 @@
 package uknowklp.secondbrain.api.note.service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -132,6 +133,37 @@ public class NoteServiceImpl implements NoteService {
 		}
 
 		return NoteResponse.from(updatedNote);
+	}
+
+	@Override
+	public void deleteNotes(List<Long> noteIds, Long userId) {
+		log.info("Deleting {} notes for user ID: {}", noteIds.size(), userId);
+
+		// 1단계: 모든 노트 존재 여부 및 권한 검증 (all-or-nothing 전략)
+		List<Note> notesToDelete = new ArrayList<>();
+		for (Long noteId : noteIds) {
+			// 노트 존재 여부 확인
+			Note note = noteRepository.findById(noteId)
+				.orElseThrow(() -> {
+					log.warn("Note not found during delete validation - Note ID: {}", noteId);
+					return new BaseException(BaseResponseStatus.NOTE_NOT_FOUND);
+				});
+
+			// 권한 검증 (본인 노트만 삭제 가능)
+			if (!note.getUser().getId().equals(userId)) {
+				log.warn("User {} tried to delete note {} owned by user {}",
+					userId, noteId, note.getUser().getId());
+				throw new BaseException(BaseResponseStatus.NOTE_ACCESS_DENIED);
+			}
+
+			notesToDelete.add(note);
+		}
+
+		// 2단계: 모든 검증 통과 후 일괄 삭제
+		noteRepository.deleteAll(notesToDelete);
+		log.info("노트 삭제 완료 - 삭제된 노트 수: {}, 사용자 ID: {}", notesToDelete.size(), userId);
+
+		// TODO: Elasticsearch에서 삭제 (팀원과 협의 후 추가 예정)
 	}
 
 	/**
