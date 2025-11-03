@@ -12,8 +12,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import uknowklp.secondbrain.api.note.dto.NoteRequest;
@@ -49,24 +47,32 @@ public class NoteController {
 	@PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	public ResponseEntity<BaseResponse<Void>> createNote(
 		@AuthenticationPrincipal CustomUserDetails userDetails,
-		@RequestParam @NotBlank(message = "제목은 필수입니다.") @Size(max = 64, message = "제목은 최대 64자까지 입력 가능합니다.") String title,
-		@RequestParam @NotBlank(message = "내용은 필수입니다.") @Size(max = 2048, message = "내용은 최대 2048자까지 입력 가능합니다.") String content,
+		@RequestParam String title,
+		@RequestParam String content,
 		@RequestParam(required = false) List<MultipartFile> images) {
 
 		User user = userDetails.getUser();
-		int imageCount = images != null ? images.size() : 0;
-		log.info("Creating note for userId: {} - Title: {}, Content length: {}, Image count: {}",
-			user.getId(), title, content.length(), imageCount);
+		logNoteCreationRequest(user.getId(), title, content, images);
 
-		// NoteRequest 객체 생성 (빌더 패턴 사용)
-		NoteRequest request = NoteRequest.builder()
-			.title(title)
-			.content(content)
-			.images(images)
-			.build();
-
+		NoteRequest request = NoteRequest.of(title, content, images);
 		noteService.createNote(user.getId(), request);
 
+		return createSuccessResponse();
+	}
+
+	/**
+	 * 노트 생성 요청 로깅
+	 */
+	private void logNoteCreationRequest(Long userId, String title, String content, List<MultipartFile> images) {
+		int imageCount = images != null ? images.size() : 0;
+		log.info("Creating note for userId: {} - Title: {}, Content length: {}, Image count: {}",
+			userId, title, content.length(), imageCount);
+	}
+
+	/**
+	 * 201 Created 응답 생성
+	 */
+	private ResponseEntity<BaseResponse<Void>> createSuccessResponse() {
 		BaseResponse<Void> response = new BaseResponse<>(BaseResponseStatus.CREATED);
 		return ResponseEntity.status(HttpStatus.CREATED).body(response);
 	}

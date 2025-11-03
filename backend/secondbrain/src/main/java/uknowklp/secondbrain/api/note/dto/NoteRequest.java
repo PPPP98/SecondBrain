@@ -39,4 +39,20 @@ public class NoteRequest {
 	 */
 	@Schema(description = "이미지 파일 목록 (optional)", type = "array", format = "binary")
 	private List<MultipartFile> images;
+
+	/**
+	 * multipart/form-data 요청으로부터 NoteRequest 객체 생성
+	 *
+	 * @param title 노트 제목
+	 * @param content 노트 내용
+	 * @param images 이미지 파일 목록 (optional)
+	 * @return 생성된 NoteRequest 객체
+	 */
+	public static NoteRequest of(String title, String content, List<MultipartFile> images) {
+		return NoteRequest.builder()
+			.title(title)
+			.content(content)
+			.images(images)
+			.build();
+	}
 }
