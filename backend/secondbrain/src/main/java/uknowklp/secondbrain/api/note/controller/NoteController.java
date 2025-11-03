@@ -6,17 +6,21 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import uknowklp.secondbrain.api.note.dto.NoteDeleteRequest;
 import uknowklp.secondbrain.api.note.dto.NoteRequest;
 import uknowklp.secondbrain.api.note.dto.NoteResponse;
 import uknowklp.secondbrain.api.note.service.NoteService;
@@ -118,6 +122,30 @@ public class NoteController {
 		NoteResponse noteResponse = noteService.updateNote(noteId, user.getId(), request);
 
 		BaseResponse<NoteResponse> response = new BaseResponse<>(noteResponse);
+		return ResponseEntity.ok(response);
+	}
+
+	/**
+	 * 노트 삭제 (단일 및 다중 삭제 지원)
+	 * JWT 토큰으로 인증된 사용자의 노트를 삭제
+	 * 본인의 노트만 삭제 가능 (다른 사용자의 노트는 접근 거부)
+	 * 요청 본문에 삭제할 노트 ID 목록을 전달
+	 *
+	 * @param userDetails Spring Security의 인증된 사용자 정보
+	 * @param request 삭제할 노트 ID 목록을 담은 요청 DTO
+	 * @return ResponseEntity<BaseResponse<Void>> 200 OK 응답
+	 */
+	@DeleteMapping
+	public ResponseEntity<BaseResponse<Void>> deleteNotes(
+		@AuthenticationPrincipal CustomUserDetails userDetails,
+		@Valid @RequestBody NoteDeleteRequest request) {
+
+		User user = userDetails.getUser();
+		log.info("Deleting notes for userId: {} - Note count: {}", user.getId(), request.getNoteIds().size());
+
+		noteService.deleteNotes(request.getNoteIds(), user.getId());
+
+		BaseResponse<Void> response = new BaseResponse<>(BaseResponseStatus.SUCCESS);
 		return ResponseEntity.ok(response);
 	}
 
