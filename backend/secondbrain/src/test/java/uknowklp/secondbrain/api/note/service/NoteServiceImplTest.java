@@ -3,6 +3,8 @@ package uknowklp.secondbrain.api.note.service;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.BDDMockito.*;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -12,6 +14,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.web.multipart.MultipartFile;
 
 import uknowklp.secondbrain.api.note.domain.Note;
 import uknowklp.secondbrain.api.note.dto.NoteRequest;
@@ -215,5 +219,135 @@ class NoteServiceImplTest {
 		verify(userService, times(1)).findById(userId1);
 		verify(userService, times(1)).findById(userId2);
 		verify(noteRepository, times(2)).save(any(Note.class));
+	}
+
+	@Test
+	@DisplayName("노트 생성 성공 - 이미지 파일 없이 생성")
+	void createNote_WithoutImages_Success() {
+		// given: 이미지가 없는 요청
+		Long userId = 1L;
+		NoteRequest requestWithoutImages = NoteRequest.builder()
+			.title("이미지 없는 노트")
+			.content("텍스트만 있는 노트입니다.")
+			.images(null)
+			.build();
+
+		given(userService.findById(userId)).willReturn(Optional.of(testUser));
+		given(noteRepository.save(any(Note.class))).willAnswer(invocation -> invocation.getArgument(0));
+
+		// when: 노트 생성
+		Note createdNote = noteService.createNote(userId, requestWithoutImages);
+
+		// then: 이미지 마크다운 없이 content가 그대로 저장됨
+		assertEquals("텍스트만 있는 노트입니다.", createdNote.getContent());
+		verify(noteRepository, times(1)).save(any(Note.class));
+	}
+
+	@Test
+	@DisplayName("노트 생성 성공 - 이미지 파일 포함 (단일 이미지)")
+	void createNote_WithSingleImage_Success() {
+		// given: 단일 이미지 파일을 포함한 요청
+		Long userId = 1L;
+		MockMultipartFile imageFile = new MockMultipartFile(
+			"images",
+			"test-image.jpg",
+			"image/jpeg",
+			"test image content".getBytes()
+		);
+		List<MultipartFile> images = new ArrayList<>();
+		images.add(imageFile);
+
+		NoteRequest requestWithImage = NoteRequest.builder()
+			.title("이미지 포함 노트")
+			.content("이미지가 포함된 노트입니다.")
+			.images(images)
+			.build();
+
+		given(userService.findById(userId)).willReturn(Optional.of(testUser));
+		given(noteRepository.save(any(Note.class))).willAnswer(invocation -> invocation.getArgument(0));
+
+		// when: 노트 생성
+		Note createdNote = noteService.createNote(userId, requestWithImage);
+
+		// then: 이미지 마크다운이 content에 추가됨
+		assertNotNull(createdNote.getContent());
+		assertTrue(createdNote.getContent().contains("이미지가 포함된 노트입니다."));
+		assertTrue(createdNote.getContent().contains("![test-image.jpg]"));
+		assertTrue(createdNote.getContent().contains("https://placeholder-s3-url/test-image.jpg"));
+		verify(noteRepository, times(1)).save(any(Note.class));
+	}
+
+	@Test
+	@DisplayName("노트 생성 성공 - 이미지 파일 포함 (다중 이미지)")
+	void createNote_WithMultipleImages_Success() {
+		// given: 다중 이미지 파일을 포함한 요청
+		Long userId = 1L;
+		MockMultipartFile image1 = new MockMultipartFile(
+			"images",
+			"image1.jpg",
+			"image/jpeg",
+			"image1 content".getBytes()
+		);
+		MockMultipartFile image2 = new MockMultipartFile(
+			"images",
+			"image2.png",
+			"image/png",
+			"image2 content".getBytes()
+		);
+		MockMultipartFile image3 = new MockMultipartFile(
+			"images",
+			"image3.gif",
+			"image/gif",
+			"image3 content".getBytes()
+		);
+		List<MultipartFile> images = new ArrayList<>();
+		images.add(image1);
+		images.add(image2);
+		images.add(image3);
+
+		NoteRequest requestWithImages = NoteRequest.builder()
+			.title("다중 이미지 노트")
+			.content("여러 이미지가 포함된 노트입니다.")
+			.images(images)
+			.build();
+
+		given(userService.findById(userId)).willReturn(Optional.of(testUser));
+		given(noteRepository.save(any(Note.class))).willAnswer(invocation -> invocation.getArgument(0));
+
+		// when: 노트 생성
+		Note createdNote = noteService.createNote(userId, requestWithImages);
+
+		// then: 모든 이미지 마크다운이 content에 추가됨
+		assertNotNull(createdNote.getContent());
+		assertTrue(createdNote.getContent().contains("여러 이미지가 포함된 노트입니다."));
+		assertTrue(createdNote.getContent().contains("![image1.jpg]"));
+		assertTrue(createdNote.getContent().contains("![image2.png]"));
+		assertTrue(createdNote.getContent().contains("![image3.gif]"));
+		assertTrue(createdNote.getContent().contains("https://placeholder-s3-url/image1.jpg"));
+		assertTrue(createdNote.getContent().contains("https://placeholder-s3-url/image2.png"));
+		assertTrue(createdNote.getContent().contains("https://placeholder-s3-url/image3.gif"));
+		verify(noteRepository, times(1)).save(any(Note.class));
+	}
+
+	@Test
+	@DisplayName("노트 생성 성공 - 빈 이미지 리스트")
+	void createNote_WithEmptyImageList_Success() {
+		// given: 빈 이미지 리스트
+		Long userId = 1L;
+		NoteRequest requestWithEmptyList = NoteRequest.builder()
+			.title("빈 이미지 리스트 노트")
+			.content("이미지 리스트가 비어있습니다.")
+			.images(new ArrayList<>())
+			.build();
+
+		given(userService.findById(userId)).willReturn(Optional.of(testUser));
+		given(noteRepository.save(any(Note.class))).willAnswer(invocation -> invocation.getArgument(0));
+
+		// when: 노트 생성
+		Note createdNote = noteService.createNote(userId, requestWithEmptyList);
+
+		// then: content가 그대로 저장됨
+		assertEquals("이미지 리스트가 비어있습니다.", createdNote.getContent());
+		verify(noteRepository, times(1)).save(any(Note.class));
 	}
 }
