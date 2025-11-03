@@ -35,6 +35,9 @@ public class NoteServiceImpl implements NoteService {
 	public Note createNote(Long userId, NoteRequest request) {
 		log.info("Creating note for user ID: {}", userId);
 
+		// 요청 데이터 검증
+		validateNoteRequest(request);
+
 		// 사용자 존재 확인
 		User user = userService.findById(userId)
 			.orElseThrow(() -> new BaseException(BaseResponseStatus.USER_NOT_FOUND));
@@ -42,7 +45,7 @@ public class NoteServiceImpl implements NoteService {
 		// 이미지 파일 처리 및 마크다운 content 생성
 		String finalContent = processImagesAndContent(request.getContent(), request.getImages());
 
-		// 서비스 레벨 검증: 최종 content 길이 확인
+		// 서비스 레벨 검증: 이미지 추가 후 최종 content 길이 확인
 		validateContentLength(finalContent);
 
 		// 노트 생성
@@ -67,11 +70,6 @@ public class NoteServiceImpl implements NoteService {
 		}
 
 		return savedNote;
-			return savedNote;
-		} catch (DataAccessException e) {
-			log.error("Failed to save note for user ID: {}", userId, e);
-			throw new BaseException(BaseResponseStatus.NOTE_SAVE_FAILED);
-		}
 	}
 
 	@Override
