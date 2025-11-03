@@ -15,7 +15,7 @@ pipeline {
     GIT_CREDS_HTTPS = 'seok'
     RELEASE_BRANCH = 'master'
     DEVELOP_BRANCH = 'develop'
-    COMPOSE_DEV_FILE = 'Deploy/docker-compose.yml'
+    COMPOSE_FILE = 'Deploy/docker-compose.yml'
   }
 
   stages {
