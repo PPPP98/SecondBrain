@@ -3,6 +3,7 @@ package uknowklp.secondbrain.api.note.service;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -56,7 +57,7 @@ public class NoteServiceImpl implements NoteService {
 			log.info("Note created successfully - ID: {}, User ID: {}", savedNote.getId(), userId);
 
 			return savedNote;
-		} catch (Exception e) {
+		} catch (DataAccessException e) {
 			log.error("Failed to save note for user ID: {}", userId, e);
 			throw new BaseException(BaseResponseStatus.NOTE_SAVE_FAILED);
 		}
