@@ -6,6 +6,7 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.elasticsearch.annotations.Document;
 import org.springframework.data.elasticsearch.annotations.Field;
 import org.springframework.data.elasticsearch.annotations.FieldType;
+import org.springframework.data.elasticsearch.annotations.Setting;
 
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -15,10 +16,11 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Document(indexName = "notes")
+@Setting(settingPath = "elasticsearch/note-index-settings.json")
 public class NoteDocument {
 
 	@Id
-	private Long id; // PostgreSQL의 note_id와 매핑
+	private Long id; // note_id
 
 	@Field(type = FieldType.Text, analyzer = "nori_analyzer", searchAnalyzer = "nori_analyzer")
 	private String title;
@@ -27,19 +29,19 @@ public class NoteDocument {
 	private String content;
 
 	@Field(type = FieldType.Keyword)
-	private Long memberId; // PostgreSQL의 member_id와 매핑
+	private Long memberId; // member_id (User의 ID)
 
-	@Field(type = FieldType.Date)
+	@Field(type = FieldType.Date, pattern = "uuuu-MM-dd'T'HH:mm:ss.SSS||uuuu-MM-dd'T'HH:mm:ss||uuuu-MM-dd")
 	private LocalDateTime createdAt;
 
-	@Field(type = FieldType.Date)
+	@Field(type = FieldType.Date, pattern = "uuuu-MM-dd'T'HH:mm:ss.SSS||uuuu-MM-dd'T'HH:mm:ss||uuuu-MM-dd")
 	private LocalDateTime updatedAt;
 
-	@Field(type = FieldType.Date)
-	private LocalDateTime remindAt; // 리마인드 예정 시간
+	@Field(type = FieldType.Date, pattern = "uuuu-MM-dd'T'HH:mm:ss.SSS||uuuu-MM-dd'T'HH:mm:ss||uuuu-MM-dd")
+	private LocalDateTime remindAt;
 
 	@Field(type = FieldType.Integer)
-	private Integer remindCount; // 리마인드 횟수
+	private Integer remindCount;
 
 	@Builder
 	public NoteDocument(Long id, String title, String content, Long memberId,
@@ -53,5 +55,19 @@ public class NoteDocument {
 		this.updatedAt = updatedAt;
 		this.remindAt = remindAt;
 		this.remindCount = remindCount != null ? remindCount : 0;
+	}
+
+	// Note 엔티티로부터 NoteDocument 생성
+	public static NoteDocument from(Note note) {
+		return NoteDocument.builder()
+			.id(note.getId())
+			.title(note.getTitle())
+			.content(note.getContent())
+			.memberId(note.getUser().getId())
+			.createdAt(note.getCreatedAt())
+			.updatedAt(note.getUpdatedAt())
+			.remindAt(note.getRemindAt())
+			.remindCount(note.getRemindCount())
+			.build();
 	}
 }

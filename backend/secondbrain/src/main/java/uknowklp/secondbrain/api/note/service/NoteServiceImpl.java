@@ -10,6 +10,7 @@ import org.springframework.web.multipart.MultipartFile;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import uknowklp.secondbrain.api.note.domain.Note;
+import uknowklp.secondbrain.api.note.domain.NoteDocument;
 import uknowklp.secondbrain.api.note.dto.NoteRequest;
 import uknowklp.secondbrain.api.note.repository.NoteRepository;
 import uknowklp.secondbrain.api.user.domain.User;
@@ -25,12 +26,13 @@ public class NoteServiceImpl implements NoteService {
 
 	private final NoteRepository noteRepository;
 	private final UserService userService;
+	private final NoteSearchService noteSearchService;
 	// TODO: S3 업로드 서비스 추가 예정
 	// private final S3UploadService s3UploadService;
 
 	@Override
 	public Note createNote(Long userId, NoteRequest request) {
-		log.info("Creating note for user ID: {}", userId);
+		log.info("노트 생성 시작 - 사용자 ID: {}", userId);
 
 		// 사용자 존재 확인
 		User user = userService.findById(userId)
@@ -51,7 +53,17 @@ public class NoteServiceImpl implements NoteService {
 			.build();
 
 		Note savedNote = noteRepository.save(note);
-		log.info("Note created successfully - ID: {}, User ID: {}", savedNote.getId(), userId);
+		log.info("노트 생성 완료 - 노트 ID: {}, 사용자 ID: {}", savedNote.getId(), userId);
+
+		// Elasticsearch에 인덱싱
+		try {
+			NoteDocument noteDocument = NoteDocument.from(savedNote);
+			noteSearchService.indexNote(noteDocument);
+			log.info("Elasticsearch 인덱싱 완료 - 노트 ID: {}", savedNote.getId());
+		} catch (Exception e) {
+			log.error("Elasticsearch 인덱싱 실패 - 노트 ID: {}", savedNote.getId(), e);
+			// Elasticsearch 인덱싱 실패는 메인 로직에 영향 없음 (로그만 남김)
+		}
 
 		return savedNote;
 	}

@@ -7,6 +7,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -15,12 +16,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import uknowklp.secondbrain.api.note.domain.NoteDocument;
 import uknowklp.secondbrain.api.note.dto.NoteSearchResponse;
 import uknowklp.secondbrain.api.note.dto.NoteSearchResult;
 import uknowklp.secondbrain.api.note.service.NoteSearchService;
 import uknowklp.secondbrain.global.response.BaseResponse;
+import uknowklp.secondbrain.global.security.jwt.dto.CustomUserDetails;
 
 @RestController
 @RequestMapping("/api/notes")
@@ -29,14 +32,15 @@ public class NoteSearchController {
 
 	private final NoteSearchService noteSearchService;
 
-	// GET /api/notes/search?keyword=검색어&page=0&size=10
 	@GetMapping("/search")
+	@Operation(summary = "노트 검색", description = "제목 + 내용 기반 검색, 유사한 노트도 검색됩니다.")
 	public BaseResponse<NoteSearchResponse> searchNotes(
 		@RequestParam String keyword,
 		@RequestParam(defaultValue = "0") int page,
 		@RequestParam(defaultValue = "10") int size,
-		@RequestParam(required = false) Long memberId // TODO: 인증 구현 후 @AuthenticationPrincipal로 변경
+		@AuthenticationPrincipal CustomUserDetails userDetails
 	) {
+		Long memberId = userDetails.getUser().getId();
 		Pageable pageable = PageRequest.of(page, size);
 		Page<NoteDocument> searchResults = noteSearchService.searchByKeyword(keyword, memberId, pageable);
 
@@ -56,13 +60,14 @@ public class NoteSearchController {
 		return new BaseResponse<>(response);
 	}
 
-	// GET /api/notes/{noteId}/similar?limit=5
 	@GetMapping("/{noteId}/similar")
+	@Operation(summary = "유사 노트 검색", description = "해당 노트와 유사한 5개 노트 검색")
 	public BaseResponse<List<NoteSearchResult>> findSimilarNotes(
 		@PathVariable Long noteId,
 		@RequestParam(defaultValue = "5") int limit,
-		@RequestParam(required = false) Long memberId // TODO: 인증 구현 후 @AuthenticationPrincipal로 변경
+		@AuthenticationPrincipal CustomUserDetails userDetails
 	) {
+		Long memberId = userDetails.getUser().getId();
 		List<NoteDocument> similarNotes = noteSearchService.findSimilarNotes(noteId, memberId, limit);
 
 		List<NoteSearchResult> results = similarNotes.stream()
@@ -70,20 +75,5 @@ public class NoteSearchController {
 			.collect(Collectors.toList());
 
 		return new BaseResponse<>(results);
-	}
-
-	// POST /api/notes/index (테스트용 - 임시 인덱싱 API)
-	@PostMapping("/index")
-	public BaseResponse<String> indexNote(@RequestBody NoteDocument noteDocument) {
-		noteSearchService.indexNote(noteDocument);
-		String message = "노트가 인덱싱되었습니다: " + noteDocument.getId();
-		return new BaseResponse<>(message);
-	}
-
-	// POST /api/notes/test-data (테스트용 - 샘플 데이터 생성)
-	@PostMapping("/test-data")
-	public BaseResponse<String> createTestData() {
-		noteSearchService.createTestData();
-		return new BaseResponse<>("테스트 데이터가 생성되었습니다");
 	}
 }
