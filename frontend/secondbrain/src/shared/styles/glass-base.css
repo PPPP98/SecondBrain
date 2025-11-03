@@ -30,21 +30,21 @@ button.glass-element {
 }
 
 .glass-button {
-  width: 3.5rem;
-  height: 3.5rem;
+  width: 3rem;
+  height: 3rem;
   border-radius: 50%;
   @apply flex items-center justify-center p-0;
 }
 
 .glass-button ~ .glass-border {
-  width: 3.5rem;
-  height: 3.5rem;
+  width: 3rem;
+  height: 3rem;
   border-radius: 50%;
 }
 
 .glass-input-sm {
-  width: 3.5rem;
-  height: 3.5rem;
+  width: 3rem;
+  height: 3rem;
   border-radius: 50%;
   @apply flex items-center justify-center p-0 text-base;
 }
@@ -55,7 +55,7 @@ button.glass-element {
 
 .glass-input-md {
   width: 22rem;
-  height: 3.5rem;
+  height: 3rem;
   @apply px-4 py-0 text-base;
 }
 
