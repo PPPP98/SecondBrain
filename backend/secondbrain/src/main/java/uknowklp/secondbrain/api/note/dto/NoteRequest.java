@@ -10,14 +10,12 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 /**
  * 노트 생성 요청 DTO
  * multipart/form-data 형식으로 제목, 내용, 이미지 파일들을 받음
  */
 @Getter
-@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
