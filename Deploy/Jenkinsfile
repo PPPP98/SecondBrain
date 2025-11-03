@@ -397,11 +397,7 @@ pipeline {
               if (env.CHANGED_AI == "1") {
                 sh """
                   set -eux
-                  if [ -f "$COMPOSE_FILE" ]; then
-                    docker compose --env-file Deploy/.env -f "$COMPOSE_FILE" up -d --build ${env.AI_SERVICE}
-                  else
-                    docker compose --env-file Deploy/.env -f "$COMPOSE_FILE" up -d --build ${env.AI_SERVICE}
-                  fi
+                  docker compose --env-file Deploy/.env -f "$COMPOSE_FILE" up -d --build ${env.AI_SERVICE}
                 """
               } else { echo "Skip compose up for ${env.AI_SERVICE}" }
 
