@@ -6,12 +6,15 @@ import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.elasticsearch.UncategorizedElasticsearchException;
 import org.springframework.data.elasticsearch.client.elc.NativeQuery;
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 import org.springframework.data.elasticsearch.core.SearchHit;
 import org.springframework.data.elasticsearch.core.SearchHits;
+import org.springframework.data.elasticsearch.core.convert.MappingConversionException;
 import org.springframework.stereotype.Service;
 
+import co.elastic.clients.elasticsearch._types.ElasticsearchException;
 import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.MultiMatchQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
@@ -79,8 +82,21 @@ public class NoteSearchService {
 			return new PageImpl<>(content, pageable, searchHits.getTotalHits());
 		} catch (BaseException e) {
 			throw e;
+		} catch (ElasticsearchException e) {
+			log.error("Elasticsearch 서버 오류 - 키워드: {}, 오류: {}", keyword, e.getMessage(), e);
+			throw new BaseException(BaseResponseStatus.ELASTICSEARCH_CONNECTION_ERROR);
+		} catch (UncategorizedElasticsearchException e) {
+			if (e.getMessage() != null && e.getMessage().contains("index_not_found")) {
+				log.error("Elasticsearch 인덱스 없음 - 키워드: {}", keyword, e);
+				throw new BaseException(BaseResponseStatus.ELASTICSEARCH_INDEX_NOT_FOUND);
+			}
+			log.error("Elasticsearch 연결 오류 - 키워드: {}", keyword, e);
+			throw new BaseException(BaseResponseStatus.ELASTICSEARCH_CONNECTION_ERROR);
+		} catch (MappingConversionException e) {
+			log.error("Elasticsearch 매핑 오류 - 키워드: {}, 필드 변환 실패", keyword, e);
+			throw new BaseException(BaseResponseStatus.ELASTICSEARCH_MAPPING_ERROR);
 		} catch (Exception e) {
-			log.error("Elasticsearch 검색 실패 - 키워드: {}", keyword, e);
+			log.error("예상치 못한 검색 오류 - 키워드: {}, 예외 타입: {}", keyword, e.getClass().getSimpleName(), e);
 			throw new BaseException(BaseResponseStatus.ELASTICSEARCH_ERROR);
 		}
 	}
@@ -135,8 +151,21 @@ public class NoteSearchService {
 				.collect(Collectors.toList());
 		} catch (BaseException e) {
 			throw e;
+		} catch (ElasticsearchException e) {
+			log.error("Elasticsearch 서버 오류 - 노트 ID: {}, 오류: {}", noteId, e.getMessage(), e);
+			throw new BaseException(BaseResponseStatus.ELASTICSEARCH_CONNECTION_ERROR);
+		} catch (UncategorizedElasticsearchException e) {
+			if (e.getMessage() != null && e.getMessage().contains("index_not_found")) {
+				log.error("Elasticsearch 인덱스 없음 - 노트 ID: {}", noteId, e);
+				throw new BaseException(BaseResponseStatus.ELASTICSEARCH_INDEX_NOT_FOUND);
+			}
+			log.error("Elasticsearch 연결 오류 - 노트 ID: {}", noteId, e);
+			throw new BaseException(BaseResponseStatus.ELASTICSEARCH_CONNECTION_ERROR);
+		} catch (MappingConversionException e) {
+			log.error("Elasticsearch 매핑 오류 - 노트 ID: {}, 필드 변환 실패", noteId, e);
+			throw new BaseException(BaseResponseStatus.ELASTICSEARCH_MAPPING_ERROR);
 		} catch (Exception e) {
-			log.error("유사 노트 검색 실패 - 노트 ID: {}", noteId, e);
+			log.error("예상치 못한 유사 노트 검색 오류 - 노트 ID: {}, 예외 타입: {}", noteId, e.getClass().getSimpleName(), e);
 			throw new BaseException(BaseResponseStatus.ELASTICSEARCH_ERROR);
 		}
 	}
