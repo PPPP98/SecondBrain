@@ -1,5 +1,7 @@
 package uknowklp.secondbrain.api.note.service;
 
+import java.util.List;
+
 import uknowklp.secondbrain.api.note.domain.Note;
 import uknowklp.secondbrain.api.note.dto.NoteRequest;
 import uknowklp.secondbrain.api.note.dto.NoteResponse;
@@ -32,4 +34,12 @@ public interface NoteService {
 	 * @return 수정된 노트 정보
 	 */
 	NoteResponse updateNote(Long noteId, Long userId, NoteRequest request);
+
+	/**
+	 * 노트 삭제 (다중 삭제 지원)
+	 *
+	 * @param noteIds 삭제할 노트 ID 목록
+	 * @param userId 사용자 ID (권한 검증용)
+	 */
+	void deleteNotes(List<Long> noteIds, Long userId);
 }
