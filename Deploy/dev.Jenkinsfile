@@ -22,7 +22,6 @@ pipeline {
     stage('Checkout') {
       steps {
         script {
-          try {
             checkout([$class: 'GitSCM',
               branches: [[name: "*/develop"]],
               userRemoteConfigs: [[url: env.GIT_URL_HTTPS, credentialsId: env.GIT_CREDS_HTTPS]]
@@ -31,7 +30,6 @@ pipeline {
               set -eu
               git fetch --no-tags origin "develop:develop" || true
             '''
-          }
         }
       }
     }
