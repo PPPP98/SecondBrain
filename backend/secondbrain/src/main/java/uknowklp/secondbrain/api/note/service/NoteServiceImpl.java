@@ -32,7 +32,7 @@ public class NoteServiceImpl implements NoteService {
 
 	@Override
 	public Note createNote(Long userId, NoteRequest request) {
-		log.info("노트 생성 시작 - 사용자 ID: {}", userId);
+		log.info("Creating note for user ID: {}", userId);
 
 		// 사용자 존재 확인
 		User user = userService.findById(userId)
@@ -62,7 +62,7 @@ public class NoteServiceImpl implements NoteService {
 			log.info("Elasticsearch 인덱싱 완료 - 노트 ID: {}", savedNote.getId());
 		} catch (Exception e) {
 			log.error("Elasticsearch 인덱싱 실패 - 노트 ID: {}", savedNote.getId(), e);
-			// Elasticsearch 인덱싱 실패는 메인 로직에 영향 없음 (로그만 남김)
+			// Elasticsearch 인덱싱 실패는 메인 로직에 영향 없음
 		}
 
 		return savedNote;
