@@ -500,6 +500,7 @@ class NoteServiceImplTest {
 			.title("리마인더 노트")
 			.content("리마인더가 설정된 노트입니다.")
 			.remindCount(0)
+			.remindAt(remindTime)
 			.build();
 
 		given(noteRepository.findById(noteId)).willReturn(Optional.of(noteWithRemind));
@@ -512,6 +513,7 @@ class NoteServiceImplTest {
 		assertEquals(noteId, response.getNoteId());
 		assertEquals("리마인더 노트", response.getTitle());
 		assertEquals("리마인더가 설정된 노트입니다.", response.getContent());
+		assertEquals(remindTime, response.getRemindAt());
 
 		verify(noteRepository, times(1)).findById(noteId);
 	}
