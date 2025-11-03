@@ -37,8 +37,14 @@ export function useExchangeToken() {
     },
     onError: (error) => {
       console.error('Token exchange failed:', error);
-      queryClient.clear();
-      void navigate({ to: '/', search: { error: 'token_exchange_failed' } });
+
+      // queryClient.clear() 대신 auth 관련 쿼리만 선택적으로 무효화
+      void queryClient.invalidateQueries({ queryKey: ['session'] });
+      void queryClient.invalidateQueries({ queryKey: ['user'] });
+
+      // URL 파라미터 대신 랜딩페이지로 바로 이동
+      // 에러 메시지는 필요 시 전역 상태나 토스트로 처리
+      void navigate({ to: '/' });
     },
   });
 }

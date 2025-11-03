@@ -35,9 +35,16 @@ apiClient.interceptors.request.use(
 );
 
 /**
+ * Refresh Token Promise 캐싱
+ * - 동시 다발적 401 발생 시 refresh API 중복 호출 방지
+ * - 첫 번째 refresh 요청만 실행하고 나머지는 Promise를 재사용
+ */
+let refreshTokenPromise: Promise<string> | null = null;
+
+/**
  * Response Interceptor
  * - BaseResponse 구조 처리
- * - 401 에러 시 Token Refresh 시도
+ * - 401 에러 시 Token Refresh 시도 (Promise 캐싱으로 중복 호출 방지)
  */
 apiClient.interceptors.response.use(
   (response) => {
@@ -71,23 +78,37 @@ apiClient.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        // Refresh Token API 호출
-        const response =
-          await apiClient.post<
-            BaseResponse<{ accessToken: string; tokenType: string; expiresIn: number }>
-          >('/api/auth/refresh');
-
-        // response.data가 BaseResponse
-        const baseResponse = response.data;
-
-        if (baseResponse.success && baseResponse.data) {
-          // 새 Access Token 저장
-          const { accessToken } = baseResponse.data;
-          useAuthStore.getState().setAccessToken(accessToken);
-
-          // 원래 요청 재시도
-          return apiClient.request(originalRequest);
+        // 이미 진행 중인 refresh 요청이 있으면 재사용 (중복 호출 방지)
+        if (!refreshTokenPromise) {
+          refreshTokenPromise = apiClient
+            .post<BaseResponse<{ accessToken: string; tokenType: string; expiresIn: number }>>(
+              '/api/auth/refresh',
+            )
+            .then((response) => {
+              const baseResponse = response.data;
+              if (baseResponse.success && baseResponse.data) {
+                const { accessToken } = baseResponse.data;
+                useAuthStore.getState().setAccessToken(accessToken);
+                return accessToken;
+              }
+              throw new Error('Invalid refresh response');
+            })
+            .finally(() => {
+              // 완료 후 Promise 캐시 초기화
+              refreshTokenPromise = null;
+            });
         }
+
+        // refresh 완료 대기
+        const accessToken = await refreshTokenPromise;
+
+        // 원래 요청에 새 토큰 설정
+        if (originalRequest.headers) {
+          originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+        }
+
+        // 원래 요청 재시도
+        return apiClient.request(originalRequest);
       } catch {
         // Refresh 실패 시 로그아웃 처리
         useAuthStore.getState().clearAuth();

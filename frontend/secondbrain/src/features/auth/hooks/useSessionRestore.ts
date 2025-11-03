@@ -35,7 +35,20 @@ export function useSessionRestore() {
 
       throw new Error('No active session');
     },
-    retry: false, // 세션 복원 실패 시 재시도 안 함
+    // 네트워크 오류와 인증 실패를 구분하여 재시도 로직 적용
+    retry: (failureCount, error) => {
+      // AxiosError인 경우 status code 확인
+      const axiosError = error as { response?: { status?: number } };
+
+      // 401/403은 토큰 만료 → 재시도 안 함
+      if (axiosError.response?.status === 401 || axiosError.response?.status === 403) {
+        return false;
+      }
+
+      // 네트워크 오류(5xx, timeout 등)는 3번까지 재시도
+      return failureCount < 3;
+    },
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000), // 지수 백오프
     staleTime: Infinity, // 성공 시 캐시 유지, 실패 시에만 재시도
     gcTime: 5 * 60 * 1000, // 5분 후 에러 캐시 삭제
     refetchOnWindowFocus: false, // 포커스 시 재실행 방지
