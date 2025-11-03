@@ -75,10 +75,10 @@ public class NoteServiceImpl implements NoteService {
 	@Override
 	public NoteResponse getNoteById(Long noteId, Long userId) {
 		log.info("Getting note ID: {} for user ID: {}",noteId, userId);
-		
+
 		// 1. 노트 존재 여부 확인
 		Note note = noteRepository.findById(noteId).orElseThrow(() -> new BaseException(BaseResponseStatus.NOTE_NOT_FOUND));
-		
+
 		// 2. 노트 소유자 확인 (권한 검증)
 		if (!note.getUser().getId().equals(userId)) {
 			log.warn("User {} tried to access note {} owned by user {}",
@@ -89,6 +89,49 @@ public class NoteServiceImpl implements NoteService {
 		// 3. NoteResponse로 변환 후 반환
 		log.info("Note found successfully - ID: {}, User ID: {}", noteId, userId);
 		return NoteResponse.from(note);
+	}
+
+	@Override
+	public NoteResponse updateNote(Long noteId, Long userId, NoteRequest request) {
+		log.info("Updating note ID: {} for user ID: {}", noteId, userId);
+
+		// 요청 데이터 검증
+		validateNoteRequest(request);
+
+		// 노트 존재 여부 확인
+		Note note = noteRepository.findById(noteId)
+			.orElseThrow(() -> new BaseException(BaseResponseStatus.NOTE_NOT_FOUND));
+
+		// 권한 검증 (본인 노트만 수정 가능)
+		if (!note.getUser().getId().equals(userId)) {
+			log.warn("User {} tried to update note {} owned by user {}",
+				userId, noteId, note.getUser().getId());
+			throw new BaseException(BaseResponseStatus.NOTE_ACCESS_DENIED);
+		}
+
+		// 이미지 파일 처리 및 마크다운 content 생성
+		String finalContent = processImagesAndContent(request.getContent(), request.getImages());
+
+		// 최종 content 길이 검증
+		validateContentLength(finalContent);
+
+		// 노트 수정 (updatedAt은 @UpdateTimestamp로 자동 갱신)
+		note.update(request.getTitle(), finalContent);
+
+		// 변경사항 저장 (JPA dirty checking)
+		Note updatedNote = noteRepository.save(note);
+		log.info("노트 수정 완료 - 노트 ID: {}, 사용자 ID: {}", noteId, userId);
+
+		// Elasticsearch 인덱스 업데이트
+		try {
+			NoteDocument noteDocument = NoteDocument.from(updatedNote);
+			noteSearchService.indexNote(noteDocument);
+			log.info("Elasticsearch 인덱스 업데이트 완료 - 노트 ID: {}", noteId);
+		} catch (Exception e) {
+			log.error("Elasticsearch 인덱스 업데이트 실패 - 노트 ID: {}", noteId, e);
+		}
+
+		return NoteResponse.from(updatedNote);
 	}
 
 	/**
