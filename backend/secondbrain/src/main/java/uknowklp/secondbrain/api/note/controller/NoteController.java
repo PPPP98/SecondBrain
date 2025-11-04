@@ -21,6 +21,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import uknowklp.secondbrain.api.note.dto.NoteDeleteRequest;
+import uknowklp.secondbrain.api.note.dto.NoteRecentResponse;
 import uknowklp.secondbrain.api.note.dto.NoteRequest;
 import uknowklp.secondbrain.api.note.dto.NoteResponse;
 import uknowklp.secondbrain.api.note.service.NoteService;
@@ -146,6 +147,29 @@ public class NoteController {
 		noteService.deleteNotes(request.getNoteIds(), user.getId());
 
 		BaseResponse<Void> response = new BaseResponse<>(BaseResponseStatus.SUCCESS);
+		return ResponseEntity.ok(response);
+	}
+
+	/**
+	 * 최근 노트 목록 조회 (상위 10개)
+	 * JWT 토큰으로 인증된 사용자의 최근 노트 목록을 조회
+	 * updatedAt 기준 내림차순, 동일 시 noteId 기준 내림차순 정렬
+	 *
+	 * @param userDetails Spring Security의 인증된 사용자 정보
+	 * @return ResponseEntity<BaseResponse<List<NoteRecentResponse>>> 200 OK 응답 + 노트 목록 (null 가능)
+	 */
+	@GetMapping("/recent")
+	public ResponseEntity<BaseResponse<List<NoteRecentResponse>>> getRecentNotes(
+		@AuthenticationPrincipal CustomUserDetails userDetails) {
+
+		User user = userDetails.getUser();
+		log.info("Getting recent notes for userId: {}", user.getId());
+
+		// Service에서 최근 노트 목록 조회
+		List<NoteRecentResponse> recentNotes = noteService.getRecentNotes(user.getId());
+
+		// 200 OK 응답 생성 및 반환 (data는 null 가능)
+		BaseResponse<List<NoteRecentResponse>> response = new BaseResponse<>(recentNotes);
 		return ResponseEntity.ok(response);
 	}
 
