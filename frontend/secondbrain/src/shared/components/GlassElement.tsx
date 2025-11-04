@@ -22,12 +22,26 @@ const GlassElement = <El extends ElementType>({
   const wrapperRef = useRef<HTMLDivElement>(null);
   const border1Ref = useRef<HTMLSpanElement>(null);
   const border2Ref = useRef<HTMLSpanElement>(null);
+  const isHoveredRef = useRef(false);
 
   useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!wrapperRef.current || !border1Ref.current || !border2Ref.current) return;
+    const wrapper = wrapperRef.current;
+    if (!wrapper) return;
 
-      const rect = wrapperRef.current.getBoundingClientRect();
+    const handleMouseEnter = () => {
+      isHoveredRef.current = true;
+    };
+
+    const handleMouseLeave = () => {
+      isHoveredRef.current = false;
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+      // hover 상태가 아니면 계산하지 않음
+      if (!isHoveredRef.current) return;
+      if (!border1Ref.current || !border2Ref.current) return;
+
+      const rect = wrapper.getBoundingClientRect();
       const centerX = rect.left + rect.width / 2;
       const centerY = rect.top + rect.height / 2;
 
@@ -64,10 +78,15 @@ const GlassElement = <El extends ElementType>({
           rgba(255, 255, 255, 0.0) 100%)`;
     };
 
-    window.addEventListener('mousemove', handleMouseMove);
+    // wrapper 요소에만 이벤트 등록 (전역 window X)
+    wrapper.addEventListener('mouseenter', handleMouseEnter);
+    wrapper.addEventListener('mouseleave', handleMouseLeave);
+    wrapper.addEventListener('mousemove', handleMouseMove);
 
     return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
+      wrapper.removeEventListener('mouseenter', handleMouseEnter);
+      wrapper.removeEventListener('mouseleave', handleMouseLeave);
+      wrapper.removeEventListener('mousemove', handleMouseMove);
     };
   }, []);
 
