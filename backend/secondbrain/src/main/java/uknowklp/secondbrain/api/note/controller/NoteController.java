@@ -61,12 +61,15 @@ public class NoteController {
 		@RequestParam(required = false) List<MultipartFile> images) {
 
 		User user = userDetails.getUser();
-		logNoteCreationRequest(user.getId(), title, content, images);
+		int imageCount = images != null ? images.size() : 0;
+		log.info("Creating note for userId: {} - Title: {}, Content length: {}, Image count: {}",
+			user.getId(), title, content.length(), imageCount);
 
 		NoteRequest request = NoteRequest.of(title, content, images);
 		noteService.createNote(user.getId(), request);
 
-		return createSuccessResponse();
+		BaseResponse<Void> response = new BaseResponse<>(BaseResponseStatus.CREATED);
+		return ResponseEntity.status(HttpStatus.CREATED).body(response);
 	}
 
 	/**
@@ -171,23 +174,5 @@ public class NoteController {
 		// 200 OK 응답 생성 및 반환 (data는 null 가능)
 		BaseResponse<List<NoteRecentResponse>> response = new BaseResponse<>(recentNotes);
 		return ResponseEntity.ok(response);
-	}
-
-
-	/**
-	 * 노트 생성 요청 로깅
-	 */
-	private void logNoteCreationRequest(Long userId, String title, String content, List<MultipartFile> images) {
-		int imageCount = images != null ? images.size() : 0;
-		log.info("Creating note for userId: {} - Title: {}, Content length: {}, Image count: {}",
-			userId, title, content.length(), imageCount);
-	}
-
-	/**
-	 * 201 Created 응답 생성
-	 */
-	private ResponseEntity<BaseResponse<Void>> createSuccessResponse() {
-		BaseResponse<Void> response = new BaseResponse<>(BaseResponseStatus.CREATED);
-		return ResponseEntity.status(HttpStatus.CREATED).body(response);
 	}
 }
