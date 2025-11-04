@@ -11,6 +11,71 @@ type GlassElementProps<El extends ElementType> = {
   children?: React.ReactNode;
 } & Omit<ComponentPropsWithoutRef<El>, 'as' | 'icon' | 'scale'>;
 
+// 스타일 설정 객체 - 엘리먼트 타입별 스타일 중앙 관리
+const STYLE_CONFIG = {
+  button: {
+    scale: 'p-0 text-xl',
+    size: 'w-14 h-14',
+    borderRadius: 'rounded-full',
+    elementSpecific: 'flex cursor-pointer items-center justify-center',
+  },
+  input: {
+    sm: {
+      scale: 'p-0 text-sm',
+      size: 'w-14 h-14',
+      borderRadius: 'rounded-full',
+      type: 'checkbox' as const,
+    },
+    md: {
+      scale: 'p-4 px-6 text-base',
+      size: 'w-[22rem] h-14',
+      borderRadius: 'rounded-3xl',
+      type: 'text' as const,
+    },
+    elementSpecific: 'block appearance-none outline-none focus:outline-none',
+  },
+  div: {
+    scale: 'p-6 px-8 text-xl',
+    size: 'w-[27rem]',
+    borderRadius: 'rounded-3xl',
+    elementSpecific: '',
+  },
+} as const;
+
+// 유틸리티 함수: 스케일 클래스 가져오기
+function getScaleClasses(as: ElementType, scale?: 'sm' | 'md'): string {
+  if (as === 'button') return STYLE_CONFIG.button.scale;
+  if (as === 'input' && scale) return STYLE_CONFIG.input[scale].scale;
+  return STYLE_CONFIG.div.scale;
+}
+
+// 유틸리티 함수: 사이즈 클래스 가져오기
+function getSizeClasses(as: ElementType, scale?: 'sm' | 'md'): string {
+  if (as === 'button') return STYLE_CONFIG.button.size;
+  if (as === 'input' && scale) return STYLE_CONFIG.input[scale].size;
+  return STYLE_CONFIG.div.size;
+}
+
+// 유틸리티 함수: 테두리 반경 가져오기
+function getBorderRadius(as: ElementType, scale?: 'sm' | 'md'): string {
+  if (as === 'button') return STYLE_CONFIG.button.borderRadius;
+  if (as === 'input' && scale) return STYLE_CONFIG.input[scale].borderRadius;
+  return STYLE_CONFIG.div.borderRadius;
+}
+
+// 유틸리티 함수: 엘리먼트별 특정 클래스 가져오기
+function getElementSpecificClasses(as: ElementType): string {
+  if (as === 'button') return STYLE_CONFIG.button.elementSpecific;
+  if (as === 'input') return STYLE_CONFIG.input.elementSpecific;
+  return STYLE_CONFIG.div.elementSpecific;
+}
+
+// 유틸리티 함수: input type 속성 가져오기
+function getInputType(scale?: 'sm' | 'md'): 'checkbox' | 'text' | undefined {
+  if (!scale) return undefined;
+  return STYLE_CONFIG.input[scale].type;
+}
+
 const GlassElement = <El extends ElementType>({
   as,
   icon,
@@ -90,31 +155,19 @@ const GlassElement = <El extends ElementType>({
     };
   }, []);
 
-  const scaleClasses =
-    as === 'button'
-      ? 'p-0 text-xl'
-      : as === 'input' && scale
-        ? {
-            sm: 'p-0 text-sm',
-            md: 'p-4 px-6 text-base',
-          }[scale]
-        : 'p-6 px-8 text-xl';
+  // 유틸리티 함수로 스타일 가져오기 (중첩 삼항 연산자 제거)
+  const scaleClasses = getScaleClasses(as, scale);
+  const sizeClasses = getSizeClasses(as, scale);
+  const borderRadius = getBorderRadius(as, scale);
+  const elementSpecific = getElementSpecificClasses(as);
 
-  const sizeClasses =
-    as === 'button'
-      ? 'w-14 h-14 rounded-full'
-      : as === 'input' && scale === 'sm'
-        ? 'w-14 h-14 rounded-full'
-        : as === 'input' && scale === 'md'
-          ? 'w-[22rem] h-14'
-          : as === 'div'
-            ? 'w-[27rem]'
-            : '';
+  // 기본 스타일 (모든 엘리먼트 공통)
+  const baseStyles = 'backdrop-saturate-180 text-shadow-[0px_2px_12px_rgba(0,0,0,0.4)] relative';
+  const glassStyles =
+    'bg-white/15 font-medium text-white shadow-[0px_12px_40px_rgba(0,0,0,0.25)] backdrop-blur-[3.5px]';
 
-  const borderRadius =
-    as === 'button' || (as === 'input' && scale === 'sm') ? 'rounded-full' : 'rounded-3xl';
-
-  const baseClassName = `backdrop-saturate-180 text-shadow-[0px_2px_12px_rgba(0,0,0,0.4)] relative ${as === 'button' ? 'flex cursor-pointer items-center justify-center' : as === 'input' ? 'block appearance-none outline-none focus:outline-none' : ''} ${borderRadius} bg-white/15 ${scaleClasses} font-medium text-white shadow-[0px_12px_40px_rgba(0,0,0,0.25)] backdrop-blur-[3.5px] ${sizeClasses}`;
+  // 최종 className 조합 (명확하고 가독성 높은 구조)
+  const baseClassName = `${baseStyles} ${elementSpecific} ${borderRadius} ${glassStyles} ${scaleClasses} ${sizeClasses}`;
 
   // children 렌더링 로직
   const elementChildren =
@@ -142,11 +195,11 @@ const GlassElement = <El extends ElementType>({
     }
 
     if (as === 'input') {
-      const inputTypeAttr = scale === 'sm' ? 'checkbox' : scale === 'md' ? 'text' : undefined;
+      const inputType = getInputType(scale);
       return createElement('input', {
         ...props,
         ...commonProps,
-        ...(inputTypeAttr && { type: inputTypeAttr }),
+        ...(inputType && { type: inputType }),
       } as ComponentPropsWithoutRef<'input'>);
     }
 
