@@ -30,6 +30,7 @@ public class NoteServiceImpl implements NoteService {
 	private final NoteRepository noteRepository;
 	private final UserService userService;
 	private final NoteSearchService noteSearchService;
+	private final ReminderProducerService reminderProducerService;
 	// TODO: S3 업로드 서비스 추가 예정
 	// private final S3UploadService s3UploadService;
 
@@ -295,8 +296,8 @@ public class NoteServiceImpl implements NoteService {
 		note.enableReminder(firstReminderTime);
 		Note saveNote = noteRepository.save(note);
 
-		// todo: RabbitMQ Producer와 연동 예정
-		// reminderProducerService.scheduleReminder(saveNote);
+		// RabbitMQ Producer와 연동해서 첫 리마인더 예약
+		reminderProducerService.scheduleReminder(saveNote);
 
 		// todo: 개발 완료 후 제거할 로그
 		log.info("리마인더 활성화 완료, 노트 ID : {}, 첫 발송 예정 시간: {}", saveNote.getId(), saveNote.getRemindAt());
@@ -372,8 +373,8 @@ public class NoteServiceImpl implements NoteService {
 			LocalDateTime nextReminderTime = LocalDateTime.now().plusSeconds(nextDelayDays);
 			note.scheduleNextReminder(nextReminderTime);
 
-			// todo: RabbitMQ에 다음 메시지 예약
-			// reminderProducerService.scheduleReminder(note);
+			// RabbitMQ에 다음 메시지 예약
+			reminderProducerService.scheduleReminder(note);
 		}
 		noteRepository.save(note);
 	}
