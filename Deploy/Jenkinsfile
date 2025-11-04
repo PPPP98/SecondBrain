@@ -48,6 +48,7 @@ def mmNotify(Map m = [:]) {
 :redis: [RedisInsight](https://brainsecond.site/redis/)
 :neo: [Neo4j UI](https://brainsecond.site/neo4j/browser/)
 :elasticsearch: [Kibana Dashboard](https://brainsecond.site/kibana/)
+:rabbit_sleep: [RabbitMQ Management](https://brainsecond.site/rabbitmq/)
 :grafana: [Grafana Dashboard](https://brainsecond.site/grafana/)
 
 ${extra}
