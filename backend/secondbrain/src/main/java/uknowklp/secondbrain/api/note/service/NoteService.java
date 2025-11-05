@@ -4,6 +4,7 @@ import java.util.List;
 
 import uknowklp.secondbrain.api.note.domain.Note;
 import uknowklp.secondbrain.api.note.dto.NoteRecentResponse;
+import uknowklp.secondbrain.api.note.dto.NoteReminderResponse;
 import uknowklp.secondbrain.api.note.dto.NoteRequest;
 import uknowklp.secondbrain.api.note.dto.NoteResponse;
 
@@ -62,7 +63,7 @@ public interface NoteService {
 	 * @param size 페이지당 노트 개수
 	 * @return 리마인더 노트 목록 (페이징 정보 포함)
 	 */
-	uknowklp.secondbrain.api.note.dto.NoteReminderResponse getReminderNotes(Long userId, int page, int size);
+	NoteReminderResponse getReminderNotes(Long userId, int page, int size);
 
 	// 특정 노트의 리마인더 활성화
 	Note enableNoteReminder(Long noteId, Long userId);
