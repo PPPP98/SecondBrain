@@ -9,6 +9,7 @@
 ## 방법 1: Google One Tap + Automatic Sign-In ⭐ (가장 현대적)
 
 ### 동작 원리
+
 ```
 1. 사용자가 웹사이트 접속
 2. 페이지 로드 시 Google One Tap 스크립트 자동 실행
@@ -51,11 +52,13 @@ function App() {
 ```
 
 ### 동작 조건
+
 - ✅ 사용자가 Google 계정에 로그인되어 있음
 - ✅ 이전에 해당 사이트에서 Google로 로그인하고 동의를 제공한 적이 있음
 - ✅ `auto_select: true` 옵션 활성화
 
 ### 제약 사항
+
 - **10분 쿨다운**: 자동 로그인 시도 사이에 10분 대기 시간 존재
 - 사용자가 One Tap 팝업을 닫으면 점진적으로 쿨다운 시간 증가
 
@@ -64,6 +67,7 @@ function App() {
 ## 방법 2: Refresh Token 기반 세션 복원 (현재 백엔드 지원)
 
 ### 동작 원리
+
 ```
 1. 사용자가 웹사이트 접속
 2. 프론트엔드가 Refresh Token (HttpOnly 쿠키) 존재 여부 확인
@@ -95,7 +99,7 @@ useEffect(() => {
 
         // 4. 사용자 정보 조회
         const userResponse = await fetch('/api/users/me', {
-          headers: { Authorization: `Bearer ${accessToken}` }
+          headers: { Authorization: `Bearer ${accessToken}` },
         });
 
         if (userResponse.ok) {
@@ -116,6 +120,7 @@ useEffect(() => {
 ```
 
 ### 동작 조건
+
 - ✅ Refresh Token이 HttpOnly 쿠키에 존재
 - ✅ Refresh Token이 유효 (7일 이내)
 - ✅ 백엔드 Redis에 Refresh Token 저장되어 있음
@@ -195,6 +200,7 @@ function App() {
 ### 현재 백엔드 지원 상태
 
 현재 백엔드는 **방법 2 (Refresh Token 기반)**를 완벽하게 지원합니다:
+
 - ✅ `/api/auth/refresh` 엔드포인트 구현됨
 - ✅ Refresh Token이 HttpOnly 쿠키로 전송됨
 - ✅ Redis에 Refresh Token 저장 및 검증
@@ -242,15 +248,15 @@ public ResponseEntity<BaseResponse<TokenResponse>> verifyGoogleToken(
 
 ## 📊 비교: 방법 1 vs 방법 2
 
-| 항목 | Google One Tap | Refresh Token |
-|------|---------------|---------------|
-| **사용자 경험** | ⭐⭐⭐⭐⭐ 완전 자동 | ⭐⭐⭐⭐ 거의 자동 |
-| **보안** | ⭐⭐⭐⭐ Google이 관리 | ⭐⭐⭐⭐⭐ 자체 관리 |
-| **구현 복잡도** | ⭐⭐⭐ 중간 | ⭐⭐ 간단 |
-| **세션 기간** | Google 세션에 의존 | 7일 (설정 가능) |
-| **백엔드 지원** | ❌ 추가 필요 | ✅ 구현됨 |
-| **오프라인 지원** | ❌ Google 필요 | ✅ 가능 |
-| **브라우저 간 공유** | ✅ Google 계정으로 공유 | ❌ 쿠키 기반 (개별) |
+| 항목                 | Google One Tap          | Refresh Token        |
+| -------------------- | ----------------------- | -------------------- |
+| **사용자 경험**      | ⭐⭐⭐⭐⭐ 완전 자동    | ⭐⭐⭐⭐ 거의 자동   |
+| **보안**             | ⭐⭐⭐⭐ Google이 관리  | ⭐⭐⭐⭐⭐ 자체 관리 |
+| **구현 복잡도**      | ⭐⭐⭐ 중간             | ⭐⭐ 간단            |
+| **세션 기간**        | Google 세션에 의존      | 7일 (설정 가능)      |
+| **백엔드 지원**      | ❌ 추가 필요            | ✅ 구현됨            |
+| **오프라인 지원**    | ❌ Google 필요          | ✅ 가능              |
+| **브라우저 간 공유** | ✅ Google 계정으로 공유 | ❌ 쿠키 기반 (개별)  |
 
 ---
 
@@ -281,7 +287,7 @@ export function useSessionRestore() {
           setAccessToken(data.data.accessToken);
 
           const userResponse = await fetch('/api/users/me', {
-            headers: { Authorization: `Bearer ${data.data.accessToken}` }
+            headers: { Authorization: `Bearer ${data.data.accessToken}` },
           });
 
           if (userResponse.ok) {
@@ -343,12 +349,14 @@ function App() {
 ## 🔒 보안 고려사항
 
 ### Refresh Token 보안
+
 - ✅ HttpOnly 쿠키로 전송 (JavaScript 접근 불가)
 - ✅ Secure 플래그 활성화 (HTTPS 필수)
 - ✅ SameSite=Lax 설정 (CSRF 방지)
 - ✅ Redis에 저장하여 무효화 가능
 
 ### Google One Tap 보안
+
 - ✅ Google이 JWT 토큰 서명 검증
 - ✅ 백엔드에서 Google 공개키로 토큰 재검증 필요
 - ✅ 토큰 만료 시간 확인
@@ -359,6 +367,7 @@ function App() {
 ## 🎯 구현 체크리스트
 
 ### 필수 구현 (Refresh Token 기반)
+
 - [ ] 페이지 로드 시 `/api/auth/refresh` 호출
 - [ ] Access Token Zustand 스토어에 저장
 - [ ] Access Token으로 `/api/users/me` 호출
@@ -366,6 +375,7 @@ function App() {
 - [ ] 세션 복원 실패 시 로그인 페이지 유지
 
 ### 선택 구현 (Google One Tap)
+
 - [ ] 백엔드에 `/api/auth/google/verify` 엔드포인트 추가
 - [ ] Google JWT 토큰 검증 로직 구현
 - [ ] `@react-oauth/google` 라이브러리 설치
@@ -378,15 +388,18 @@ function App() {
 ## 📚 참고 자료
 
 ### Google 공식 문서
+
 - [Google Identity Services - One Tap](https://developers.google.com/identity/gsi/web/guides/display-google-one-tap)
 - [Automatic Sign-in and Sign-out](https://developers.google.com/identity/gsi/web/guides/automatic-sign-in-sign-out)
 - [OAuth 2.0 for Web Server Applications](https://developers.google.com/identity/protocols/oauth2/web-server)
 
 ### React OAuth 라이브러리
+
 - [@react-oauth/google](https://github.com/MomenSherif/react-oauth)
 - [React OAuth Google Documentation](https://www.npmjs.com/package/@react-oauth/google)
 
 ### 인증 패턴
+
 - [OAuth 2.0 Silent Authentication](https://auth0.com/docs/secure/tokens/refresh-tokens/use-refresh-tokens)
 - [JWT Refresh Token Rotation](https://auth0.com/docs/secure/tokens/refresh-tokens/refresh-token-rotation)
 
