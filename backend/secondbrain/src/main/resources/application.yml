@@ -44,6 +44,16 @@ spring:
               - profile
             redirect-uri: "${BASE_URL}/login/oauth2/code/google"
 
+  cloud:
+    aws:
+      credentials:
+        access-key: ${ACCESS_KEY}
+        secret-key: ${SECRET_ACCESS_KEY}
+      region:
+        static: ${REGION}
+      s3:
+        bucket: ${BUCKET_NAME}
+
 server:
   port: 8080
 
