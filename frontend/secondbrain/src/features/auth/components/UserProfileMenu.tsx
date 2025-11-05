@@ -2,6 +2,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { GlassElement } from '@/shared/components/GlassElement/GlassElement';
 import { LogoutButton } from '@/features/auth/components/LogoutButton';
 import { ToggleSwitch } from '@/shared/components/ToggleSwitch/ToggleSwitch';
+import { Dropdown } from '@/shared/components/Dropdown/Dropdown';
 import LogoutIcon from '@/shared/components/icon/Logout.svg?react';
 
 /**
@@ -9,15 +10,15 @@ import LogoutIcon from '@/shared/components/icon/Logout.svg?react';
  * - 사용자 정보 표시
  * - 로그아웃 버튼 포함
  * - GlassElement 기반 스타일
+ * - Dropdown 컴포넌트 사용
  */
 
 interface UserProfileMenuProps {
   isOpen: boolean;
   onClose: () => void;
-  menuRef: React.RefObject<HTMLDivElement>;
 }
 
-export function UserProfileMenu({ isOpen, onClose, menuRef }: UserProfileMenuProps) {
+export function UserProfileMenu({ isOpen, onClose }: UserProfileMenuProps) {
   const { user, setUser } = useAuthStore();
 
   if (!user) return null;
@@ -28,14 +29,7 @@ export function UserProfileMenu({ isOpen, onClose, menuRef }: UserProfileMenuPro
   };
 
   return (
-    <div
-      ref={menuRef}
-      className={`absolute right-0 top-full z-[60] mt-2 transition-all duration-200 ease-out motion-reduce:transition-none ${
-        isOpen
-          ? 'pointer-events-auto translate-y-0 scale-100 opacity-100'
-          : 'pointer-events-none -translate-y-2 scale-95 opacity-0'
-      }`}
-    >
+    <Dropdown isOpen={isOpen} onClose={onClose} position="bottom-right">
       <GlassElement as="div" className="w-max min-w-[200px]">
         <div role="menu" className="w-full space-y-1 p-2">
           {/* 사용자 정보 */}
@@ -83,6 +77,6 @@ export function UserProfileMenu({ isOpen, onClose, menuRef }: UserProfileMenuPro
           />
         </div>
       </GlassElement>
-    </div>
+    </Dropdown>
   );
 }
