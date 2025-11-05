@@ -2,9 +2,8 @@ import { Crepe } from '@milkdown/crepe';
 import '@milkdown/crepe/theme/common/style.css';
 import '@milkdown/crepe/theme/frame.css';
 import { Milkdown, MilkdownProvider, useEditor } from '@milkdown/react';
-import React from 'react';
 
-const CrepeEditor: React.FC = () => {
+function CrepeEditor() {
   useEditor((root) => {
     return new Crepe({
       root,
@@ -13,7 +12,7 @@ const CrepeEditor: React.FC = () => {
   });
 
   return <Milkdown />;
-};
+}
 
 export function NoteEditor() {
   return (
