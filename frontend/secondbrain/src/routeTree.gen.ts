@@ -9,11 +9,17 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as NoteMilkdownRouteImport } from './routes/note-milkdown'
 import { Route as NoteRouteImport } from './routes/note'
 import { Route as MainRouteImport } from './routes/main'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
 
+const NoteMilkdownRoute = NoteMilkdownRouteImport.update({
+  id: '/note-milkdown',
+  path: '/note-milkdown',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const NoteRoute = NoteRouteImport.update({
   id: '/note',
   path: '/note',
@@ -39,12 +45,14 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/main': typeof MainRoute
   '/note': typeof NoteRoute
+  '/note-milkdown': typeof NoteMilkdownRoute
   '/auth/callback': typeof AuthCallbackRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/main': typeof MainRoute
   '/note': typeof NoteRoute
+  '/note-milkdown': typeof NoteMilkdownRoute
   '/auth/callback': typeof AuthCallbackRoute
 }
 export interface FileRoutesById {
@@ -52,25 +60,34 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/main': typeof MainRoute
   '/note': typeof NoteRoute
+  '/note-milkdown': typeof NoteMilkdownRoute
   '/auth/callback': typeof AuthCallbackRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/main' | '/note' | '/auth/callback'
+  fullPaths: '/' | '/main' | '/note' | '/note-milkdown' | '/auth/callback'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/main' | '/note' | '/auth/callback'
-  id: '__root__' | '/' | '/main' | '/note' | '/auth/callback'
+  to: '/' | '/main' | '/note' | '/note-milkdown' | '/auth/callback'
+  id: '__root__' | '/' | '/main' | '/note' | '/note-milkdown' | '/auth/callback'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   MainRoute: typeof MainRoute
   NoteRoute: typeof NoteRoute
+  NoteMilkdownRoute: typeof NoteMilkdownRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/note-milkdown': {
+      id: '/note-milkdown'
+      path: '/note-milkdown'
+      fullPath: '/note-milkdown'
+      preLoaderRoute: typeof NoteMilkdownRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/note': {
       id: '/note'
       path: '/note'
@@ -106,6 +123,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   MainRoute: MainRoute,
   NoteRoute: NoteRoute,
+  NoteMilkdownRoute: NoteMilkdownRoute,
   AuthCallbackRoute: AuthCallbackRoute,
 }
 export const routeTree = rootRouteImport
