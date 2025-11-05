@@ -46,15 +46,15 @@ export const Graph = () => {
         }}
         nodeLabel="title"
         nodeColor={() => '#FFFFFF'}
-        linkLabel={(link) => `연결 강도: ${link.score}`}
         linkWidth={(link) => link.score * 2}
         linkDirectionalParticles={2}
         linkDirectionalParticleWidth={(link) => link.score * 1.5}
         backgroundColor="#192030"
-        nodeRelSize={6}
+        nodeRelSize={8}
         onNodeClick={(node) => {
           console.log('클릭한 노드:', node);
         }}
+        showNavInfo={false}
       />
     </div>
   );

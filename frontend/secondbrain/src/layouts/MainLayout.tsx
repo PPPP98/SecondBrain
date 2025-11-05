@@ -11,19 +11,23 @@ interface MainLayoutProps {
 const MainLayout = ({ children }: MainLayoutProps) => {
   return (
     <BaseLayout>
-      <div className="fixed left-1/2 top-10 -translate-x-1/2">
-        <GlassElement as="input" scale="md" />
-      </div>
+      {/* 배경 레이어: children (Graph 등) */}
+      <div className="relative size-full">{children}</div>
 
-      <div className="fixed right-10 top-10">
-        <GlassElement as="button" icon={<UserIcon />} />
-      </div>
+      {/* UI 레이어: 항상 위에 표시 */}
+      <div className="pointer-events-none fixed inset-0 z-50">
+        <div className="pointer-events-auto absolute left-1/2 top-10 -translate-x-1/2">
+          <GlassElement as="input" scale="md" />
+        </div>
 
-      <div className="fixed bottom-10 right-10">
-        <GlassElement as="button" icon={<PlusIcon />} />
-      </div>
+        <div className="pointer-events-auto absolute right-10 top-10">
+          <GlassElement as="button" icon={<UserIcon />} />
+        </div>
 
-      {children}
+        <div className="pointer-events-auto absolute bottom-10 right-10">
+          <GlassElement as="button" icon={<PlusIcon />} />
+        </div>
+      </div>
     </BaseLayout>
   );
 };
