@@ -104,8 +104,8 @@ pipeline {
         sh '''
           set -eux
 
-          docker compose -f "$COMPOSE_FILE" pull || true
-          docker compose -f "$COMPOSE_FILE" up -d --build note_consumer
+          docker compose --env-file Deploy/.env -f "$COMPOSE_FILE" pull || true
+          docker compose --env-file Deploy/.env -f "$COMPOSE_FILE" up -d --build note_consumer
         '''
       }
     }

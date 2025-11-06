@@ -81,6 +81,8 @@ services:
       - e107_net
     depends_on:
       - klp_ai
+    env_file:
+      - .env
 
 networks:
   e107_net:
