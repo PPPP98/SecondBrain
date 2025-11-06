@@ -65,7 +65,7 @@ pipeline {
           def conf = sh(
             script: '''
               if docker exec "$NGINX_CONTAINER" test -f "$ACTIVE_COLOR_FILE"; then
-                docker exec "$NGINX_CONTAINER" sh -c 'cat "$ACTIVE_COLOR_FILE"'
+                docker exec "$NGINX_CONTAINER" cat "$ACTIVE_COLOR_FILE"
               else
                 echo 'set $active_color blue;'
               fi
