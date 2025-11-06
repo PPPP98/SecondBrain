@@ -24,11 +24,11 @@ def _convert_datetime(record: Dict) -> Dict:
 
 # ===== 노트 생성 =====
 def create_note(
-    note_id: str,
-    user_id: str,
+    note_id: int,
+    user_id: int,
     title: str,
     embedding: List[float],
-) -> str:
+) -> int:
     """
     노트 생성 (note_id, user_id는 Spring Boot에서 제공)
 
@@ -71,8 +71,8 @@ def create_note(
 
 # ===== 노트 조회 =====
 def get_note(
-    user_id: str,
-    note_id: str,
+    user_id: int,
+    note_id: int,
 ) -> Optional[Dict]:
     """
     노트 조회 (유저별)
@@ -115,7 +115,7 @@ def get_note(
 
 # ===== 노트 목록 조회 =====
 def get_all_notes(
-    user_id: str,
+    user_id: int,
     limit: Optional[int] = None,
     skip: int = 0,
 ) -> tuple[List[Dict], int]:
@@ -183,8 +183,8 @@ def get_all_notes(
 
 # ===== 노트 삭제 =====
 def delete_note(
-    user_id: str,
-    note_id: str,
+    user_id: int,
+    note_id: int,
 ) -> bool:
     """
     노트 삭제 (관계 포함, 유저별)
@@ -223,8 +223,8 @@ def delete_note(
 
 # ===== 유사 노트 조회 =====
 def get_similar_notes(
-    user_id: str,
-    note_id: str,
+    user_id: int,
+    note_id: int,
 ) -> List[Dict]:
     """
     유사 노트 조회 (같은 유저만, 유저별)
@@ -268,7 +268,7 @@ def get_similar_notes(
 
 # ===== 통계 조회 =====
 def get_stats(
-    user_id: str,
+    user_id: int,
 ) -> Dict:
     """
     그래프 통계 (유저별)
@@ -316,7 +316,7 @@ def get_stats(
 
 
 # ===== 노트 개수 =====
-def count_user_notes(user_id: str) -> int:
+def count_user_notes(user_id: int) -> int:
     """
     유저의 총 노트 개수 조회
 
@@ -341,7 +341,7 @@ def count_user_notes(user_id: str) -> int:
 
 # ===== 제목 검색 =====
 def get_note_by_title(
-    user_id: str,
+    user_id: int,
     title: str,
     limit: Optional[int] = None,
 ) -> List[Dict]:
@@ -393,8 +393,8 @@ def get_note_by_title(
 # 2025/11/05 update for CRUD worker
 # ===== 노트 수정 =====
 def update_note(
-    user_id: str,
-    note_id: str,
+    user_id: int,
+    note_id: int,
     title: Optional[str] = None,
     embedding: Optional[List[float]] = None,
 ) -> bool:
@@ -446,8 +446,8 @@ def update_note(
 
 # ===== 유사도 관계 삭제 =====
 def delete_relationships(
-    user_id: str,
-    note_id: str,
+    user_id: int,
+    note_id: int,
 ) -> int:
     """
     특정 노트의 모든 SIMILAR_TO 관계 삭제

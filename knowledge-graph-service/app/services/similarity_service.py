@@ -34,8 +34,8 @@ class SimilarityService:
 
     def find_similar_notes(
         self,
-        user_id: str,
-        note_id: str,
+        user_id: int,
+        note_id: int,
         embedding: List[float],
         limit: int = None,
     ) -> List[Dict]:
@@ -110,8 +110,8 @@ class SimilarityService:
 
     def create_similarity_relationships(
         self,
-        user_id: str,
-        note_id: str,
+        user_id: int,
+        note_id: int,
         embedding: List[float],
     ) -> int:
         """
@@ -181,8 +181,8 @@ class SimilarityService:
 
     def delete_similarity_relationships(
         self,
-        user_id: str,
-        note_id: str,
+        user_id: int,
+        note_id: int,
     ) -> int:
         """
         유사 노트 관계 삭제 (노트 삭제 시 호출)
@@ -227,8 +227,8 @@ class SimilarityService:
 
     def get_related_notes_count(
         self,
-        user_id: str,
-        note_id: str,
+        user_id: int,
+        note_id: int,
     ) -> int:
         """
         특정 노트의 연결된 유사 노트 개수
@@ -267,7 +267,7 @@ class SimilarityService:
                 logger.error(f"❌ 관계 개수 조회 실패: {e}")
                 raise Exception(ErrorConfig.DATABASE_ERROR)
 
-    def get_user_similarity_stats(self, user_id: str) -> Dict:
+    def get_user_similarity_stats(self, user_id: int) -> Dict:
         """
         유저의 유사도 관계 통계
 
