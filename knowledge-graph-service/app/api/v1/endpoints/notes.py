@@ -30,7 +30,7 @@ router = APIRouter(prefix="/notes", tags=["notes"])
 )
 async def create_note(
     note: NoteCreate,
-    x_user_id: str = Header(..., alias="X-User-ID"),
+    x_user_id: int = Header(..., alias="X-User-ID"),
 ) -> EmbeddingResponse:
     """
     노트 생성 API
@@ -99,7 +99,7 @@ async def create_note(
     description="사용자의 모든 노트를 페이지네이션으로 조회합니다",
 )
 async def list_notes(
-    x_user_id: str = Header(..., alias="X-User-ID"),
+    x_user_id: int = Header(..., alias="X-User-ID"),
     limit: int = Query(
         default=NoteConfig.DEFAULT_PAGE_LIMIT,
         ge=1,
@@ -157,8 +157,8 @@ async def list_notes(
     description="노트 정보와 유사한 노트들을 함께 조회합니다",
 )
 async def get_note(
-    note_id: str,
-    x_user_id: str = Header(..., alias="X-User-ID"),
+    note_id: int,
+    x_user_id: int = Header(..., alias="X-User-ID"),
 ) -> NoteDetailResponse:
     """
     노트 상세 조회 API
@@ -211,8 +211,8 @@ async def get_note(
     description="노트와 연결된 관계를 모두 삭제합니다",
 )
 async def delete_note(
-    note_id: str,
-    x_user_id: str = Header(..., alias="X-User-ID"),
+    note_id: int,
+    x_user_id: int = Header(..., alias="X-User-ID"),
 ) -> dict:
     """
     노트 삭제 API
