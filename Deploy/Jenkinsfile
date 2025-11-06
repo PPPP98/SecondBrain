@@ -523,7 +523,7 @@ pipeline {
                   returnStdout: true
                 ).trim()
 
-                echo "backStatus=${backStatus}, aiStatus=${aiStatus}, frontStatus=${frontStatus}"
+                echo "backOk=${backOk}, aiOk=${aiOk}, frontOk=${frontOk}"
 
                 if (!backOk.contains("FAIL") && !aiOk.contains("FAIL") && !frontOk.contains("FAIL")) {
                   ok = true
@@ -597,7 +597,7 @@ pipeline {
           for (int i = 1; i <= maxAttempts; i++) {
             echo "Post-deploy health attempt ${i}/${maxAttempts}"
 
-            def apiStatus = sh(
+            def backStatus = sh(
               script: "curl -k -L -s -o /dev/null -w '%{http_code}' https://api.brainsecond.site/health || echo 000",
               returnStdout: true
             ).trim()
@@ -612,9 +612,9 @@ pipeline {
               returnStdout: true
             ).trim()
 
-            echo "live apiStatus=${apiStatus}, aiStatus=${aiStatus}, frontStatus=${frontStatus}"
+            echo "live backStatus=${backStatus}, aiStatus=${aiStatus}, frontStatus=${frontStatus}"
 
-            if (apiStatus == "200" && aiStatus == "200" && frontStatus == "200") {
+            if (backStatus == "200" && aiStatus == "200" && frontStatus == "200") {
               ok = true
               break
             }
@@ -650,7 +650,7 @@ pipeline {
           for (int i = 1; i <= maxRollbackAttempts; i++) {
             echo "Rollback target health attempt ${i}/${maxRollbackAttempts} on color=${rollbackColor}"
 
-            def backStatus = sh(
+            def backStatus_rb = sh(
               script: """
                 docker exec ${NGINX_CONTAINER} sh -c \\
                   "curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/health || echo 000"
@@ -658,7 +658,7 @@ pipeline {
               returnStdout: true
             ).trim()
 
-            def aiStatus = sh(
+            def aiStatus_rb = sh(
               script: """
                 docker exec ${NGINX_CONTAINER} sh -c \\
                   "curl -s -o /dev/null -w '%{http_code}' http://klp_ai_${rollbackColor}:8000/ai/health || echo 000"
@@ -666,7 +666,7 @@ pipeline {
               returnStdout: true
             ).trim()
 
-            def frontStatus = sh(
+            def frontStatus_rb = sh(
               script: """
                 docker exec ${NGINX_CONTAINER} sh -c \\
                   "curl -s -o /dev/null -w '%{http_code}' http://klp_front_${rollbackColor}/health || echo 000"
@@ -674,9 +674,9 @@ pipeline {
               returnStdout: true
             ).trim()
 
-            echo "rollback backStatus=${backStatus}, aiStatus=${aiStatus}, frontStatus=${frontStatus}"
+            echo "rollback backStatus_rb=${backStatus_rb}, aiStatus_rb=${aiStatus_rb}, frontStatus_rb=${frontStatus_rb}"
 
-            if (backStatus == "200" && aiStatus == "200" && frontStatus == "200") {
+            if (backStatus_rb == "200" && aiStatus_rb == "200" && frontStatus_rb == "200") {
               rollbackOk = true
               break
             }
@@ -688,10 +688,10 @@ pipeline {
           }
 
           // Nginx를 이전 색으로 되돌리기
-          sh """
+          sh '''
             set -eux
-            docker exec ${NGINX_CONTAINER} /bin/sh -c 'echo "set \\$active_color ${rollbackColor};" > ${ACTIVE_COLOR_FILE} && nginx -s reload'
-          """
+            docker exec "$NGINX_CONTAINER" /bin/sh -c "printf 'set \\$active_color %s;\\n' \"$NEXT_COLOR\" > \"$ACTIVE_COLOR_FILE\" && nginx -s reload"
+          '''
 
           // NEXT_COLOR는 일단 그대로 둬서 사후 분석 가능
           error "Post-deploy live health check failed. Rolled back to color=${rollbackColor}."
