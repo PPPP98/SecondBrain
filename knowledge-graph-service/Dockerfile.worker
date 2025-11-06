@@ -42,9 +42,5 @@ ENV TZ=Asia/Seoul
 COPY app/ ./app/
 COPY scripts/ ./scripts/
 
-# 헬스 체크 (RabbitMQ 연결 확인 가능하지만, 단순화)
-HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
-    CMD python -c "import sys; sys.exit(0)" || exit 1
-
 # 워커 실행
 CMD ["python", "worker.py"]
