@@ -269,11 +269,17 @@ public class NoteDraftService {
 			// Cursor 기반 스캔 (비블로킹)
 			try (Cursor<String> cursor = noteDraftRedisTemplate.scan(options)) {
 				while (cursor.hasNext()) {
-					String key = cursor.next();
-					NoteDraft draft = getDraftOrNull(key);
+					try {
+						// 개별 Draft 처리 실패 시에도 스캔 계속 진행
+						String key = cursor.next();
+						NoteDraft draft = getDraftOrNull(key);
 
-					if (draft != null && draft.getLastModified().isBefore(threshold)) {
-						staleDrafts.add(draft);
+						if (draft != null && draft.getLastModified().isBefore(threshold)) {
+							staleDrafts.add(draft);
+						}
+					} catch (Exception e) {
+						// 개별 Draft 스캔 오류 - 전체 스캔은 계속 진행
+						log.warn("Draft 스캔 중 개별 오류 발생 - 건너뜀", e);
 					}
 				}
 			}

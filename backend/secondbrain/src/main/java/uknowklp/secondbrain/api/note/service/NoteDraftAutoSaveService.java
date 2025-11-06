@@ -70,7 +70,8 @@ public class NoteDraftAutoSaveService {
 			}
 
 			int savedCount = 0;
-			int failedCount = 0;
+			int skippedCount = 0;  // 검증 실패 (정상 케이스)
+			int failedCount = 0;   // 시스템 오류 (비정상 케이스)
 
 			for (NoteDraft draft : staleDrafts) {
 				try {
@@ -79,19 +80,27 @@ public class NoteDraftAutoSaveService {
 					savedCount++;
 
 				} catch (BaseException e) {
-					// 검증 실패 (빈 내용 등) - 정상적인 케이스
-					log.warn("Draft 자동 저장 건너뜀 - NoteId: {}, Reason: {}",
+					// 비즈니스 검증 실패 - 정상적인 케이스 (빈 내용 등)
+					log.warn("Draft 검증 실패로 건너뜀 - NoteId: {}, Reason: {}",
 						draft.getNoteId(), e.getMessage());
-					failedCount++;
+					skippedCount++;
 
 				} catch (Exception e) {
-					log.error("Draft 자동 저장 실패 - NoteId: {}", draft.getNoteId(), e);
+					// 시스템 오류 - 비정상 케이스 (DB 장애, Redis 오류 등)
+					log.error("Draft 자동 저장 시스템 오류 - NoteId: {}",
+						draft.getNoteId(), e);
 					failedCount++;
 				}
 			}
 
-			log.info("Draft 자동 저장 완료 - 성공: {}, 실패/건너뜀: {}, 전체: {}",
-				savedCount, failedCount, staleDrafts.size());
+			// 구분된 로깅으로 모니터링 품질 향상
+			log.info("Draft 자동 저장 완료 - 성공: {}, 검증 건너뜀: {}, 시스템 오류: {}, 전체: {}",
+				savedCount, skippedCount, failedCount, staleDrafts.size());
+
+			// 시스템 오류가 있으면 경고 (모니터링 시스템 연동 가능)
+			if (failedCount > 0) {
+				log.warn("⚠️ Draft 자동 저장 중 {}건의 시스템 오류 발생 - 즉시 확인 필요", failedCount);
+			}
 
 		} catch (Exception e) {
 			log.error("Draft 자동 저장 스케줄러 실패", e);
@@ -112,12 +121,8 @@ public class NoteDraftAutoSaveService {
 	 */
 	@Transactional(propagation = Propagation.REQUIRES_NEW)
 	protected void promoteDraftToDatabaseWithTransaction(NoteDraft draft) {
-		// NoteRequest 생성
-		NoteRequest request = NoteRequest.of(
-			draft.getTitle(),
-			draft.getContent(),
-			null // images
-		);
+		// NoteRequest 생성 (도메인 모델 변환 메서드 사용)
+		NoteRequest request = draft.toNoteRequest();
 
 		// DB 저장 (검증 포함 - title과 content 모두 필수)
 		// validateNoteRequest()에서 빈 값 체크
