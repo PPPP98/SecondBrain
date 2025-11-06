@@ -74,45 +74,28 @@ public class RedisConfig {
 	}
 
 	/**
-	 * NoteDraft 전용 타입 특화 RedisTemplate 빈 생성
+	 * Redis 직렬화용 ObjectMapper 빈 생성
 	 *
-	 * 성능 최적화 및 타입 안정성을 위한 전용 템플릿:
-	 * - NoteDraft 객체를 직접 반환하여 불필요한 타입 변환 제거
-	 * - Jackson2JsonRedisSerializer로 NoteDraft 타입에 최적화된 직렬화
-	 * - GenericJackson2JsonRedisSerializer보다 성능 우수
-	 * - ObjectMapper.convertValue() 변환 과정 불필요
-	 *
-	 * LocalDateTime 직렬화 설정 (v3):
-	 * - JavaTimeModule 등록으로 LocalDateTime 안전한 직렬화
+	 * LocalDateTime 직렬화 지원:
+	 * - JavaTimeModule 등록으로 LocalDateTime, ZonedDateTime 등 지원
 	 * - ISO-8601 포맷 사용 (타임스탬프 배열 방지)
-	 * - 역직렬화 안정성 확보
+	 * - 이전: [2025, 11, 6, 14, 30] → 개선: "2025-11-06T14:30:00"
 	 *
-	 * 사용처:
-	 * - NoteDraftService의 모든 Draft 저장/조회 작업
-	 * - NoteDraftAutoSaveService의 자동 저장 스케줄러
+	 * 재사용성:
+	 * - NoteDraft RedisTemplate에서 사용
+	 * - 향후 다른 도메인의 RedisTemplate에서도 재사용 가능
 	 *
-	 * @param connectionFactory Spring Boot가 자동 생성한 RedisConnectionFactory
-	 * @return NoteDraft 타입 특화 RedisTemplate 인스턴스
-	 * @see <a href="https://docs.spring.io/spring-data/redis/docs/current/reference/html/#redis:serializer">Redis Serializers</a>
+	 * @return LocalDateTime 직렬화를 지원하는 ObjectMapper
+	 * @see <a href="https://github.com/FasterXML/jackson-modules-java8">Jackson Java 8 Modules</a>
 	 */
 	@Bean
-	public RedisTemplate<String, NoteDraft> noteDraftRedisTemplate(RedisConnectionFactory connectionFactory) {
-		RedisTemplate<String, NoteDraft> template = new RedisTemplate<>();
-		template.setConnectionFactory(connectionFactory);
-
-		// Key Serializer: String으로 직렬화
-		StringRedisSerializer stringSerializer = new StringRedisSerializer();
-		template.setKeySerializer(stringSerializer);
-		template.setHashKeySerializer(stringSerializer);
-
-		// ObjectMapper 설정 (LocalDateTime 직렬화 지원)
+	public ObjectMapper redisObjectMapper() {
 		ObjectMapper objectMapper = new ObjectMapper();
 
 		// JavaTimeModule 등록 (LocalDateTime, ZonedDateTime 등 지원)
 		objectMapper.registerModule(new JavaTimeModule());
 
 		// 타임스탬프 대신 ISO-8601 포맷 사용
-		// 이전: [2025, 11, 6, 14, 30] → 개선: "2025-11-06T14:30:00"
 		objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
 		// 필드 접근 가능하도록 설정
@@ -125,9 +108,48 @@ public class RedisConfig {
 			JsonTypeInfo.As.PROPERTY
 		);
 
+		return objectMapper;
+	}
+
+	/**
+	 * NoteDraft 전용 타입 특화 RedisTemplate 빈 생성
+	 *
+	 * 성능 최적화 및 타입 안정성을 위한 전용 템플릿:
+	 * - NoteDraft 객체를 직접 반환하여 불필요한 타입 변환 제거
+	 * - Jackson2JsonRedisSerializer로 NoteDraft 타입에 최적화된 직렬화
+	 * - GenericJackson2JsonRedisSerializer보다 성능 우수
+	 * - ObjectMapper.convertValue() 변환 과정 불필요
+	 *
+	 * LocalDateTime 직렬화 (v3):
+	 * - redisObjectMapper Bean 사용으로 설정 재사용
+	 * - ISO-8601 포맷으로 안전한 직렬화
+	 *
+	 * 사용처:
+	 * - NoteDraftService의 모든 Draft 저장/조회 작업
+	 * - NoteDraftAutoSaveService의 자동 저장 스케줄러
+	 *
+	 * @param connectionFactory Spring Boot가 자동 생성한 RedisConnectionFactory
+	 * @param redisObjectMapper Redis 직렬화용 ObjectMapper
+	 * @return NoteDraft 타입 특화 RedisTemplate 인스턴스
+	 * @see <a href="https://docs.spring.io/spring-data/redis/docs/current/reference/html/#redis:serializer">Redis Serializers</a>
+	 */
+	@Bean
+	public RedisTemplate<String, NoteDraft> noteDraftRedisTemplate(
+		RedisConnectionFactory connectionFactory,
+		ObjectMapper redisObjectMapper) {
+
+		RedisTemplate<String, NoteDraft> template = new RedisTemplate<>();
+		template.setConnectionFactory(connectionFactory);
+
+		// Key Serializer: String으로 직렬화
+		StringRedisSerializer stringSerializer = new StringRedisSerializer();
+		template.setKeySerializer(stringSerializer);
+		template.setHashKeySerializer(stringSerializer);
+
 		// Value Serializer: NoteDraft 타입 특화 Jackson 직렬화
+		// redisObjectMapper 재사용으로 설정 중복 제거
 		Jackson2JsonRedisSerializer<NoteDraft> jsonSerializer =
-			new Jackson2JsonRedisSerializer<>(objectMapper, NoteDraft.class);
+			new Jackson2JsonRedisSerializer<>(redisObjectMapper, NoteDraft.class);
 
 		template.setValueSerializer(jsonSerializer);
 		template.setHashValueSerializer(jsonSerializer);
