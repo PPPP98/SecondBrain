@@ -21,7 +21,7 @@ router = APIRouter(prefix="/search", tags=["search"])
     description="제목으로 노트를 검색합니다",
 )
 async def search_by_title(
-    x_user_id: str = Header(..., alias="X-User-ID"),
+    x_user_id: int = Header(..., alias="X-User-ID"),
     title: str = Query(..., min_length=1, description="검색 제목"),
     limit: int = Query(
         default=NoteConfig.DEFAULT_SEARCH_LIMIT,
