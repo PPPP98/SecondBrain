@@ -466,7 +466,7 @@ pipeline {
                 echo "Backend not changed — ensure ${nextBackService} is up without rebuild"
                 sh """
                   set -eux
-                  docker compose --env-file Deploy/.env -f "$COMPOSE_FILE" up -d ${nextBackService}
+                  docker compose --env-file Deploy/.env -f "$COMPOSE_FILE" up -d --build ${nextBackService}
                 """
               }
 
@@ -481,7 +481,7 @@ pipeline {
                 echo "Frontend not changed — ensure ${nextFrontService} is up without rebuild"
                 sh """
                   set -eux
-                  docker compose --env-file Deploy/.env -f "$COMPOSE_FILE" up -d ${nextFrontService}
+                  docker compose --env-file Deploy/.env -f "$COMPOSE_FILE" up -d --build ${nextFrontService}
                 """
               }
 
@@ -496,7 +496,7 @@ pipeline {
                 echo "AI not changed — ensure ${nextAiService} is up without rebuild"
                 sh """
                   set -eux
-                  docker compose --env-file Deploy/.env -f "$COMPOSE_FILE" up -d ${nextAiService}
+                  docker compose --env-file Deploy/.env -f "$COMPOSE_FILE" up -d --build ${nextAiService}
                 """
               }
 
