@@ -21,11 +21,14 @@ import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import uknowklp.secondbrain.api.note.domain.Note;
+import uknowklp.secondbrain.api.note.domain.NoteDraft;
 import uknowklp.secondbrain.api.note.dto.NoteDeleteRequest;
 import uknowklp.secondbrain.api.note.dto.NoteRecentResponse;
 import uknowklp.secondbrain.api.note.dto.NoteReminderResponse;
 import uknowklp.secondbrain.api.note.dto.NoteRequest;
 import uknowklp.secondbrain.api.note.dto.NoteResponse;
+import uknowklp.secondbrain.api.note.service.NoteDraftService;
 import uknowklp.secondbrain.api.note.service.NoteService;
 import uknowklp.secondbrain.api.user.domain.User;
 import uknowklp.secondbrain.global.response.BaseResponse;
@@ -42,6 +45,7 @@ import uknowklp.secondbrain.global.security.jwt.dto.CustomUserDetails;
 public class NoteController {
 
 	private final NoteService noteService;
+	private final NoteDraftService noteDraftService;
 
 	/**
 	 * 새로운 노트 생성
@@ -225,5 +229,52 @@ public class NoteController {
 		// 200 OK 응답 생성 및 반환
 		BaseResponse<NoteReminderResponse> response = new BaseResponse<>(reminderNotes);
 		return ResponseEntity.ok(response);
+	}
+
+	/**
+	 * Draft에서 노트 생성 (Promote Draft to DB)
+	 *
+	 * 자동 저장 트리거 (명시적 "저장" 버튼 없음):
+	 * 1. 프론트엔드 Batching (50회 변경 or 5분 경과)
+	 * 2. 페이지 이탈 (beforeunload)
+	 * 3. Side Peek 닫기
+	 * 4. 백엔드 스케줄러 (5분마다)
+	 *
+	 * @param userDetails 인증된 사용자 정보
+	 * @param noteId      Draft의 noteId (UUID)
+	 * @return 생성된 Note 정보
+	 */
+	@PostMapping("/from-draft/{noteId}")
+	@Operation(summary = "Draft 자동 저장", description = "임시 저장된 Draft를 DB에 영구 저장 (Auto-save)")
+	public ResponseEntity<BaseResponse<NoteResponse>> createNoteFromDraft(
+		@AuthenticationPrincipal CustomUserDetails userDetails,
+		@PathVariable String noteId) {
+
+		User user = userDetails.getUser();
+		log.info("Draft → DB 자동 저장 요청 - UserId: {}, NoteId: {}", user.getId(), noteId);
+
+		// 1. Draft 조회
+		NoteDraft draft = noteDraftService.getDraft(noteId, user.getId());
+
+		// 2. Draft → NoteRequest 변환
+		NoteRequest request = NoteRequest.of(
+			draft.getTitle(),
+			draft.getContent(),
+			null // images
+		);
+
+		// 3. 기존 검증 로직 적용 (title과 content 모두 필수)
+		// validateNoteRequest()에서 빈 값 체크
+		Note note = noteService.createNote(user.getId(), request);
+
+		// 4. Draft 삭제 (DB 저장 성공 후)
+		noteDraftService.deleteDraft(noteId, user.getId());
+
+		// 5. 응답 반환
+		NoteResponse response = NoteResponse.from(note);
+		log.info("Draft → DB 자동 저장 완료 - DraftId: {} → NoteId: {}", noteId, note.getId());
+
+		return ResponseEntity.status(HttpStatus.CREATED)
+			.body(new BaseResponse<>(response));
 	}
 }
