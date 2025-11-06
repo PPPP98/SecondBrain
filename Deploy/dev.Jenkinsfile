@@ -75,9 +75,24 @@ pipeline {
 
           echo "active-color.conf content = '${conf}'"
 
-          // 예: "set $active_color blue;" 에서 blue만 뽑기
-          def m = (conf =~ /set\s+\$active_color\s+(\w+);/)
-          def currentColor = m ? m[0][1] : "blue"
+          String line
+          def lines = conf.readLines()
+          if (lines.isEmpty()) {
+            line = "set \$active_color blue;"
+          } else {
+            line = lines.find { it.contains("active_color") } ?: lines.last()
+          }
+
+          echo "parsed line = '${line}'"
+
+          def tokens = line.trim().split(/\s+/)
+          def lastToken = tokens ? tokens[-1] : "blue;"
+          def currentColor = lastToken.replace(";", "")
+
+          if (!(currentColor in ["blue", "green"])) {
+            echo "Unknown color '${currentColor}', fallback to blue"
+            currentColor = "blue"
+          }
 
           env.CURRENT_COLOR = currentColor
           env.NEXT_COLOR    = (currentColor == 'blue') ? 'green' : 'blue'
@@ -174,7 +189,7 @@ pipeline {
             echo "Health check attempt ${i}/${maxAttempts} on color=${env.NEXT_COLOR}"
 
             def backOk = sh(
-              script: "curl -fsS http://klp_back_${env.NEXT_COLOR}:8080/health || echo FAIL",
+              script: "curl -fsS http://127.0.0.1:8080/health || echo FAIL",
               returnStdout: true
             ).trim()
 

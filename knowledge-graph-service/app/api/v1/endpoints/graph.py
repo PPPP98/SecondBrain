@@ -18,7 +18,7 @@ router = APIRouter(prefix="/graph", tags=["graph"])
     description="사용자의 전체 노트 그래프를 3D 시각화하기 위한 데이터 반환",
 )
 async def get_graph_visualization(
-    user_id: str = Header(..., alias="X-User-ID")
+    user_id: int = Header(..., alias="X-User-ID")
 ) -> GraphVisualizationResponse:
     """
     3D 그래프 시각화 데이터 조회
@@ -29,7 +29,7 @@ async def get_graph_visualization(
     **응답 형식**:
     ```
     {
-      "user_id": "user-123",
+      "user_id": 123,
       "nodes": [
         {"id": "note-id", "title": "제목", "created_at": "2025-11-03T12:00:00Z"}
       ],
@@ -66,8 +66,8 @@ async def get_graph_visualization(
     description="특정 노트와 연결된 이웃 노드들을 조회",
 )
 async def get_neighbors(
-    note_id: str,
-    user_id: str = Header(..., alias="X-User-ID"),
+    note_id: int,
+    user_id: int = Header(..., alias="X-User-ID"),
     depth: int = Query(1, ge=1, le=3, description="탐색 깊이"),
 ) -> NeighborGraphResponse:
     """
@@ -82,12 +82,12 @@ async def get_neighbors(
     **응답 형식**:
     ```
     {
-      "center_note_id": "note-123",
+      "center_note_id": 123,
       "neighbors": [
         {
-          "center_id": "note-123",
+          "center_id": 123,
           "center_title": "중심 제목",
-          "neighbor_id": "note-456",
+          "neighbor_id": 456,
           "neighbor_title": "이웃 제목",
           "distance": 1
         }
