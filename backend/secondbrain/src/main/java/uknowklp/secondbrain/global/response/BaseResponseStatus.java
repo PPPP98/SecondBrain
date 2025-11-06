@@ -92,7 +92,9 @@ public enum BaseResponseStatus {
 	DRAFT_ACCESS_DENIED(false, HttpStatus.FORBIDDEN, -10801, "Draft 접근 권한이 없습니다."),
 	DRAFT_VERSION_CONFLICT(false, HttpStatus.CONFLICT, -10802, "Draft 버전 충돌 (다른 기기에서 수정됨)"),
 	DRAFT_EMPTY(false, HttpStatus.BAD_REQUEST, -10803, "제목과 내용 중 하나는 필수입니다."),
-	REDIS_ERROR(false, HttpStatus.INTERNAL_SERVER_ERROR, -10804, "Redis 저장소 오류");
+	REDIS_ERROR(false, HttpStatus.INTERNAL_SERVER_ERROR, -10804, "Redis 저장소 오류"),
+	DRAFT_VERSION_REQUIRED(false, HttpStatus.BAD_REQUEST, -10805, "버전 정보는 필수입니다."),
+	DRAFT_INVALID_VERSION(false, HttpStatus.BAD_REQUEST, -10806, "잘못된 버전 정보입니다.");
 
 	private final boolean isSuccess;
 	private final HttpStatus httpStatus;

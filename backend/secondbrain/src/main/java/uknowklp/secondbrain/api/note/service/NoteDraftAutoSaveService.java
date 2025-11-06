@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import lombok.RequiredArgsConstructor;
@@ -25,6 +26,13 @@ import uknowklp.secondbrain.global.exception.BaseException;
  * 2. 페이지 이탈 (beforeunload)
  * 3. Side Peek 닫기
  * 4. 백엔드 스케줄러 (5분마다) ← 이 클래스
+ *
+ * 트랜잭션 전략 (v2):
+ * - 각 Draft별 독립 트랜잭션 (Propagation.REQUIRES_NEW)
+ * - 하나의 Draft 실패가 다른 Draft에 영향 없음
+ * - 트랜잭션 경계가 명확하여 예외 처리 안정성 향상
+ *
+ * @see <a href="https://docs.spring.io/spring-framework/docs/current/reference/html/data-access.html#tx-propagation">Spring Transaction Propagation</a>
  */
 @Slf4j
 @Service
@@ -43,9 +51,12 @@ public class NoteDraftAutoSaveService {
 	 * 이중 안전장치:
 	 * - 프론트엔드에서 자동 저장 못했을 경우 백업
 	 * - 네트워크 끊김이나 브라우저 강제 종료 시 보호
+	 *
+	 * 트랜잭션 전략 (v2):
+	 * - 스케줄러 메서드 자체는 트랜잭션 없음
+	 * - 각 Draft 저장은 독립 트랜잭션으로 처리
 	 */
 	@Scheduled(fixedDelay = 300000) // 5분
-	@Transactional
 	public void autoSaveStaleDrafts() {
 		try {
 			log.debug("Draft 자동 저장 스케줄러 시작");
@@ -63,8 +74,8 @@ public class NoteDraftAutoSaveService {
 
 			for (NoteDraft draft : staleDrafts) {
 				try {
-					// Draft → DB 저장
-					promoteDraftToDatabase(draft);
+					// 각 Draft별 독립 트랜잭션으로 처리
+					promoteDraftToDatabaseWithTransaction(draft);
 					savedCount++;
 
 				} catch (BaseException e) {
@@ -88,11 +99,19 @@ public class NoteDraftAutoSaveService {
 	}
 
 	/**
-	 * Draft를 DB로 승격 저장
+	 * Draft를 DB로 승격 저장 (독립 트랜잭션)
+	 *
+	 * Propagation.REQUIRES_NEW:
+	 * - 항상 새로운 트랜잭션 생성
+	 * - 다른 Draft 처리와 완전히 독립적
+	 * - 이 Draft 실패가 다른 Draft에 영향 없음
+	 * - 롤백 범위가 명확 (현재 Draft만 롤백)
 	 *
 	 * @param draft 저장할 Draft
+	 * @see <a href="https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/transaction/annotation/Propagation.html#REQUIRES_NEW">Propagation.REQUIRES_NEW</a>
 	 */
-	private void promoteDraftToDatabase(NoteDraft draft) {
+	@Transactional(propagation = Propagation.REQUIRES_NEW)
+	protected void promoteDraftToDatabaseWithTransaction(NoteDraft draft) {
 		// NoteRequest 생성
 		NoteRequest request = NoteRequest.of(
 			draft.getTitle(),

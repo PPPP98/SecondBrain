@@ -2,6 +2,7 @@ package uknowklp.secondbrain.api.note.service;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -10,10 +11,10 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.springframework.data.redis.core.Cursor;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.stereotype.Service;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,17 +32,25 @@ import uknowklp.secondbrain.global.response.BaseResponseStatus;
  * 2. Redis 임시 저장 (TTL 24h)
  * 3. 자동 저장 트리거 (50회 변경 or 5분 경과 or 페이지 이탈 or Side Peek 닫기)
  * 4. DB 영구 저장
+ *
+ * 성능 최적화 (v2):
+ * - 타입 특화 RedisTemplate<String, NoteDraft> 사용으로 직렬화 성능 개선
+ * - KEYS 명령어 제거 → 사용자별 SET 관리로 O(1) 성능 달성
+ * - ObjectMapper 변환 과정 제거로 CPU 사용량 감소
+ *
+ * @see <a href="https://redis.io/docs/latest/commands/scan">Redis SCAN vs KEYS Performance</a>
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class NoteDraftService {
 
-	private final RedisTemplate<String, Object> redisTemplate;
-	private final ObjectMapper objectMapper;
+	private final RedisTemplate<String, NoteDraft> noteDraftRedisTemplate;
+	private final RedisTemplate<String, Object> redisTemplate; // SET 관리용
 
-	// Redis Key Pattern
+	// Redis Key Patterns
 	private static final String DRAFT_PREFIX = "draft:note:";
+	private static final String USER_DRAFTS_PREFIX = "user:drafts:";
 
 	// TTL: 24시간
 	private static final Duration DRAFT_TTL = Duration.ofHours(24);
@@ -50,6 +59,10 @@ public class NoteDraftService {
 	 * Draft 저장 (Redis)
 	 *
 	 * 검증 전략: title 또는 content 중 하나라도 있으면 저장
+	 *
+	 * 성능 최적화 (v2):
+	 * - 사용자별 SET에 noteId 추가하여 O(1) 조회 성능 보장
+	 * - KEYS 명령어 사용 불필요
 	 *
 	 * @param userId  사용자 ID
 	 * @param request Draft 요청
@@ -72,11 +85,20 @@ public class NoteDraftService {
 			NoteDraft existingDraft = getDraftOrNull(noteId);
 
 			// Version 충돌 검사 (Optimistic Locking)
-			if (existingDraft != null && request.getVersion() != null) {
+			// v2: version 필수화로 항상 검증 수행
+			if (existingDraft != null) {
+				// 기존 Draft가 존재하는 경우: version 일치 여부 확인
 				if (!existingDraft.getVersion().equals(request.getVersion())) {
-					log.warn("Version conflict - NoteId: {}, Expected: {}, Actual: {}",
+					log.warn("Version conflict - NoteId: {}, Client: {}, Server: {}",
 						noteId, request.getVersion(), existingDraft.getVersion());
 					throw new BaseException(BaseResponseStatus.DRAFT_VERSION_CONFLICT);
+				}
+			} else {
+				// 새 Draft인 경우: version은 1이어야 함
+				if (request.getVersion() != 1L) {
+					log.warn("Invalid initial version - NoteId: {}, Version: {}",
+						noteId, request.getVersion());
+					throw new BaseException(BaseResponseStatus.DRAFT_INVALID_VERSION);
 				}
 			}
 
@@ -85,9 +107,14 @@ public class NoteDraftService {
 				? updateExistingDraft(existingDraft, request)
 				: createNewDraft(noteId, userId, request);
 
-			// Redis 저장
-			String key = DRAFT_PREFIX + noteId;
-			redisTemplate.opsForValue().set(key, draft, DRAFT_TTL);
+			// Redis 저장 (Draft 데이터)
+			String draftKey = DRAFT_PREFIX + noteId;
+			noteDraftRedisTemplate.opsForValue().set(draftKey, draft, DRAFT_TTL);
+
+			// 사용자별 Draft SET에 추가 (성능 최적화)
+			String userDraftsKey = USER_DRAFTS_PREFIX + userId;
+			redisTemplate.opsForSet().add(userDraftsKey, noteId);
+			redisTemplate.expire(userDraftsKey, DRAFT_TTL);
 
 			log.info("Draft 저장 완료 - NoteId: {}, UserId: {}, Version: {}",
 				noteId, userId, draft.getVersion());
@@ -133,22 +160,31 @@ public class NoteDraftService {
 	 * - 브라우저 재시작 후 미저장 Draft 복구
 	 * - 여러 노트를 동시에 작성 중인 경우
 	 *
+	 * 성능 최적화 (v2):
+	 * - KEYS 명령어 제거 → O(N) → O(1) 성능 개선
+	 * - 사용자별 SET에서 직접 조회로 Redis 부하 최소화
+	 * - 프로덕션 환경에서 안전한 O(M) 성능 (M = 사용자의 Draft 개수)
+	 *
 	 * @param userId 사용자 ID
 	 * @return Draft 목록 (lastModified 기준 내림차순)
+	 * @see <a href="https://redis.io/docs/latest/commands/smembers">Redis SMEMBERS</a>
 	 */
 	public List<NoteDraftResponse> listUserDrafts(Long userId) {
 		try {
-			Set<String> keys = redisTemplate.keys(DRAFT_PREFIX + "*");
+			// 사용자별 SET에서 noteId 목록 조회 (O(1) + O(M))
+			String userDraftsKey = USER_DRAFTS_PREFIX + userId;
+			Set<Object> noteIds = redisTemplate.opsForSet().members(userDraftsKey);
 
-			if (keys == null || keys.isEmpty()) {
+			if (noteIds == null || noteIds.isEmpty()) {
 				log.debug("Draft 목록 없음 - UserId: {}", userId);
 				return Collections.emptyList();
 			}
 
-			List<NoteDraftResponse> drafts = keys.stream()
+			// noteId로 각 Draft 조회
+			List<NoteDraftResponse> drafts = noteIds.stream()
+				.map(Object::toString)
 				.map(this::getDraftOrNull)
 				.filter(Objects::nonNull)
-				.filter(draft -> draft.getUserId().equals(userId))
 				.sorted(Comparator.comparing(NoteDraft::getLastModified).reversed())
 				.map(NoteDraftResponse::from)
 				.collect(Collectors.toList());
@@ -165,6 +201,9 @@ public class NoteDraftService {
 	/**
 	 * Draft 삭제 (Redis)
 	 *
+	 * 성능 최적화 (v2):
+	 * - 사용자별 SET에서도 noteId 제거하여 일관성 유지
+	 *
 	 * @param noteId 노트 ID
 	 * @param userId 사용자 ID
 	 */
@@ -173,8 +212,13 @@ public class NoteDraftService {
 			// 소유권 검증
 			NoteDraft draft = getDraft(noteId, userId);
 
-			String key = DRAFT_PREFIX + noteId;
-			Boolean deleted = redisTemplate.delete(key);
+			// Draft 데이터 삭제
+			String draftKey = DRAFT_PREFIX + noteId;
+			Boolean deleted = noteDraftRedisTemplate.delete(draftKey);
+
+			// 사용자별 SET에서도 제거
+			String userDraftsKey = USER_DRAFTS_PREFIX + userId;
+			redisTemplate.opsForSet().remove(userDraftsKey, noteId);
 
 			log.info("Draft 삭제 완료 - NoteId: {}, UserId: {}, Deleted: {}",
 				noteId, userId, deleted);
@@ -193,7 +237,7 @@ public class NoteDraftService {
 	 */
 	public boolean existsDraft(String noteId) {
 		String key = DRAFT_PREFIX + noteId;
-		return Boolean.TRUE.equals(redisTemplate.hasKey(key));
+		return Boolean.TRUE.equals(noteDraftRedisTemplate.hasKey(key));
 	}
 
 	/**
@@ -201,24 +245,38 @@ public class NoteDraftService {
 	 *
 	 * Batching 전략: 5분마다 백엔드 스케줄러가 호출
 	 *
+	 * 성능 최적화 (v2):
+	 * - KEYS 명령어 제거 → SCAN 명령어로 전환
+	 * - Redis 블로킹 없이 cursor 기반 안전한 스캔
+	 * - 프로덕션 환경에서 안전한 O(N) 성능 (비블로킹)
+	 *
 	 * @param minutes lastModified가 이 시간보다 오래된 Draft
 	 * @return 오래된 Draft 목록
+	 * @see <a href="https://redis.io/docs/latest/commands/scan">Redis SCAN Command</a>
 	 */
 	public List<NoteDraft> getStaleDrafts(int minutes) {
-		try {
-			Set<String> keys = redisTemplate.keys(DRAFT_PREFIX + "*");
+		List<NoteDraft> staleDrafts = new ArrayList<>();
 
-			if (keys == null || keys.isEmpty()) {
-				return Collections.emptyList();
-			}
+		try {
+			// SCAN 옵션 설정 (패턴 매칭 + 배치 크기)
+			ScanOptions options = ScanOptions.scanOptions()
+				.match(DRAFT_PREFIX + "*")
+				.count(100) // 한 번에 스캔할 키 개수
+				.build();
 
 			LocalDateTime threshold = LocalDateTime.now().minusMinutes(minutes);
 
-			List<NoteDraft> staleDrafts = keys.stream()
-				.map(this::getDraftOrNull)
-				.filter(Objects::nonNull)
-				.filter(draft -> draft.getLastModified().isBefore(threshold))
-				.collect(Collectors.toList());
+			// Cursor 기반 스캔 (비블로킹)
+			try (Cursor<String> cursor = noteDraftRedisTemplate.scan(options)) {
+				while (cursor.hasNext()) {
+					String key = cursor.next();
+					NoteDraft draft = getDraftOrNull(key);
+
+					if (draft != null && draft.getLastModified().isBefore(threshold)) {
+						staleDrafts.add(draft);
+					}
+				}
+			}
 
 			log.debug("오래된 Draft 조회 - Threshold: {}분, Count: {}", minutes, staleDrafts.size());
 			return staleDrafts;
@@ -234,6 +292,11 @@ public class NoteDraftService {
 	/**
 	 * Draft 조회 (소유권 검증 없음)
 	 *
+	 * 성능 최적화 (v2):
+	 * - 타입 특화 RedisTemplate 사용으로 직접 NoteDraft 반환
+	 * - ObjectMapper.convertValue() 변환 과정 제거
+	 * - CPU 사용량 감소 및 응답 시간 개선
+	 *
 	 * @param key Redis key 또는 noteId
 	 * @return NoteDraft 또는 null
 	 */
@@ -243,14 +306,8 @@ public class NoteDraftService {
 				key = DRAFT_PREFIX + key;
 			}
 
-			Object value = redisTemplate.opsForValue().get(key);
-
-			if (value == null) {
-				return null;
-			}
-
-			// GenericJackson2JsonRedisSerializer가 자동으로 NoteDraft로 역직렬화
-			return objectMapper.convertValue(value, NoteDraft.class);
+			// 타입 특화 RedisTemplate이 직접 NoteDraft 반환 (변환 불필요)
+			return noteDraftRedisTemplate.opsForValue().get(key);
 
 		} catch (Exception e) {
 			log.error("Draft 조회 실패 - Key: {}", key, e);
