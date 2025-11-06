@@ -8,12 +8,12 @@ interface NoteTitleInputProps {
 
 /**
  * 노트 제목 입력 컴포넌트
- * - Notion 스타일 큰 제목 input
- * - 흰색 박스, placeholder
- * - Glass UI와 대비되는 디자인
+ * - NotePage용 큰 제목 스타일 (투명 배경, 흰색 텍스트)
+ * - 스크린샷 "Meeting with the team" 스타일 적용
+ * - Glass UI 배경과 통합되는 디자인
  */
 export const NoteTitleInput = forwardRef<HTMLInputElement, NoteTitleInputProps>(
-  ({ value, onChange, placeholder = 'Untitled' }, ref) => {
+  ({ value, onChange, placeholder = '제목을 입력해주세요...' }, ref) => {
     return (
       <input
         ref={ref}
@@ -21,7 +21,7 @@ export const NoteTitleInput = forwardRef<HTMLInputElement, NoteTitleInputProps>(
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full rounded-xl bg-white px-6 py-4 text-2xl font-bold text-gray-800 shadow-sm transition-all duration-200 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+        className="w-full border-0 bg-transparent px-16 text-4xl font-bold text-white outline-none ring-0 transition-all duration-200 placeholder:text-white/30 focus:border-0 focus:outline-none focus:ring-0"
         aria-label="노트 제목"
       />
     );

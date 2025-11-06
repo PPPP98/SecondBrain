@@ -13,6 +13,12 @@ function CrepeEditor({ defaultValue }: NoteEditorProps) {
     return new Crepe({
       root,
       defaultValue: defaultValue || '',
+      featureConfigs: {
+        [Crepe.Feature.Placeholder]: {
+          text: '내용을 입력해주세요...',
+          mode: 'block',
+        },
+      },
     });
   });
 

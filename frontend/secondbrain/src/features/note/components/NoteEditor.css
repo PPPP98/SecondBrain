@@ -5,26 +5,15 @@
  * - 스크린샷과 동일한 디자인
  */
 
-/* 에디터 컨테이너 - Glass UI 효과 */
+/* 에디터 컨테이너 - 투명 배경 (Glass 효과 제거) */
 .note-editor {
-  /* Glass morphism 배경 */
-  background: rgba(71, 85, 105, 0.75); /* #475569 with 75% opacity */
+  /* 완전 투명 배경 - 목표 스크린샷과 동일 */
+  background: transparent;
 
-  /* Backdrop blur - glass 효과 핵심 */
-  backdrop-filter: blur(12px) saturate(180%);
-  -webkit-backdrop-filter: blur(12px) saturate(180%);
-
-  /* 미세한 테두리 */
-  border: 1px solid rgba(255, 255, 255, 0.1);
-
-  /* Glass shadow */
-  box-shadow: 0px 12px 40px rgba(0, 0, 0, 0.25);
-
-  /* 레이아웃 */
-  border-radius: 1rem; /* 16px - rounded-2xl */
-  padding: 2rem;
+  /* 레이아웃 - 상단 padding 제거하여 Title과 간격 조정 */
+  padding: 0;
   height: 100%;
-  overflow: auto;
+  overflow: visible;
 }
 
 /* 에디터 기본 스타일 */
@@ -42,7 +31,7 @@
 
 /* ProseMirror editor padding 제거 */
 .note-editor .ProseMirror.virtual-cursor-enabled.editor {
-  padding: 4rem !important;
+  padding: 4rem;
 }
 
 /* Content 영역 - 일반 문단 */
@@ -121,5 +110,14 @@
 
 /* Placeholder 스타일 */
 .note-editor .milkdown .placeholder {
-  color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Crepe placeholder 스타일 - 모든 가능한 선택자 */
+.note-editor .crepe-placeholder,
+.note-editor [data-placeholder],
+.note-editor .ProseMirror .placeholder,
+.note-editor .ProseMirror p.is-empty::before,
+.note-editor .milkdown [data-placeholder]::before {
+  color: rgba(255, 255, 255, 0.6) !important;
 }
