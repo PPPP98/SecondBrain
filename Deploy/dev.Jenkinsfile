@@ -56,22 +56,24 @@ pipeline {
       when {
         expression {
           // back/front/ai 중 하나라도 체크되었을 때만 Blue/Green 동작
-          return params.MANUAL_BACK || params.MANUAL_FRONT || params.MANUAL_AI
+          params.MANUAL_BACK || params.MANUAL_FRONT || params.MANUAL_AI
         }
       }
       steps {
         script {
           // nginx 컨테이너 내부 active-color.conf 내용을 통째로 가져옴
           def conf = sh(
-            script: """
-              if docker exec ${NGINX_CONTAINER} test -f ${ACTIVE_COLOR_FILE}; then
-                docker exec ${NGINX_CONTAINER} sh -c 'cat ${ACTIVE_COLOR_FILE}'
+            script: '''
+              if docker exec "$NGINX_CONTAINER" test -f "$ACTIVE_COLOR_FILE"; then
+                docker exec "$NGINX_CONTAINER" sh -c 'cat "$ACTIVE_COLOR_FILE"'
               else
-                echo 'set \$active_color blue;'
+                echo 'set $active_color blue;'
               fi
-            """,
+            ''',
             returnStdout: true
           ).trim()
+
+          echo "active-color.conf content = '${conf}'"
 
           // 예: "set $active_color blue;" 에서 blue만 뽑기
           def m = (conf =~ /set\s+\$active_color\s+(\w+);/)
@@ -210,10 +212,10 @@ pipeline {
       steps {
         script {
           // nginx 컨테이너 내부 active-color.conf 업데이트 + reload
-          sh """
+          sh '''
             set -eux
-            docker exec ${NGINX_CONTAINER} /bin/sh -c 'echo "set \\$active_color ${env.NEXT_COLOR};" > ${ACTIVE_COLOR_FILE} && nginx -s reload'
-          """
+            docker exec "$NGINX_CONTAINER" /bin/sh -c "printf 'set \\$active_color %s;\\n' \"$NEXT_COLOR\" > \"$ACTIVE_COLOR_FILE\" && nginx -s reload"
+          '''
         }
       }
     }
