@@ -42,3 +42,16 @@ export interface SearchNoteResponse {
   message: string;
   data: SearchNoteData;
 }
+
+// 최근 작성 노트
+export interface RecentNote {
+  noteId: number;
+  title: string;
+}
+
+export interface RecentNoteResponse {
+  success: boolean;
+  code: number;
+  message: string;
+  data: RecentNote[];
+}
