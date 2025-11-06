@@ -85,9 +85,9 @@ public class RabbitMQConfig {
 
 	// note created 바인딩
 	@Bean
-	public Binding noteCreatedBinding(Queue reminderQueue, DirectExchange knowledgeGraphExchange){
+	public Binding noteCreatedBinding(Queue knowledgeGraphQueue, DirectExchange knowledgeGraphExchange){
 		return BindingBuilder
-			.bind(knowledgeGraphExchange)
+			.bind(knowledgeGraphQueue)
 			.to(knowledgeGraphExchange)
 			.with("note.created");
 	}
@@ -103,8 +103,7 @@ public class RabbitMQConfig {
 
 	// note deleted 바인딩
 	@Bean
-	public Binding noteDeletedBinding(Queue reminderQueue, DirectExchange knowledgeGraphExchange,
-		Queue knowledgeGraphQueue){
+	public Binding noteDeletedBinding(Queue knowledgeGraphQueue, DirectExchange knowledgeGraphExchange){
 		return BindingBuilder
 			.bind(knowledgeGraphQueue)
 			.to(knowledgeGraphExchange)
