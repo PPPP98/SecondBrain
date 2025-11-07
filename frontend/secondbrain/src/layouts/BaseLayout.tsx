@@ -10,4 +10,4 @@ const BaseLayout = ({ children }: BaseLayoutProps) => {
   );
 };
 
-export default BaseLayout;
+export { BaseLayout };

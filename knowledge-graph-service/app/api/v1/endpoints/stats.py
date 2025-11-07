@@ -19,7 +19,7 @@ router = APIRouter(prefix="/stats", tags=["stats"])
     description="사용자의 그래프 통계를 조회합니다",
 )
 async def get_stats(
-    x_user_id: str = Header(..., alias="X-User-ID"),
+    x_user_id: int = Header(..., alias="X-User-ID"),
 ) -> GraphStats:
     """
     통계 조회 API

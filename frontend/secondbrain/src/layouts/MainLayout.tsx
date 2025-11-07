@@ -1,14 +1,15 @@
-import type { ReactNode } from 'react';
-import BaseLayout from '@/layouts/BaseLayout';
-import GlassElement from '@/shared/components/GlassElement/GlassElement';
-import UserIcon from '@/shared/components/icon/User.svg?react';
+import { type ReactNode } from 'react';
+import { BaseLayout } from '@/layouts/BaseLayout';
+import { GlassElement } from '@/shared/components/GlassElement/GlassElement';
+import { UserProfileButton } from '@/features/auth/components/UserProfileButton';
 import PlusIcon from '@/shared/components/icon/Plus.svg?react';
 
 interface MainLayoutProps {
   children: ReactNode;
+  onPlusClick?: () => void;
 }
 
-const MainLayout = ({ children }: MainLayoutProps) => {
+const MainLayout = ({ children, onPlusClick }: MainLayoutProps) => {
   return (
     <BaseLayout>
       {/* 배경 레이어: children (Graph 등) */}
@@ -20,14 +21,19 @@ const MainLayout = ({ children }: MainLayoutProps) => {
       </div>
 
       <div className="absolute right-10 top-10 z-50">
-        <GlassElement as="button" icon={<UserIcon />} />
+        <UserProfileButton />
       </div>
 
       <div className="absolute bottom-10 right-10 z-50">
-        <GlassElement as="button" icon={<PlusIcon />} />
+        <GlassElement
+          as="button"
+          icon={<PlusIcon />}
+          onClick={onPlusClick}
+          aria-label="새 노트 작성"
+        />
       </div>
     </BaseLayout>
   );
 };
 
-export default MainLayout;
+export { MainLayout };

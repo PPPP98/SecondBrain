@@ -165,4 +165,4 @@ fastApiClient.interceptors.request.use(
   },
 );
 
-export default apiClient;
+export { apiClient };

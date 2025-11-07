@@ -29,12 +29,14 @@
 ## 토큰 관리 전략
 
 ### Access Token
+
 - **저장 위치**: Zustand 스토어 또는 메모리
 - **유효 기간**: 1시간
 - **사용 방법**: API 요청 시 `Authorization: Bearer {token}` 헤더에 포함
 - **만료 시**: Refresh Token으로 자동 갱신
 
 ### Refresh Token
+
 - **저장 위치**: HttpOnly 쿠키 (자동 저장, JavaScript 접근 불가)
 - **유효 기간**: 7일
 - **사용 방법**: `/api/auth/refresh` 호출 시 자동으로 쿠키가 전송됨
@@ -47,6 +49,7 @@
 ### 1단계: 기본 구조 설정
 
 #### 1-1. API 클라이언트 설정 (`api/client.ts`)
+
 - Axios 또는 Fetch 기반 HTTP 클라이언트 생성
 - Base URL 설정 (`http://localhost:8080`)
 - `withCredentials: true` 설정 (쿠키 전송 허용)
@@ -67,6 +70,7 @@ export interface BaseResponse<T> {
 ```
 
 #### 1-3. 인증 타입 정의 (`features/auth/types/auth.ts`)
+
 ```typescript
 // Token 응답 데이터 (BaseResponse의 data 필드)
 export interface TokenResponse {
@@ -86,6 +90,7 @@ export interface UserInfo {
 ```
 
 #### 1-4. 인증 Store 생성 (`stores/authStore.ts`)
+
 - Zustand를 사용하여 인증 상태 관리
 - 상태: `accessToken`, `user`, `isAuthenticated`
 - 액션: `setToken`, `setUser`, `clearAuth`
@@ -120,12 +125,14 @@ getCurrentUser(): Promise<UserInfo>
 ```
 
 #### 2-2. Request 인터셉터 구현
+
 - 모든 API 요청에 Access Token 자동 추가
 - `Authorization: Bearer {accessToken}` 헤더 설정
 
 #### 2-3. Response 인터셉터 구현
 
 **BaseResponse 처리 로직**:
+
 ```typescript
 axios.interceptors.response.use(
   (response) => {
@@ -162,7 +169,7 @@ axios.interceptors.response.use(
       }
     }
     return Promise.reject(error);
-  }
+  },
 );
 ```
 
@@ -171,6 +178,7 @@ axios.interceptors.response.use(
 ### 3단계: OAuth2 로그인 플로우 구현
 
 #### 3-1. 로그인 페이지 구현
+
 - "Google로 로그인" 버튼
 - 클릭 시 `window.location.href = 'http://localhost:8080/oauth2/authorization/google'`
 
@@ -179,6 +187,7 @@ axios.interceptors.response.use(
 **URL에서 `code` 파라미터 추출** (`useSearch` 또는 `URLSearchParams`)
 
 **처리 로직**:
+
 ```typescript
 const handleCallback = async (code: string) => {
   try {
@@ -278,6 +287,7 @@ function App() {
 ```
 
 **장점**:
+
 - ✅ 로딩/에러 상태 자동 관리 (`isLoading`, `isError`)
 - ✅ useEffect 불필요
 - ✅ 에러 처리 간결
@@ -319,6 +329,7 @@ export function useSessionRestore() {
 ```
 
 **단점**:
+
 - ❌ 로딩 상태 수동 관리 필요
 - ❌ 에러 처리 복잡
 - ❌ useEffect 의존성 배열 관리
@@ -328,6 +339,7 @@ export function useSessionRestore() {
 ### 4단계: TanStack Query 통합
 
 #### 4-1. Query 클라이언트 설정 (`lib/query-client.ts`)
+
 - `QueryClient` 생성 및 기본 옵션 설정
 - `staleTime`, `cacheTime`, `retry` 등 설정
 
@@ -406,15 +418,18 @@ export function useCurrentUser() {
 ### 5단계: TanStack Router 통합
 
 #### 5-1. 라우터 설정 (`lib/router.ts`)
+
 - 라우트 정의 (로그인, Callback, 메인 페이지 등)
 - 라우터 인스턴스 생성
 
 #### 5-2. 보호된 라우트 구현
+
 - 인증이 필요한 페이지에 Guard 추가
 - `beforeLoad` 훅에서 인증 상태 확인
 - 미인증 시 로그인 페이지로 리다이렉트
 
 #### 5-3. 공개 라우트 구현
+
 - 로그인 페이지, Callback 페이지는 인증 불필요
 - 이미 로그인된 사용자가 접근 시 메인 페이지로 리다이렉트 (선택사항)
 
@@ -423,10 +438,12 @@ export function useCurrentUser() {
 ### 6단계: 자동 토큰 갱신 구현
 
 #### 6-1. Token Refresh 전략
+
 - Access Token 만료 5분 전에 자동 갱신 (권장)
 - 또는 401 에러 시 갱신 (Response 인터셉터에서 처리)
 
 #### 6-2. Refresh 로직 구현
+
 ```typescript
 // Access Token 만료 시간 확인 (JWT 디코딩)
 // 만료 5분 전이면 refreshToken() 호출
@@ -434,6 +451,7 @@ export function useCurrentUser() {
 ```
 
 #### 6-3. 에러 처리
+
 - Refresh Token 만료 시: 로그아웃 처리 및 로그인 페이지로 이동
 - Refresh 실패 시: 에러 메시지 표시 및 재로그인 유도
 
@@ -442,12 +460,14 @@ export function useCurrentUser() {
 ### 7단계: 로그아웃 구현
 
 #### 7-1. 로그아웃 함수 작성
+
 1. `/api/auth/logout` API 호출
 2. Zustand 스토어 초기화 (`clearAuth()`)
 3. TanStack Query 캐시 초기화
 4. 로그인 페이지로 리다이렉트
 
 #### 7-2. UI 통합
+
 - 헤더 또는 메뉴에 "로그아웃" 버튼 추가
 - 클릭 시 로그아웃 함수 호출
 
@@ -456,18 +476,22 @@ export function useCurrentUser() {
 ## 보안 고려사항
 
 ### 1. Access Token 저장
+
 - **권장**: Zustand 스토어 (메모리 기반)
 - **비권장**: LocalStorage (XSS 공격에 취약)
 
 ### 2. Refresh Token
+
 - HttpOnly 쿠키로 자동 관리됨 (JavaScript 접근 불가)
 - CSRF 공격 방지를 위해 SameSite=Lax 설정됨
 
 ### 3. HTTPS 사용
+
 - 프로덕션 환경에서는 반드시 HTTPS 사용
 - 쿠키의 Secure 플래그 활성화
 
 ### 4. Authorization Code
+
 - One-time use (1회용)
 - 5분 후 자동 만료
 - 사용 후 즉시 교환 필요
@@ -503,12 +527,14 @@ export function useCurrentUser() {
 ## 테스트 시나리오
 
 ### 정상 플로우
+
 1. 로그인 버튼 클릭 → Google 로그인 → Callback 페이지 → 메인 페이지
 2. API 호출 시 Access Token 자동 포함
 3. Access Token 만료 시 자동 갱신
 4. 로그아웃 → 토큰 삭제 → 로그인 페이지
 
 ### 에러 처리
+
 1. Google 로그인 취소 → 에러 메시지 표시
 2. 잘못된 Authorization Code → 에러 처리
 3. Refresh Token 만료 → 재로그인 유도
@@ -518,13 +544,13 @@ export function useCurrentUser() {
 
 ## 참고: 주요 에러 코드
 
-| 에러 코드 | 상황 | 처리 방법 |
-|-----------|------|-----------|
-| -10401 | 유효하지 않은 Access Token | Token Refresh 시도 |
-| -10411 | Access Token 만료 | Token Refresh 시도 |
-| -10415 | 유효하지 않은 Refresh Token | 재로그인 유도 |
-| -10416 | Refresh Token 없음 | 재로그인 유도 |
-| -10420 | Authorization Code 만료 | 재로그인 유도 |
+| 에러 코드 | 상황                        | 처리 방법          |
+| --------- | --------------------------- | ------------------ |
+| -10401    | 유효하지 않은 Access Token  | Token Refresh 시도 |
+| -10411    | Access Token 만료           | Token Refresh 시도 |
+| -10415    | 유효하지 않은 Refresh Token | 재로그인 유도      |
+| -10416    | Refresh Token 없음          | 재로그인 유도      |
+| -10420    | Authorization Code 만료     | 재로그인 유도      |
 
 ---
 

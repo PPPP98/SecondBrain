@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import uknowklp.secondbrain.api.note.domain.Note;
 import uknowklp.secondbrain.api.note.domain.NoteDocument;
+import uknowklp.secondbrain.api.note.dto.KnowledgeGraphEvent;
 import uknowklp.secondbrain.api.note.dto.NoteRecentResponse;
 import uknowklp.secondbrain.api.note.dto.NoteReminderResponse;
 import uknowklp.secondbrain.api.note.dto.NoteReminderResult;
@@ -36,6 +37,8 @@ public class NoteServiceImpl implements NoteService {
 	private final UserService userService;
 	private final NoteSearchService noteSearchService;
 	private final ReminderProducerService reminderProducerService;
+	private final KnowledgeGraphProducerService knowledgeGraphProducerService;
+
 	// TODO: S3 업로드 서비스 추가 예정
 	// private final S3UploadService s3UploadService;
 
@@ -76,6 +79,14 @@ public class NoteServiceImpl implements NoteService {
 			log.error("Elasticsearch 인덱싱 실패 - 노트 ID: {}", savedNote.getId(), e);
 			// Elasticsearch 인덱싱 실패는 메인 로직에 영향 없음
 		}
+
+		// 지식 그래프 created 이벤트 발행
+		knowledgeGraphProducerService.publishNoteCreated(
+			savedNote.getId(),
+			userId,
+			savedNote.getTitle(),
+			savedNote.getContent()
+		);
 
 		return savedNote;
 	}
@@ -120,8 +131,12 @@ public class NoteServiceImpl implements NoteService {
 		// 이미지 파일 처리 및 마크다운 content 생성
 		String finalContent = processImagesAndContent(request.getContent(), request.getImages());
 
-		// 최종 content 길이 검증
+		// 최종 content 길이 검증 (현재는 길이 제한 없음)
 		validateContentLength(finalContent);
+
+		// 변경 전 값 저장 (지식 그래프 검증용)
+		String oldTitle = note.getTitle();
+		String oldContent = note.getContent();
 
 		// 노트 수정 (updatedAt은 @UpdateTimestamp로 자동 갱신)
 		note.update(request.getTitle(), finalContent);
@@ -138,6 +153,16 @@ public class NoteServiceImpl implements NoteService {
 		} catch (Exception e) {
 			log.error("Elasticsearch 인덱스 업데이트 실패 - 노트 ID: {}", noteId, e);
 		}
+
+		// 지식 그래프 updated 이벤트 발행
+		knowledgeGraphProducerService.publishNoteUpdated(
+			updatedNote.getId(),
+			userId,
+			oldTitle,
+			updatedNote.getTitle(),
+			oldContent,
+			updatedNote.getContent()
+		);
 
 		return NoteResponse.from(updatedNote);
 	}
@@ -186,13 +211,13 @@ public class NoteServiceImpl implements NoteService {
 		} catch (Exception e) {
 			log.error("Elasticsearch bulk 삭제 실패", e);
 		}
+
+		// 지식 그래프 deleted 이벤트 발행
+		for (Note note : notesToDelete) {
+			knowledgeGraphProducerService.publishNoteDeleted(note.getId(), userId);
+		}
 	}
 
-	/**
-	 * 노트 요청 데이터 검증
-	 * @param request 노트 생성 요청 DTO
-	 * @throws BaseException 검증 실패 시
-	 */
 	private void validateNoteRequest(NoteRequest request) {
 		// title 검증
 		if (request.getTitle() == null || request.getTitle().trim().isEmpty()) {
@@ -204,25 +229,14 @@ public class NoteServiceImpl implements NoteService {
 			throw new BaseException(BaseResponseStatus.NOTE_TITLE_TOO_LONG);
 		}
 
-		// content 검증
+		// content 검증 (TEXT 타입으로 길이 제한 제거)
 		if (request.getContent() == null || request.getContent().trim().isEmpty()) {
 			log.warn("Note content is empty");
 			throw new BaseException(BaseResponseStatus.NOTE_CONTENT_EMPTY);
 		}
-		if (request.getContent().length() > 2048) {
-			log.warn("Note content too long: {} characters", request.getContent().length());
-			throw new BaseException(BaseResponseStatus.NOTE_CONTENT_TOO_LONG);
-		}
+		// content 길이 제한 제거 (TEXT 타입은 무제한)
 	}
 
-	/**
-	 * 이미지 파일들을 S3에 업로드하고 마크다운 형식으로 content에 삽입
-	 * 현재는 S3 연동 전이므로 placeholder 로직
-	 *
-	 * @param originalContent 원본 content
-	 * @param images 업로드할 이미지 파일 목록
-	 * @return 이미지 마크다운이 포함된 최종 content
-	 */
 	private String processImagesAndContent(String originalContent, List<MultipartFile> images) {
 		if (images == null || images.isEmpty()) {
 			return originalContent;
@@ -258,19 +272,9 @@ public class NoteServiceImpl implements NoteService {
 		return contentBuilder.toString().trim();
 	}
 
-	/**
-	 * 최종 content 길이 검증
-	 * 이미지 마크다운 추가 후 DB 제약조건(2048자)을 초과하는지 확인
-	 *
-	 * @param content 검증할 content
-	 * @throws BaseException content가 2048자를 초과하는 경우
-	 */
 	private void validateContentLength(String content) {
-		final int MAX_CONTENT_LENGTH = 2048;
-		if (content != null && content.length() > MAX_CONTENT_LENGTH) {
-			log.warn("Content length exceeds maximum: {} > {}", content.length(), MAX_CONTENT_LENGTH);
-			throw new BaseException(BaseResponseStatus.BAD_REQUEST);
-		}
+		// TEXT 타입으로 변경되어 길이 제한 제거
+		// 향후 필요시 합리적인 제한 추가 가능 (예: 1MB)
 	}
 
 	@Override

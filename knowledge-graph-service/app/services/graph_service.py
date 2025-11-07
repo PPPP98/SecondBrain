@@ -11,7 +11,7 @@ class GraphVisualizationService:
     """그래프 시각화 비즈니스 로직"""
 
     @staticmethod
-    def get_graph_nodes_and_links(user_id: str) -> Tuple[List[Dict], List[Dict]]:
+    def get_graph_nodes_and_links(user_id: int) -> Tuple[List[Dict], List[Dict]]:
         """
         사용자의 그래프 노드와 링크 조회
 
@@ -57,7 +57,7 @@ class GraphVisualizationService:
             return nodes, links
 
     @staticmethod
-    def get_graph_with_metadata(user_id: str) -> Dict:
+    def get_graph_with_metadata(user_id: int) -> Dict:
         """
         상세 그래프 데이터 (메타데이터 포함)
 
@@ -100,8 +100,8 @@ class GraphVisualizationService:
 
     @staticmethod
     def get_graph_neighbors(
-        user_id: str,
-        note_id: str,
+        user_id: int,
+        note_id: int,
         depth: int = 1,
     ) -> Dict:
         """
