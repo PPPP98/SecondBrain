@@ -1,4 +1,4 @@
-package uknowklp.secondbrain.api.gms;
+package uknowklp.secondbrain.api.gms.dto;
 
 import java.util.List;
 

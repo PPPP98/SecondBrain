@@ -1,4 +1,4 @@
-package uknowklp.secondbrain.api.gms;
+package uknowklp.secondbrain.api.gms.dto;
 
 public record GmsMessage(
 	String role,
