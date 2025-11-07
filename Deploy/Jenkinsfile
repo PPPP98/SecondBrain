@@ -511,12 +511,14 @@ pipeline {
                 sh """
                   set -eux
                   docker compose --env-file Deploy/.env -f "$COMPOSE_FILE" up -d --build ${nextAiService}
+                  docker compose --env-file Deploy/.env -f "$COMPOSE_FILE" up -d --build note_consumer
                 """
               } else {
                 echo "AI not changed — ensure ${nextAiService} is up without rebuild"
                 sh """
                   set -eux
                   docker compose --env-file Deploy/.env -f "$COMPOSE_FILE" up -d --build ${nextAiService}
+                  docker compose --env-file Deploy/.env -f "$COMPOSE_FILE" up -d --build note_consumer
                 """
               }
 
