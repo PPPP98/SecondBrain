@@ -23,7 +23,7 @@ export const STYLE_CONFIG = {
   },
   div: {
     scale: 'p-4 px-8 text-xl',
-    size: 'w-[25rem]',
+    size: 'w-[27rem]',
     borderRadius: 'rounded-3xl',
     elementSpecific: 'flex flex-row',
   },

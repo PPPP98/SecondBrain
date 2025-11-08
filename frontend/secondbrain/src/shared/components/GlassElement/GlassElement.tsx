@@ -8,7 +8,7 @@ import {
   getElementSpecificClasses,
   getInputType,
 } from '@/shared/components/GlassElement/glassElement.utils';
-import { useGlassEffect } from './useGlassEffect';
+import { useGlassEffect } from '@/shared/components/GlassElement/useGlassEffect';
 
 type ElementType = 'button' | 'input' | 'div';
 
