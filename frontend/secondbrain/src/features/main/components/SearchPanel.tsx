@@ -1,6 +1,6 @@
 import { useSearchPanelStore } from '@/features/main/stores/searchPanelStore';
 import { PanelHeader } from '@/features/main/components/PanelHeader';
-import { NoteList } from './NoteList';
+import { NoteList } from '@/features/main/components/NoteList';
 import { useRecentNotes } from '@/features/main/hooks/useRecentNotes';
 import { useSearchNotes } from '@/features/main/hooks/useSearchNotes';
 import type { RecentNote, Note } from '@/features/main/types/search';
@@ -34,12 +34,15 @@ export function SearchPanel() {
   const allNoteIds = getAllNoteIds();
 
   return (
-    <>
+    <div className="flex h-full flex-col">
       <PanelHeader allNoteIds={allNoteIds} />
-      <div className="m-0 flex w-full flex-1 flex-col overflow-y-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div
+        data-scroll-container="true"
+        className="m-0 flex flex-1 flex-col overflow-y-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
         {mode === 'recent' && <NoteList type="recent" recentQuery={recentNotesQuery} />}
         {mode === 'search' && <NoteList type="search" searchQuery={searchNotesQuery} />}
       </div>
-    </>
+    </div>
   );
 }

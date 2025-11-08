@@ -21,10 +21,10 @@ export function useSearchNotes({ keyword }: UseSearchNotesParams) {
     },
     initialPageParam: 0,
     getNextPageParam: (lastPage) => {
-      if (lastPage.hasNext) {
-        const currentPageParam =
-          (lastPage as SearchNoteData & { pageParam?: number }).pageParam ?? 0;
-        return currentPageParam + 1;
+      // currentPage가 totalPages - 1보다 작으면 다음 페이지가 있음
+      const hasNextPage = lastPage.currentPage < lastPage.totalPages - 1;
+      if (hasNextPage) {
+        return lastPage.currentPage + 1;
       }
       return undefined;
     },

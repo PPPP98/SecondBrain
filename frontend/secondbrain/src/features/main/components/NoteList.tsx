@@ -13,7 +13,7 @@ interface NoteListProps {
 export function NoteList({ type, recentQuery, searchQuery }: NoteListProps) {
   const selectedIds = useSearchPanelStore((state) => state.selectedIds);
   const toggleSelection = useSearchPanelStore((state) => state.toggleSelection);
-  const observerRef = useRef<HTMLDivElement>(null); //
+  const observerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (type !== 'search' || !searchQuery) return;
@@ -21,6 +21,11 @@ export function NoteList({ type, recentQuery, searchQuery }: NoteListProps) {
     const { hasNextPage, isFetchingNextPage, fetchNextPage } = searchQuery;
 
     if (!observerRef.current) return;
+
+    // SearchPanel의 스크롤 컨테이너를 찾아서 root로 설정
+    const scrollContainer = observerRef.current.closest(
+      '[data-scroll-container="true"]',
+    ) as HTMLElement;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -31,7 +36,7 @@ export function NoteList({ type, recentQuery, searchQuery }: NoteListProps) {
         }
       },
       {
-        root: null, // 뷰포트 기준
+        root: scrollContainer, // SearchPanel의 스크롤 컨테이너를 기준으로
         rootMargin: '100px', // 100px 전에 미리 로드
         threshold: 0.1,
       },
