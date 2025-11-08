@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import BaseLayout from '@/layouts/BaseLayout';
+import { BaseLayout } from '@/layouts/BaseLayout';
 
 interface LandingLayoutProps {
   children: ReactNode;
@@ -13,4 +13,4 @@ const LandingLayout = ({ children }: LandingLayoutProps) => {
   );
 };
 
-export default LandingLayout;
+export { LandingLayout };

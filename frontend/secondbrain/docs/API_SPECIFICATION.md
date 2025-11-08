@@ -1,6 +1,7 @@
 # API 명세서
 
 ## Base URL
+
 ```
 http://localhost:8080
 ```
@@ -14,7 +15,9 @@ http://localhost:8080
   "success": true,
   "code": 200,
   "message": "요청에 성공했습니다.",
-  "data": { /* 응답 데이터 */ }
+  "data": {
+    /* 응답 데이터 */
+  }
 }
 ```
 
@@ -42,6 +45,7 @@ Google OAuth2 로그인 후 받은 Authorization Code를 JWT 토큰으로 교환
 **Endpoint:** `POST /api/auth/token`
 
 **Request:**
+
 ```http
 POST /api/auth/token?code={authorizationCode}
 Content-Type: application/json
@@ -53,6 +57,7 @@ Content-Type: application/json
 | code | string | O | OAuth2 인증 후 받은 Authorization Code |
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -67,6 +72,7 @@ Content-Type: application/json
 ```
 
 **Response Headers:**
+
 ```http
 Set-Cookie: refreshToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=604800
 ```
@@ -95,12 +101,14 @@ Set-Cookie: refreshToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...; Path=/; HttpOn
 **Endpoint:** `POST /api/auth/refresh`
 
 **Request:**
+
 ```http
 POST /api/auth/refresh
 Cookie: refreshToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -115,6 +123,7 @@ Cookie: refreshToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
 **Response Headers:**
+
 ```http
 Set-Cookie: refreshToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=604800
 ```
@@ -135,6 +144,7 @@ Set-Cookie: refreshToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...; Path=/; HttpOn
 **Endpoint:** `POST /api/auth/logout`
 
 **Request:**
+
 ```http
 POST /api/auth/logout
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
@@ -142,6 +152,7 @@ Cookie: refreshToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -152,6 +163,7 @@ Cookie: refreshToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
 **Response Headers:**
+
 ```http
 Set-Cookie: refreshToken=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0
 ```
@@ -167,6 +179,7 @@ Set-Cookie: refreshToken=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0
 **Endpoint:** `GET /api/users/me`
 
 **Request:**
+
 ```http
 GET /api/users/me
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
@@ -208,10 +221,10 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 }
 ```
 
-| 에러 코드 | HTTP 상태 | 메시지 |
-|-----------|-----------|--------|
-| -10401 | 401 | 유효하지 않은 액세스 토큰입니다. |
-| -10411 | 401 | 토큰이 만료되었습니다. 다시 로그인해주세요. |
+| 에러 코드 | HTTP 상태 | 메시지                                      |
+| --------- | --------- | ------------------------------------------- |
+| -10401    | 401       | 유효하지 않은 액세스 토큰입니다.            |
+| -10411    | 401       | 토큰이 만료되었습니다. 다시 로그인해주세요. |
 
 ---
 
@@ -222,15 +235,18 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 **Endpoint:** `GET /oauth2/authorization/google`
 
 **설명:**
+
 - 사용자를 Google 로그인 페이지로 리다이렉트합니다.
 - 로그인 성공 시 프론트엔드 Callback URL로 리다이렉트됩니다.
 
 **Redirect URL (성공):**
+
 ```
 {OAUTH2_REDIRECT_URL}/auth/callback?code={authorizationCode}
 ```
 
 **Redirect URL (실패):**
+
 ```
 {OAUTH2_FAILURE_REDIRECT_URL}?error=true
 ```
@@ -240,37 +256,41 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ## 에러 코드 전체 목록
 
 ### 인증/인가 에러
-| 코드 | HTTP 상태 | 메시지 |
-|------|-----------|--------|
-| -10401 | 401 | 유효하지 않은 액세스 토큰입니다. |
-| -10402 | 404 | 존재하지 않는 사용자입니다. |
-| -10403 | 403 | 로그인이 필요한 서비스입니다. |
-| -10405 | 401 | 로그인이 취소되었습니다. 다시 시도해주세요. |
-| -10406 | 503 | 인증 서버 연결에 실패했습니다. 잠시 후 다시 시도해주세요. |
-| -10407 | 500 | 로그인 중 오류가 발생했습니다. 다시 시도해주세요. |
+
+| 코드   | HTTP 상태 | 메시지                                                    |
+| ------ | --------- | --------------------------------------------------------- |
+| -10401 | 401       | 유효하지 않은 액세스 토큰입니다.                          |
+| -10402 | 404       | 존재하지 않는 사용자입니다.                               |
+| -10403 | 403       | 로그인이 필요한 서비스입니다.                             |
+| -10405 | 401       | 로그인이 취소되었습니다. 다시 시도해주세요.               |
+| -10406 | 503       | 인증 서버 연결에 실패했습니다. 잠시 후 다시 시도해주세요. |
+| -10407 | 500       | 로그인 중 오류가 발생했습니다. 다시 시도해주세요.         |
 
 ### JWT 토큰 에러
-| 코드 | HTTP 상태 | 메시지 |
-|------|-----------|--------|
-| -10411 | 401 | 토큰이 만료되었습니다. 다시 로그인해주세요. |
-| -10412 | 401 | 유효하지 않은 토큰입니다. |
-| -10413 | 401 | 토큰 서명이 유효하지 않습니다. |
-| -10414 | 500 | 인증 처리 중 오류가 발생했습니다. |
+
+| 코드   | HTTP 상태 | 메시지                                      |
+| ------ | --------- | ------------------------------------------- |
+| -10411 | 401       | 토큰이 만료되었습니다. 다시 로그인해주세요. |
+| -10412 | 401       | 유효하지 않은 토큰입니다.                   |
+| -10413 | 401       | 토큰 서명이 유효하지 않습니다.              |
+| -10414 | 500       | 인증 처리 중 오류가 발생했습니다.           |
 
 ### Refresh Token 및 인증 코드 에러
-| 코드 | HTTP 상태 | 메시지 |
-|------|-----------|--------|
-| -10415 | 401 | 유효하지 않은 리프레시 토큰입니다. |
-| -10416 | 401 | 리프레시 토큰을 찾을 수 없습니다. |
-| -10420 | 401 | 유효하지 않거나 만료된 인증 코드입니다. |
-| -10421 | 400 | 인증 코드가 제공되지 않았습니다. |
+
+| 코드   | HTTP 상태 | 메시지                                  |
+| ------ | --------- | --------------------------------------- |
+| -10415 | 401       | 유효하지 않은 리프레시 토큰입니다.      |
+| -10416 | 401       | 리프레시 토큰을 찾을 수 없습니다.       |
+| -10420 | 401       | 유효하지 않거나 만료된 인증 코드입니다. |
+| -10421 | 400       | 인증 코드가 제공되지 않았습니다.        |
 
 ### 일반 에러
-| 코드 | HTTP 상태 | 메시지 |
-|------|-----------|--------|
-| -10400 | 400 | 잘못된 요청입니다. |
-| -10500 | 500 | 요청 처리 중 서버 오류가 발생했습니다. |
-| -10503 | 500 | 예기치 못한 이유로 오류가 발생했습니다. |
+
+| 코드   | HTTP 상태 | 메시지                                  |
+| ------ | --------- | --------------------------------------- |
+| -10400 | 400       | 잘못된 요청입니다.                      |
+| -10500 | 500       | 요청 처리 중 서버 오류가 발생했습니다.  |
+| -10503 | 500       | 예기치 못한 이유로 오류가 발생했습니다. |
 
 ---
 
@@ -279,6 +299,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 현재 개발 환경에서는 모든 Origin을 허용합니다.
 
 **허용된 HTTP 메소드:**
+
 - GET
 - POST
 - PUT
@@ -287,9 +308,11 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 - OPTIONS
 
 **허용된 헤더:**
+
 - 모든 헤더 허용
 
 **자격 증명(Credentials):**
+
 - 쿠키 및 Authorization 헤더 허용
 
 ---

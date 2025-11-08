@@ -6,6 +6,7 @@ import java.util.Map;
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
 import org.springframework.amqp.core.CustomExchange;
+import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.core.QueueBuilder;
 import org.springframework.amqp.rabbit.annotation.EnableRabbit;
@@ -69,4 +70,25 @@ public class RabbitMQConfig {
 		return template;
 	}
 
+	// 노트 생성 이벤트 큐 (FastAPI Consumer가 사용 중)
+	@Bean
+	public Queue noteCreationQueue(){
+		return QueueBuilder.durable("note_creation_queue")
+			.build();
+	}
+
+	// 지식 그래프 이벤트용 Topic Exchange
+	@Bean
+	public TopicExchange knowledgeGraphExchange(){
+		return new TopicExchange("knowledge_graph_events", true, false);
+	}
+
+	// note.* 바인딩 (created, updated, deleted 모두 포함)
+	@Bean
+	public Binding noteEventsBinding(Queue noteCreationQueue, TopicExchange knowledgeGraphExchange){
+		return BindingBuilder
+			.bind(noteCreationQueue)
+			.to(knowledgeGraphExchange)
+			.with("note.*");
+	}
 }

@@ -123,4 +123,4 @@ const GlassElement = <El extends ElementType>({
   );
 };
 
-export default GlassElement;
+export { GlassElement };
