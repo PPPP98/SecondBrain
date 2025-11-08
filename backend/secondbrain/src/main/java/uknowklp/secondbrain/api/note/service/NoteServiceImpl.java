@@ -295,7 +295,7 @@ public class NoteServiceImpl implements NoteService {
 			throw new BaseException(BaseResponseStatus.REMINDER_ALREADY_ENABLED);
 		}
 
-		// 첫 리마인더 시간: 10초 후 (개발용, 운영: 1일 후)
+		// 첫 리마인더 시간: 10초 후 (개발용, 실서비스에선 첫 알림은 1일 후)
 		LocalDateTime firstReminderTime = LocalDateTime.now().plusSeconds(10);
 
 		// 리마인더 활성화
