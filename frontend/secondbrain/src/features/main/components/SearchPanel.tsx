@@ -17,10 +17,10 @@ export function SearchPanel() {
   const getAllNoteIds = (): number[] => {
     if (mode === 'recent' && recentNotesQuery.data) {
       const noteData = (recentNotesQuery.data as unknown as [unknown, RecentNote[]])[1];
-      return noteData ? noteData.map((note) => note.noteId) : [];
+      return Array.isArray(noteData) ? noteData.map((note) => note.noteId) : [];
     }
 
-    if (mode === 'search' && searchNotesQuery.data) {
+    if (mode === 'search' && searchNotesQuery.data?.pages) {
       const allNotes = searchNotesQuery.data.pages.flatMap((page) => {
         const pageResults = page.results as unknown as [unknown, Note[]];
         return pageResults[1] || [];
