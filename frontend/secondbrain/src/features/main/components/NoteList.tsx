@@ -3,6 +3,7 @@ import type { UseQueryResult, UseInfiniteQueryResult, InfiniteData } from '@tans
 import type { RecentNote, SearchNoteData, Note } from '@/features/main/types/search';
 import { NoteItem } from '@/features/main/components/NoteItem';
 import { useSearchPanelStore } from '@/features/main/stores/searchPanelStore';
+import { LoadingSpinner } from '@/shared/components/LoadingSpinner';
 
 interface NoteListProps {
   type: 'recent' | 'search';
@@ -51,7 +52,7 @@ export function NoteList({ type, recentQuery, searchQuery }: NoteListProps) {
 
   if (type === 'recent' && recentQuery) {
     if (recentQuery.isLoading) {
-      return <p className="m-0 text-center text-sm text-white/60">로딩 중...</p>;
+      return <LoadingSpinner size="sm" />;
     }
 
     if (!recentQuery.data) {
