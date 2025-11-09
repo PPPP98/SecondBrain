@@ -58,8 +58,8 @@ export function NoteList({ type, recentQuery, searchQuery }: NoteListProps) {
       return <p className="m-0 text-center text-sm text-white/40">최근 노트가 없습니다</p>;
     }
 
-    // 인덱스 1번에 실제 노트 데이터 배열이 있음
-    const noteData = (recentQuery.data as unknown as [unknown, RecentNote[]])[1];
+    // recentQuery.data는 이미 RecentNote[] 배열
+    const noteData = recentQuery.data;
 
     if (!Array.isArray(noteData) || noteData.length === 0) {
       return <p className="m-0 text-center text-sm text-white/40">최근 노트가 없습니다</p>;

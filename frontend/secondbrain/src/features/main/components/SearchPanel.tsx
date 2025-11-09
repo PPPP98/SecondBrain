@@ -16,8 +16,11 @@ export function SearchPanel() {
   // 현재 모드에 따라 전체 노트 ID 추출
   const getAllNoteIds = (): number[] => {
     if (mode === 'recent' && recentNotesQuery.data) {
-      const noteData = (recentNotesQuery.data as unknown as [unknown, RecentNote[]])[1];
-      return Array.isArray(noteData) ? noteData.map((note) => note.noteId) : [];
+      const notes = recentNotesQuery.data;
+      if (Array.isArray(notes)) {
+        return notes.map((note: RecentNote) => note.noteId);
+      }
+      return [];
     }
 
     if (mode === 'search' && searchNotesQuery.data?.pages) {
