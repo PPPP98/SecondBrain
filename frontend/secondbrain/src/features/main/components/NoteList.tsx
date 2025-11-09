@@ -37,7 +37,7 @@ export function NoteList({ type, recentQuery, searchQuery }: NoteListProps) {
       },
       {
         root: scrollContainer, // SearchPanel의 스크롤 컨테이너를 기준으로
-        rootMargin: '100px', // 100px 전에 미리 로드
+        rootMargin: '0px', // 실제로 화면에 보일 때만 로드
         threshold: 0.1,
       },
     );
@@ -89,8 +89,7 @@ export function NoteList({ type, recentQuery, searchQuery }: NoteListProps) {
     }
 
     const allNotes = searchQuery.data.pages.flatMap((page) => {
-      const pageResults = page.results as unknown as [unknown, Note[]];
-      return pageResults[1] || [];
+      return page.results || [];
     });
 
     if (allNotes.length === 0) {
@@ -100,18 +99,18 @@ export function NoteList({ type, recentQuery, searchQuery }: NoteListProps) {
     return (
       <>
         <div className="w-full space-y-4">
-          {allNotes.map((note: Note) => (
-            <NoteItem
-              key={note.id}
-              note={note}
-              isSelected={selectedIds.has(note.id)}
-              onToggle={toggleSelection}
-            />
+          {allNotes.map((note: Note, index: number) => (
+            <div key={note.id}>
+              <NoteItem
+                note={note}
+                isSelected={selectedIds.has(note.id)}
+                onToggle={toggleSelection}
+              />
+              {/* 마지막에서 5번째 아이템에 감시 요소 배치 */}
+              {index === allNotes.length - 5 && <div ref={observerRef} className="h-1" />}
+            </div>
           ))}
         </div>
-
-        {/* 무한 스크롤 감시 요소 */}
-        <div ref={observerRef} className="h-4" />
 
         {/* 다음 페이지 로딩 중 표시 */}
         {searchQuery.isFetchingNextPage && (
