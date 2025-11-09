@@ -59,21 +59,17 @@ public class ReminderSchedulerService {
 
 		int currentCount = note.getRemindCount();
 
-		// GMS 비동기 호출로 질문 생성
-		gmsQuestionService.makeReminderQuestion(note)
-			.doOnSuccess(question -> {
-				log.info("GMS 질문 생성 완료 - noteId: {}, question: \"{}\"", note.getId(), question);
-
-				// TODO: 실제 알림 발송 (FCM, WebSocket 등 구현 후 작성)
-				// notificationService.sendReminder(note.getUser(), question);
-
-				log.info("리마인더 발송 완료 - noteId: {}, 횟수: {}/3", note.getId(), currentCount + 1);
-			})
-			.doOnError(e -> log.error("GMS 질문 생성 실패 - noteId: {}", note.getId(), e))
-			.subscribe(); // 비동기 실행
-
-		// 다음 리마인더 시간 계산 및 저장
 		try {
+			// GMS 질문 생성 (동기 처리 - 응답 대기)
+			String question = gmsQuestionService.makeReminderQuestion(note)
+				.block(); // 응답 대기 (최대 30초 타임아웃)
+
+			log.info("GMS 질문 생성 완료 - noteId: {}, question: \"{}\"", note.getId(), question);
+
+			// TODO: 실제 알림 발송 (FCM, WebSocket 등 구현 후 작성)
+			// notificationService.sendReminder(note.getUser(), question);
+
+			// GMS 성공 후에만 DB 업데이트
 			if (currentCount >= 2) {
 				// 3회 완료
 				note.completeReminder();
@@ -93,10 +89,14 @@ public class ReminderSchedulerService {
 			}
 
 			noteRepository.save(note);
+			log.info("리마인더 발송 완료 - noteId: {}, 횟수: {}/3", note.getId(), currentCount + 1);
 
 		} catch (OptimisticLockException e) {
 			// 다른 스케줄러 인스턴스가 먼저 처리함 (정상 상황)
 			log.info("동시성 충돌 감지 - noteId: {} (다른 인스턴스가 이미 처리함)", note.getId());
+		} catch (Exception e) {
+			// GMS 질문 생성 실패 시 DB 업데이트하지 않음 (다음 스케줄러 실행 시 재시도)
+			log.error("GMS 질문 생성 실패 - noteId: {}, 다음 스케줄러 실행 시 재시도", note.getId(), e);
 		}
 	}
 }
