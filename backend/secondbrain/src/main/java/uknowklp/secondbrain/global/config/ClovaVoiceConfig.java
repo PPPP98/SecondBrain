@@ -6,6 +6,8 @@ import java.util.concurrent.TimeUnit;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.web.reactive.function.client.WebClient;
 
@@ -69,6 +71,8 @@ public class ClovaVoiceConfig {
 			// Naver API 인증 헤더 (모든 요청에 자동 포함)
 			.defaultHeader("X-NCP-APIGW-API-KEY-ID", clientId)
 			.defaultHeader("X-NCP-APIGW-API-KEY", clientSecret)
+			// Content-Type 명시 (Naver API 필수)
+			.defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
 			.build();
 	}
 }

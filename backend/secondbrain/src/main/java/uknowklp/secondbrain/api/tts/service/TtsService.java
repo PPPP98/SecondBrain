@@ -43,14 +43,21 @@ public class TtsService {
 		params.add("pitch", String.valueOf(config.getDefaultPitch()));
 		params.add("format", config.getDefaultFormat());
 
+		// 요청 파라미터 로그
+		log.info("TTS 요청 파라미터: {}", params);
+
 		// API 호출 및 바이너리 데이터로 반환
 		return clovaWebClient.post()
 			.body(BodyInserters.fromFormData(params))
 			.retrieve()
+			// 에러 응답 상세 로그
+			.onStatus(status -> status.is4xxClientError() || status.is5xxServerError(),
+				response -> response.bodyToMono(String.class)
+					.doOnNext(errorBody -> log.error("Naver API 에러 응답: {}", errorBody))
+					.flatMap(errorBody -> Mono.error(new BaseException(BaseResponseStatus.TTS_API_ERROR))))
 			.bodyToMono(byte[].class)
 			.doOnSuccess(bytes -> log.info("TTS 변환 성공, 텍스트 길이: {}자, 음성:{}, 크기:{}bytes",
 				text.length(), voiceSpeaker, bytes.length))
-			.doOnError(e -> log.error("TTS API 호출 실패", e))
-			.onErrorMap(e -> new BaseException(BaseResponseStatus.TTS_API_ERROR));
+			.doOnError(e -> log.error("TTS API 호출 실패", e));
 	}
 }
