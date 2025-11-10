@@ -31,8 +31,12 @@ export function MainPage() {
     void navigate({ search: {} });
   };
 
-  if (isLoading) {
-    return <LoadingSpinner />;
+  if (!isLoading) {
+    return (
+      <MainLayout onPlusClick={handleCreateDraft}>
+        <LoadingSpinner />;
+      </MainLayout>
+    );
   }
 
   if (isError || !user) {
