@@ -17,6 +17,7 @@ import uknowklp.secondbrain.api.note.repository.NoteRepository;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class ReminderSchedulerService {
 
 	private final NoteRepository noteRepository;
@@ -27,7 +28,7 @@ public class ReminderSchedulerService {
 
 	// 10초마다 실행 (이전 실행 완료 후 10초 대기)
 	@Scheduled(fixedDelay = 10000)
-	@Transactional
+	@Transactional(readOnly = true)
 	public void checkAndSendReminders() {
 		LocalDateTime now = LocalDateTime.now();
 
@@ -40,7 +41,7 @@ public class ReminderSchedulerService {
 
 		log.info("리마인더 발송 대상 {}개 발견", pendingNotes.size());
 
-		// 각 노트 처리
+		// 각 노트 처리 (각각 독립적인 트랜잭션)
 		for (Note note : pendingNotes) {
 			try {
 				processReminder(note);
