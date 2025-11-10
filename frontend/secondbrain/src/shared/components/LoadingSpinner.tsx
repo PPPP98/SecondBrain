@@ -18,7 +18,7 @@ export function LoadingSpinner({ size = 'md', message }: LoadingSpinnerProps) {
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-[#192030]">
+    <div className="flex min-h-screen flex-col items-center justify-center gap-6">
       <div className={`${sizeClasses[size]} relative`} role="status" aria-label="Loading">
         <style>{`
           @keyframes rotate {
