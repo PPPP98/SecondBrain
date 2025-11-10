@@ -17,5 +17,5 @@ export function CallbackPage() {
   // 커스텀 훅으로 콜백 처리 로직 분리
   useCallbackHandler(search.code, search.error, exchangeToken);
 
-  return <LoadingSpinner size="sm" />;
+  return <LoadingSpinner />;
 }

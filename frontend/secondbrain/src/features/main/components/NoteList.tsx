@@ -52,7 +52,7 @@ export function NoteList({ type, recentQuery, searchQuery }: NoteListProps) {
 
   if (type === 'recent' && recentQuery) {
     if (recentQuery.isLoading) {
-      return <LoadingSpinner size="sm" />;
+      return <LoadingSpinner />;
     }
 
     if (!recentQuery.data) {
