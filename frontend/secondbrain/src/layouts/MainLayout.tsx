@@ -1,4 +1,4 @@
-import { useState, useEffect, type ReactNode } from 'react';
+import { useState, useRef, type ReactNode } from 'react';
 import { BaseLayout } from '@/layouts/BaseLayout';
 import { GlassElement } from '@/shared/components/GlassElement/GlassElement';
 import { UserProfileButton } from '@/features/auth/components/UserProfileButton';
@@ -22,12 +22,14 @@ const MainLayout = ({ children, onPlusClick }: MainLayoutProps) => {
   // 300ms 디바운싱 적용
   const debouncedSearchInput = useDebounce(searchInput, 300);
 
-  // 디바운싱된 값이 변경되면 store 업데이트 (패널이 열려있을 때만)
-  useEffect(() => {
-    if (mode !== 'closed') {
-      updateQuery(debouncedSearchInput);
-    }
-  }, [debouncedSearchInput, updateQuery, mode]);
+  // 이전 디바운싱 값 추적
+  const prevDebouncedInputRef = useRef(debouncedSearchInput);
+
+  // 디바운싱된 값이 변경되면 store 업데이트 (렌더링 중 처리)
+  if (mode !== 'closed' && prevDebouncedInputRef.current !== debouncedSearchInput) {
+    prevDebouncedInputRef.current = debouncedSearchInput;
+    updateQuery(debouncedSearchInput);
+  }
 
   return (
     <BaseLayout>

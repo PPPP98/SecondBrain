@@ -55,6 +55,10 @@ export function useNoteDraft(options: UseNoteDraftOptions): UseNoteDraftReturn {
   const changeCountRef = useRef(0);
   const lastDbSaveTimeRef = useRef(Date.now());
 
+  // beforeunload를 위한 최신 값 추적 refs
+  const titleRef = useRef(title);
+  const contentRef = useRef(content);
+
   // 기존 Draft 조회 (새 Draft는 404 에러 무시)
   const { data: existingDraft, isLoading } = useQuery({
     queryKey: draftQueries.detail(draftId),
@@ -70,8 +74,18 @@ export function useNoteDraft(options: UseNoteDraftOptions): UseNoteDraftReturn {
       setTitle(existingDraft.title);
       setContent(existingDraft.content);
       versionRef.current = existingDraft.version;
+
+      // refs도 업데이트
+      titleRef.current = existingDraft.title;
+      contentRef.current = existingDraft.content;
     }
   }, [existingDraft]);
+
+  // title, content 변경 시 refs 동기화
+  useEffect(() => {
+    titleRef.current = title;
+    contentRef.current = content;
+  }, [title, content]);
 
   // Redis 저장 Mutation
   const saveMutation = useMutation({
@@ -150,20 +164,29 @@ export function useNoteDraft(options: UseNoteDraftOptions): UseNoteDraftReturn {
   // beforeunload: 페이지 이탈 시 자동 저장
   useEffect(() => {
     const handleBeforeUnload = () => {
-      if (title.trim() && content.trim()) {
+      // ref로 최신 값 참조 (클로저 회피)
+      if (titleRef.current.trim() && contentRef.current.trim()) {
         // Navigator.sendBeacon 사용 (비동기, 보장됨)
         navigator.sendBeacon(
           `/api/notes/from-draft/${draftId}`,
-          new Blob([JSON.stringify({ title, content })], {
-            type: 'application/json',
-          }),
+          new Blob(
+            [
+              JSON.stringify({
+                title: titleRef.current,
+                content: contentRef.current,
+              }),
+            ],
+            {
+              type: 'application/json',
+            },
+          ),
         );
       }
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [draftId, title, content]);
+  }, [draftId]); // title, content 제거: 타이핑마다 재실행 방지
 
   // 핸들러
   const handleTitleChange = useCallback(
