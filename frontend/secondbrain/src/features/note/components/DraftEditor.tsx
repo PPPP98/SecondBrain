@@ -1,4 +1,3 @@
-import { useNavigate } from '@tanstack/react-router';
 import { toast } from 'sonner';
 import { useNoteDraft } from '@/features/note/hooks/useNoteDraft';
 import { SidePeekOverlay } from '@/features/note/components/SidePeekOverlay';
@@ -20,14 +19,12 @@ interface DraftEditorProps {
  * - Toolbar: 뒤로가기, 확대, 삭제
  */
 export function DraftEditor({ draftId, isOpen, onClose }: DraftEditorProps) {
-  const navigate = useNavigate();
-
   const { title, content, handleTitleChange, handleContentChange, saveToDatabase, deleteDraft } =
     useNoteDraft({
       draftId,
-      onSaveToDatabase: (noteId) => {
-        // DB 저장 후 /note로 이동
-        void navigate({ to: '/note', search: { id: noteId } });
+      onSaveToDatabase: () => {
+        // DB 저장 성공 → 오버레이만 닫기 (main 페이지로 돌아감)
+        onClose();
       },
     });
 
@@ -36,11 +33,10 @@ export function DraftEditor({ draftId, isOpen, onClose }: DraftEditorProps) {
     if (title.trim() && content.trim()) {
       try {
         await saveToDatabase();
-        // saveToDatabase()가 성공하면:
+        // saveToDatabase() 성공 시:
         // - DB에 Note 저장
         // - Redis에서 Draft 삭제
-        // - onSaveToDatabase 콜백 실행 → navigate({ to: '/note', search: { id: noteId } })
-        // 따라서 여기서 onClose() 호출하지 않음
+        // - onSaveToDatabase 콜백 실행 → onClose()
         return;
       } catch (error) {
         console.error('DB 저장 실패:', error);
@@ -56,7 +52,6 @@ export function DraftEditor({ draftId, isOpen, onClose }: DraftEditorProps) {
       try {
         await deleteDraft();
       } catch (error) {
-        // Draft가 없어도 정상 (빈 노트는 저장 안 됨)
         console.error('Draft 삭제 실패:', error);
       }
     }
@@ -85,7 +80,8 @@ export function DraftEditor({ draftId, isOpen, onClose }: DraftEditorProps) {
         >
           {/* 제목 입력 */}
           <NoteTitleInput
-            value={title}
+            key={draftId}
+            defaultValue={title}
             onChange={handleTitleChange}
             placeholder="제목을 입력해주세요..."
           />
