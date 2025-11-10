@@ -46,6 +46,7 @@ class NoteSummarizeService:
             return result["result"]
         except Exception as e:
             logger.error(f"error : {e}")
+            return ""
 
 
 note_summarize_service = NoteSummarizeService()
