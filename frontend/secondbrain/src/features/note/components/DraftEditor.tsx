@@ -80,8 +80,7 @@ export function DraftEditor({ draftId, isOpen, onClose }: DraftEditorProps) {
         >
           {/* 제목 입력 */}
           <NoteTitleInput
-            key={draftId}
-            defaultValue={title}
+            value={title}
             onChange={handleTitleChange}
             placeholder="제목을 입력해주세요..."
           />
