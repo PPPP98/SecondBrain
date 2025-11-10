@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { useNoteDraft } from '@/features/note/hooks/useNoteDraft';
 import { SidePeekOverlay } from '@/features/note/components/SidePeekOverlay';
@@ -20,6 +21,17 @@ interface DraftEditorProps {
  */
 export function DraftEditor({ draftId, isOpen, onClose }: DraftEditorProps) {
   const navigate = useNavigate();
+  const [isAnimated, setIsAnimated] = useState(false);
+
+  // 애니메이션 트리거
+  useEffect(() => {
+    if (isOpen) {
+      const timer = setTimeout(() => setIsAnimated(true), 150);
+      return () => clearTimeout(timer);
+    } else {
+      setIsAnimated(false);
+    }
+  }, [isOpen]);
 
   const { title, content, handleTitleChange, handleContentChange, saveToDatabase, deleteDraft } =
     useNoteDraft({
@@ -68,8 +80,12 @@ export function DraftEditor({ draftId, isOpen, onClose }: DraftEditorProps) {
       <DraftToolbar onBack={() => void handleClose()} onDelete={handleDelete} />
 
       {/* 중앙 컨텐츠: Title + Editor (전체 스크롤) */}
-      <div className="custom-scrollbar absolute inset-x-0 bottom-0 top-32 flex flex-col items-center gap-8 overflow-y-auto px-32">
-        <div className="flex w-full max-w-[900px] flex-col">
+      <div className="custom-scrollbar absolute inset-x-0 bottom-0 top-32 flex flex-col items-center gap-8 overflow-y-auto px-24">
+        <div
+          className={`flex w-full max-w-4xl flex-col transition-all duration-500 ease-out ${
+            isAnimated ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
+          }`}
+        >
           {/* 제목 입력 */}
           <NoteTitleInput
             value={title}
