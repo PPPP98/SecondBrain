@@ -16,13 +16,17 @@ import uknowklp.secondbrain.global.response.BaseResponseStatus;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class TtsService {
 
-	// webclient bean이 두 개이기 때문에 명시해줌
-	@Qualifier("clovaVoiceWebClient")
 	private final WebClient clovaWebClient;
 	private final ClovaVoiceConfig config;
+
+	// webClient(GMS) bean이 2개라서 명시를 위한 @Qualifier를 사용하기 위해 생성자 직접 작성
+	public TtsService(@Qualifier("clovaVoiceWebClient") WebClient clovaWebClient,
+		ClovaVoiceConfig config) {
+		this.clovaWebClient = clovaWebClient;
+		this.config = config;
+	}
 
 	public Mono<byte[]> convert(String text, String speaker) {
 		// speaker == null이면 config 기본 값 사용
