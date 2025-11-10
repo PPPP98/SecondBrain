@@ -28,7 +28,6 @@ public class ReminderSchedulerService {
 
 	// 10초마다 실행 (이전 실행 완료 후 10초 대기)
 	@Scheduled(fixedDelay = 10000)
-	@Transactional(readOnly = true)
 	public void checkAndSendReminders() {
 		LocalDateTime now = LocalDateTime.now();
 
