@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket 리마인더 알림 테스트</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 800px;
+            width: 100%;
+            padding: 40px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+            font-size: 28px;
+        }
+
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        .status.disconnected {
+            background: #fee;
+            color: #c33;
+        }
+
+        .status.connected {
+            background: #efe;
+            color: #3c3;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status.disconnected .status-dot {
+            background: #c33;
+        }
+
+        .status.connected .status-dot {
+            background: #3c3;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        textarea {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-connect {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-connect:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-disconnect {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn-disconnect:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.4);
+        }
+
+        .btn-clear {
+            background: #95a5a6;
+            color: white;
+        }
+
+        .btn-clear:hover {
+            background: #7f8c8d;
+            transform: translateY(-2px);
+        }
+
+        .notifications {
+            margin-top: 30px;
+        }
+
+        .notifications h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .notification-count {
+            background: #667eea;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+
+        .notification-list {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 15px;
+            background: #fafafa;
+        }
+
+        .notification-item {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 4px solid #667eea;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .notification-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .notification-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .notification-title {
+            font-weight: 600;
+            color: #333;
+            font-size: 16px;
+        }
+
+        .notification-badge {
+            background: #667eea;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+
+        .notification-question {
+            color: #555;
+            margin-bottom: 8px;
+            line-height: 1.5;
+        }
+
+        .notification-meta {
+            display: flex;
+            gap: 15px;
+            font-size: 12px;
+            color: #888;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .empty-state svg {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 15px;
+            opacity: 0.3;
+        }
+
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .info-box h3 {
+            color: #1976d2;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .info-box p {
+            color: #555;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .info-box code {
+            background: #fff;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔔 WebSocket 리마인더 알림 테스트</h1>
+
+        <div class="info-box">
+            <h3>📌 사용 방법</h3>
+            <p>
+                1. JWT 토큰을 입력하세요 (로그인 API 응답에서 복사)<br>
+                2. User ID를 입력하세요 (토큰의 사용자 ID)<br>
+                3. "연결" 버튼을 클릭하세요<br>
+                4. 연결되면 자동으로 <code>/topic/reminder/{userId}</code> 구독됩니다
+            </p>
+        </div>
+
+        <div id="status" class="status disconnected">
+            <div class="status-dot"></div>
+            <span>연결 대기 중...</span>
+        </div>
+
+        <div class="input-group">
+            <label for="jwt-token">JWT 토큰 (Bearer 제외)</label>
+            <textarea id="jwt-token" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."></textarea>
+        </div>
+
+        <div class="input-group">
+            <label for="user-id">User ID</label>
+            <input type="text" id="user-id" placeholder="1">
+        </div>
+
+        <div class="button-group">
+            <button id="connect-btn" class="btn-connect">연결</button>
+            <button id="disconnect-btn" class="btn-disconnect" disabled>연결 해제</button>
+            <button id="clear-btn" class="btn-clear">알림 지우기</button>
+        </div>
+
+        <div class="notifications">
+            <h2>
+                받은 알림
+                <span id="notification-count" class="notification-count">0</span>
+            </h2>
+            <div id="notification-list" class="notification-list">
+                <div class="empty-state">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                    </svg>
+                    <p>아직 받은 알림이 없습니다</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SockJS & STOMP -->
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7/bundles/stomp.umd.min.js"></script>
+
+    <script>
+        let stompClient = null;
+        let notificationCount = 0;
+
+        const statusEl = document.getElementById('status');
+        const jwtTokenEl = document.getElementById('jwt-token');
+        const userIdEl = document.getElementById('user-id');
+        const connectBtn = document.getElementById('connect-btn');
+        const disconnectBtn = document.getElementById('disconnect-btn');
+        const clearBtn = document.getElementById('clear-btn');
+        const notificationListEl = document.getElementById('notification-list');
+        const notificationCountEl = document.getElementById('notification-count');
+
+        // 연결 버튼 클릭
+        connectBtn.addEventListener('click', () => {
+            const token = jwtTokenEl.value.trim();
+            const userId = userIdEl.value.trim();
+
+            if (!token || !userId) {
+                alert('JWT 토큰과 User ID를 모두 입력해주세요');
+                return;
+            }
+
+            connect(token, userId);
+        });
+
+        // 연결 해제 버튼 클릭
+        disconnectBtn.addEventListener('click', () => {
+            disconnect();
+        });
+
+        // 알림 지우기 버튼 클릭
+        clearBtn.addEventListener('click', () => {
+            notificationListEl.innerHTML = `
+                <div class="empty-state">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                    </svg>
+                    <p>아직 받은 알림이 없습니다</p>
+                </div>
+            `;
+            notificationCount = 0;
+            notificationCountEl.textContent = notificationCount;
+        });
+
+        // WebSocket 연결
+        function connect(token, userId) {
+            updateStatus('연결 중...', false);
+            connectBtn.disabled = true;
+
+            // SockJS + STOMP 연결
+            const socket = new SockJS('http://localhost:8080/ws');
+            stompClient = new StompJs.Client({
+                webSocketFactory: () => socket,
+                connectHeaders: {
+                    'Authorization': `Bearer ${token}`
+                },
+                debug: (str) => {
+                    console.log('STOMP Debug:', str);
+                },
+                reconnectDelay: 5000,
+                heartbeatIncoming: 4000,
+                heartbeatOutgoing: 4000,
+            });
+
+            // 연결 성공
+            stompClient.onConnect = (frame) => {
+                console.log('WebSocket 연결 성공:', frame);
+                updateStatus(`연결됨 (User ID: ${userId})`, true);
+                connectBtn.disabled = true;
+                disconnectBtn.disabled = false;
+
+                // 구독 시작
+                const destination = `/topic/reminder/${userId}`;
+                console.log('구독 시작:', destination);
+
+                stompClient.subscribe(destination, (message) => {
+                    console.log('메시지 수신:', message.body);
+                    const notification = JSON.parse(message.body);
+                    addNotification(notification);
+                });
+            };
+
+            // 연결 실패
+            stompClient.onStompError = (frame) => {
+                console.error('STOMP Error:', frame);
+                updateStatus('연결 실패: ' + frame.headers['message'], false);
+                connectBtn.disabled = false;
+                disconnectBtn.disabled = true;
+            };
+
+            // WebSocket 에러
+            stompClient.onWebSocketError = (error) => {
+                console.error('WebSocket Error:', error);
+                updateStatus('WebSocket 에러 발생', false);
+            };
+
+            // 연결 종료
+            stompClient.onDisconnect = () => {
+                console.log('연결 종료됨');
+                updateStatus('연결 대기 중...', false);
+                connectBtn.disabled = false;
+                disconnectBtn.disabled = true;
+            };
+
+            // 연결 시작
+            stompClient.activate();
+        }
+
+        // WebSocket 연결 해제
+        function disconnect() {
+            if (stompClient) {
+                stompClient.deactivate();
+                stompClient = null;
+            }
+        }
+
+        // 상태 업데이트
+        function updateStatus(message, connected) {
+            statusEl.className = `status ${connected ? 'connected' : 'disconnected'}`;
+            statusEl.querySelector('span').textContent = message;
+        }
+
+        // 알림 추가
+        function addNotification(notification) {
+            notificationCount++;
+            notificationCountEl.textContent = notificationCount;
+
+            // 빈 상태 제거
+            if (notificationListEl.querySelector('.empty-state')) {
+                notificationListEl.innerHTML = '';
+            }
+
+            const notificationItem = document.createElement('div');
+            notificationItem.className = 'notification-item';
+            notificationItem.innerHTML = `
+                <div class="notification-header">
+                    <div class="notification-title">${escapeHtml(notification.title)}</div>
+                    <div class="notification-badge">${notification.remindCount}/3</div>
+                </div>
+                <div class="notification-question">💬 ${escapeHtml(notification.question)}</div>
+                <div class="notification-meta">
+                    <div class="meta-item">
+                        <span>📝</span>
+                        <span>Note ID: ${notification.noteId}</span>
+                    </div>
+                    <div class="meta-item">
+                        <span>🕒</span>
+                        <span>${formatTimestamp(notification.timestamp)}</span>
+                    </div>
+                </div>
+            `;
+
+            // 최신 알림이 맨 위에 오도록
+            notificationListEl.insertBefore(notificationItem, notificationListEl.firstChild);
+
+            // 사운드 재생 (선택사항)
+            playNotificationSound();
+        }
+
+        // HTML 이스케이프
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // 타임스탬프 포맷
+        function formatTimestamp(timestamp) {
+            const date = new Date(timestamp);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffSec = Math.floor(diffMs / 1000);
+            const diffMin = Math.floor(diffSec / 60);
+            const diffHour = Math.floor(diffMin / 60);
+
+            if (diffSec < 60) return `방금 전`;
+            if (diffMin < 60) return `${diffMin}분 전`;
+            if (diffHour < 24) return `${diffHour}시간 전`;
+
+            return date.toLocaleString('ko-KR');
+        }
+
+        // 알림 사운드 (선택사항)
+        function playNotificationSound() {
+            // Web Audio API로 간단한 비프음 재생
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+
+                oscillator.frequency.value = 800;
+                oscillator.type = 'sine';
+
+                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.5);
+            } catch (e) {
+                console.log('알림 사운드 재생 실패:', e);
+            }
+        }
+
+        // 페이지 로드 시 localStorage에서 복원
+        window.addEventListener('load', () => {
+            const savedToken = localStorage.getItem('jwt-token');
+            const savedUserId = localStorage.getItem('user-id');
+
+            if (savedToken) jwtTokenEl.value = savedToken;
+            if (savedUserId) userIdEl.value = savedUserId;
+        });
+
+        // 토큰/ID 변경 시 localStorage에 저장
+        jwtTokenEl.addEventListener('input', () => {
+            localStorage.setItem('jwt-token', jwtTokenEl.value);
+        });
+
+        userIdEl.addEventListener('input', () => {
+            localStorage.setItem('user-id', userIdEl.value);
+        });
+    </script>
+</body>
+</html>

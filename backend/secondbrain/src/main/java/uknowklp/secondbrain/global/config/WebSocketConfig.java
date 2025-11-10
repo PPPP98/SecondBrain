@@ -18,14 +18,11 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
 	private final StompHandler stompHandler;
 
-	@Value("${CORS_ALLOWED_ORIGIN:*}")
-	private String allowedOrigin;
-
 	// STOMP 엔드포인트 등록
 	@Override
 	public void registerStompEndpoints(StompEndpointRegistry registry) {
 		registry.addEndpoint("/ws")  // WebSocket 연결 엔드포인트
-			.setAllowedOrigins(allowedOrigin)  // CORS 설정
+			.setAllowedOriginPatterns("*")  // 개발 단계: 모든 origin 허용
 			.withSockJS();  // SockJS fallback 지원
 	}
 

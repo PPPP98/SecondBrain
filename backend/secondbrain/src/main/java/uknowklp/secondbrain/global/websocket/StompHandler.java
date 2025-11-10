@@ -1,5 +1,7 @@
 package uknowklp.secondbrain.global.websocket;
 
+import java.security.Principal;
+
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.simp.stomp.StompCommand;
@@ -14,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import uknowklp.secondbrain.global.exception.BaseException;
 import uknowklp.secondbrain.global.response.BaseResponseStatus;
 import uknowklp.secondbrain.global.security.jwt.JwtProvider;
+import uknowklp.secondbrain.global.security.jwt.dto.CustomUserDetails;
 
 @Slf4j
 @Component
@@ -40,14 +43,30 @@ public class StompHandler implements ChannelInterceptor {
 
 			// JWT 검증 및 인증 정보 추출
 			Authentication authentication = jwtProvider.getAuthentication(token);
+
+			// CustomUserDetails에서 User 정보 추출
+			CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+			Long userId = userDetails.getUser().getId();
+
+			// 세션에 사용자 정보 저장 (SUBSCRIBE에서도 사용 가능하도록)
 			accessor.setUser(authentication);
 
-			log.info("WebSocket 연결 성공 - userId: {}", authentication.getName());
+			// 세션 속성에 userId 저장 (숫자 ID)
+			accessor.getSessionAttributes().put("userId", String.valueOf(userId));
+
+			log.info("WebSocket 연결 성공 - userId: {}, email: {}", userId, userDetails.getUsername());
 		}
 		else if (accessor != null && StompCommand.SUBSCRIBE.equals(accessor.getCommand())) {
 			// SUBSCRIBE 시 본인의 topic만 구독 가능하도록 검증
 			String destination = accessor.getDestination();
-			String userId = accessor.getUser().getName();
+
+			// 세션 속성에서 userId 가져오기
+			String userId = (String) accessor.getSessionAttributes().get("userId");
+
+			if (userId == null) {
+				log.warn("WebSocket SUBSCRIBE 실패: 인증되지 않은 사용자");
+				throw new BaseException(BaseResponseStatus.UNAUTHORIZED);
+			}
 
 			// /topic/reminder/{userId} 형식 검증
 			if (destination != null && destination.startsWith("/topic/reminder/")) {
