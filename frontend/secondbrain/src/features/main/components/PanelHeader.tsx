@@ -28,9 +28,7 @@ export function PanelHeader({ allNoteIds }: PanelHeaderProps) {
   const handleDelete = () => {
     if (!hasSelection) return;
 
-    const noteIdsArray = Array.from(selectedIds);
     // 삭제 함수 연결
-    console.log('삭제할 노트 IDs:', noteIdsArray);
   };
 
   return (

@@ -84,8 +84,7 @@ export function useNoteDraft(options: UseNoteDraftOptions): UseNoteDraftReturn {
       // Batching 조건 체크
       void checkAndSaveToDatabase();
     },
-    onError: (error) => {
-      console.error('Redis 저장 실패:', error);
+    onError: () => {
       // Fallback: LocalStorage
       localStorage.setItem(
         `draft:${draftId}`,
@@ -115,29 +114,22 @@ export function useNoteDraft(options: UseNoteDraftOptions): UseNoteDraftReturn {
   const saveToDatabase = async () => {
     // 최종 검증 (DB는 빈 값 불가)
     if (!title.trim() || !content.trim()) {
-      console.log('⚠️ DB 저장 불가 - 빈 내용');
       return;
     }
 
-    try {
-      const noteId = await saveToDatabaseApi(draftId);
-      console.log('✅ DB 저장 완료:', noteId);
+    const noteId = await saveToDatabaseApi(draftId);
 
-      // 카운터 초기화
-      changeCountRef.current = 0;
-      lastDbSaveTimeRef.current = Date.now();
+    // 카운터 초기화
+    changeCountRef.current = 0;
+    lastDbSaveTimeRef.current = Date.now();
 
-      // Draft 삭제
-      await deleteDraftApi(draftId);
-      queryClient.removeQueries({ queryKey: draftQueries.detail(draftId) });
+    // Draft 삭제
+    await deleteDraftApi(draftId);
+    queryClient.removeQueries({ queryKey: draftQueries.detail(draftId) });
 
-      // 콜백 호출
-      if (onSaveToDatabase) {
-        onSaveToDatabase(noteId);
-      }
-    } catch (error) {
-      console.error('❌ DB 저장 실패:', error);
-      throw error;
+    // 콜백 호출
+    if (onSaveToDatabase) {
+      onSaveToDatabase(noteId);
     }
   };
 
@@ -147,7 +139,6 @@ export function useNoteDraft(options: UseNoteDraftOptions): UseNoteDraftReturn {
     debounce((draft: NoteDraftRequest) => {
       // 최소 검증: title 또는 content 중 하나라도 있어야 함
       if (!draft.title?.trim() && !draft.content?.trim()) {
-        console.log('⚠️ 빈 내용은 저장하지 않음');
         return;
       }
 
