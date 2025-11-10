@@ -84,7 +84,12 @@ export function NoteCreateModal({ isOpen, onClose, onDelete }: NoteCreateModalPr
         {/* Title + 에디터 영역 */}
         <div className="absolute inset-10 flex flex-col gap-4">
           {/* Title input */}
-          <NoteTitleInput value={title} onChange={setTitle} placeholder="Untitled" />
+          <NoteTitleInput
+            key={String(isOpen)}
+            defaultValue={title}
+            onChange={setTitle}
+            placeholder="Untitled"
+          />
 
           {/* Content editor */}
           <div className="flex-1">
