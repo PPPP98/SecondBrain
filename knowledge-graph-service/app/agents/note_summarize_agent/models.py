@@ -1,5 +1,6 @@
 from langchain.chat_models import init_chat_model
 from app.core.config import get_settings
+from app.schemas.agents import LLMResponse
 import os
 
 
@@ -19,4 +20,5 @@ class Models:
             model=self.settings.summarize_model,
             temperature=self.settings.summarize_temperature,
         )
-        return model
+        structured_model = model.with_structured_output(LLMResponse)
+        return structured_model

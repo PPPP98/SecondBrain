@@ -15,7 +15,7 @@ class Nodes:
     ## 노트 요약 Agent 노드
     - data 추출
     - 추출 데이터 요약
-    
+
     """
 
     @staticmethod
@@ -130,14 +130,11 @@ class Nodes:
             # ainvoke() 사용
             response = await llm.ainvoke(Prompts.SYSTEMPROMPT.format(content=combined))
 
-            # content 속성
-            result = response.content
-
-            logger.debug(f"   ✅ Summary: {len(result)} chars")
-
-            return {"result": result}
+            return {
+                "title": response.title,
+                "result": response.result,
+            }
 
         except Exception as e:
             logger.error(f"   ❌ LLM Error: {e}")
             return {"result": ""}
-

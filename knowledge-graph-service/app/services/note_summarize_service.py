@@ -20,7 +20,7 @@ class NoteSummarizeService:
     async def get_note_summarize(
         self,
         data: List[str],
-    ) -> str:
+    ) -> dict:
         """
         데이터를 요약하여 반환
 
@@ -32,7 +32,7 @@ class NoteSummarizeService:
         """
         if not data:
             logger.warning("⚠️ Empty data provided")
-            return ""
+            return {}
         try:
             initial_state: State = {
                 "data": data,
@@ -42,11 +42,14 @@ class NoteSummarizeService:
             result = await self.graph.ainvoke(initial_state)
             if not result["result"]:
                 logger.warning("⚠️ No result generated")
-                return ""
-            return result["result"]
+                return {}
+            return {
+                "title": result["title"],
+                "result": result["result"],
+            }
         except Exception as e:
             logger.error(f"error : {e}")
-            return ""
+            return {}
 
 
 note_summarize_service = NoteSummarizeService()

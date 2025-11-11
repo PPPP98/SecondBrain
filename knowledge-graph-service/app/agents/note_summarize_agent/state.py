@@ -8,9 +8,12 @@ class State(TypedDict):
     - 사용자가 저장하고자 하는 페이지 url or text
     ### content
     - 처리한 데이터 정리(LLM 주입용)
+    ### title
+    - title 제목
     ### result
     - 요약 결과
     """
     data: List[str]
     content: List[str]
+    title: str
     result : str
