@@ -2,18 +2,19 @@ import ForceGraph3D from 'react-force-graph-3d';
 import { LoadingSpinner } from '@/shared/components/LoadingSpinner';
 import { useGraphVisualization } from '@/features/main/hooks/useGraphVisualization';
 import { useSearchPanelStore } from '@/features/main/stores/searchPanelStore';
+import type { GraphNode } from '@/features/main/types/graph';
 
 // 컴포넌트 외부에 순수 함수 정의
 // React 공식: 단순 계산 함수는 메모이제이션 불필요
-const getNodeColor = (nodeId: string, highlightedNodeIds: Set<number>) => {
+const getNodeColor = (node: GraphNode, highlightedNodeIds: Set<number>) => {
   if (highlightedNodeIds.size === 0) return '#FFFFFF';
-  const nodeIdNumber = Number(nodeId);
+  const nodeIdNumber = Number(node.id);
   return highlightedNodeIds.has(nodeIdNumber) ? '#00FFFF' : '#666666';
 };
 
-const getNodeVal = (nodeId: string, highlightedNodeIds: Set<number>) => {
+const getNodeVal = (node: GraphNode, highlightedNodeIds: Set<number>) => {
   if (highlightedNodeIds.size === 0) return 8;
-  const nodeIdNumber = Number(nodeId);
+  const nodeIdNumber = Number(node.id);
   return highlightedNodeIds.has(nodeIdNumber) ? 15 : 8;
 };
 
@@ -23,9 +24,6 @@ const calculateParticleWidth = (link: { score: number }) => link.score * 1.5;
 export const Graph = () => {
   const { data: graphData, isLoading, isError } = useGraphVisualization();
   const highlightedNodeIds = useSearchPanelStore((state) => state.highlightedNodeIds);
-
-  // React 공식: 단순 null 체크는 useMemo 불필요
-  const displayData = graphData || { nodes: [], links: [] };
 
   if (isLoading) {
     return <LoadingSpinner />;
@@ -50,16 +48,16 @@ export const Graph = () => {
   return (
     <div className="h-screen w-full">
       <ForceGraph3D
-        graphData={displayData}
+        graphData={graphData}
         nodeLabel="title"
-        nodeColor={(node: { id: string }) => getNodeColor(node.id, highlightedNodeIds)}
-        nodeVal={(node: { id: string }) => getNodeVal(node.id, highlightedNodeIds)}
+        nodeColor={(node) => getNodeColor(node as GraphNode, highlightedNodeIds)}
+        nodeVal={(node) => getNodeVal(node as GraphNode, highlightedNodeIds)}
         linkWidth={calculateLinkWidth}
         linkDirectionalParticles={2}
         linkDirectionalParticleWidth={calculateParticleWidth}
         backgroundColor="#192030"
         nodeRelSize={8}
-        onNodeClick={(node: unknown) => console.info('선택된 노드:', node)}
+        onNodeClick={(node) => console.info('선택된 노드:', node)}
         showNavInfo={false}
       />
     </div>
