@@ -2,11 +2,39 @@ import { useMemo, useCallback } from 'react';
 import ForceGraph3D from 'react-force-graph-3d';
 import { LoadingSpinner } from '@/shared/components/LoadingSpinner';
 import { useGraphVisualization } from '@/features/main/hooks/useGraphVisualization';
+import { useSearchPanelStore } from '@/features/main/stores/searchPanelStore';
 
 export const Graph = () => {
   const { data: graphData, isLoading, isError } = useGraphVisualization();
+  const highlightedNodeIds = useSearchPanelStore((state) => state.highlightedNodeIds);
 
-  const nodeColorCallback = useCallback(() => '#FFFFFF', []);
+  // 검색 결과 노드는 별처럼 반짝이는 색으로, 나머지는 흰색 또는 흐리게 표시
+  const nodeColorCallback = useCallback(
+    (node: { id: string }) => {
+      // 검색 중이 아니면 모든 노드 흰색
+      if (highlightedNodeIds.size === 0) {
+        return '#FFFFFF';
+      }
+      // node.id는 string, highlightedNodeIds는 number를 담고 있으므로 변환 필요
+      const nodeIdNumber = Number(node.id);
+      // 검색 결과 노드는 별처럼 반짝이는 밝은 시안색, 나머지는 회색으로 흐리게
+      return highlightedNodeIds.has(nodeIdNumber) ? '#00FFFF' : '#666666';
+    },
+    [highlightedNodeIds],
+  );
+
+  // 검색 결과 노드는 크기도 크게 표시
+  const nodeValCallback = useCallback(
+    (node: { id: string }) => {
+      if (highlightedNodeIds.size === 0) {
+        return 8; // 기본 크기
+      }
+      const nodeIdNumber = Number(node.id);
+      return highlightedNodeIds.has(nodeIdNumber) ? 15 : 8;
+    },
+    [highlightedNodeIds],
+  );
+
   const linkWidthCallback = useCallback((link: { score: number }) => link.score * 2, []);
   const particleWidthCallback = useCallback((link: { score: number }) => link.score * 1.5, []);
   const handleNodeClick = useCallback((node: unknown) => {
@@ -42,13 +70,14 @@ export const Graph = () => {
       </div>
     );
   }
-
+  console.log('graph', memoizedGraphData);
   return (
     <div className="h-screen w-full">
       <ForceGraph3D
         graphData={memoizedGraphData}
         nodeLabel="title"
         nodeColor={nodeColorCallback}
+        nodeVal={nodeValCallback}
         linkWidth={linkWidthCallback}
         linkDirectionalParticles={2}
         linkDirectionalParticleWidth={particleWidthCallback}
