@@ -72,7 +72,7 @@ export function useKeyboardNav({
   useEffect(() => {
     if (!enabled || !isOpen) return;
 
-    // ✅ effect 시작 시 자동 초기화
+    // effect 시작 시 자동 초기화
     hasNavigatedRef.current = false;
 
     const contentElement = contentRef.current;

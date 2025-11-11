@@ -71,6 +71,7 @@ export function useNoteDraft(options: UseNoteDraftOptions): UseNoteDraftReturn {
   // 자동 저장용 Refs
   const changeCountRef = useRef(0);
   const lastDbSaveTimeRef = useRef(Date.now());
+  const isSavingToDbRef = useRef(false); // DB 저장 중 플래그
 
   // beforeunload를 위한 최신 값 추적 (draft는 비동기이므로 ref 필요)
   const titleRef = useRef(title);
@@ -136,26 +137,58 @@ export function useNoteDraft(options: UseNoteDraftOptions): UseNoteDraftReturn {
     }
   };
 
-  // DB 저장
+  // DB 저장 (멱등성 보장 + 방어 로직)
   const saveToDatabase = async () => {
-    // 최종 검증 (DB는 빈 값 불가)
-    if (!title.trim() || !content.trim()) {
+    // 프론트엔드 중복 방지
+    if (isSavingToDbRef.current) {
+      console.warn('[Draft] 이미 DB 저장 중입니다');
       return;
     }
 
-    const noteId = await saveToDatabaseApi(draftId);
+    // 최종 검증 (DB는 빈 값 불가)
+    if (!title.trim() || !content.trim()) {
+      console.warn('[Draft] 제목 또는 내용이 비어있어 저장하지 않습니다');
+      return;
+    }
 
-    // 카운터 초기화
-    changeCountRef.current = 0;
-    lastDbSaveTimeRef.current = Date.now();
+    isSavingToDbRef.current = true;
 
-    // Draft 삭제
-    await deleteDraftApi(draftId);
-    queryClient.removeQueries({ queryKey: draftQueries.detail(draftId) });
+    try {
+      const noteId = await saveToDatabaseApi(draftId);
 
-    // 콜백 호출
-    if (onSaveToDatabase) {
-      onSaveToDatabase(noteId);
+      // 카운터 초기화
+      changeCountRef.current = 0;
+      lastDbSaveTimeRef.current = Date.now();
+
+      // Draft 삭제 (실패 무시)
+      try {
+        await deleteDraftApi(draftId);
+      } catch (error) {
+        console.warn('[Draft] Redis 삭제 실패 (백엔드에서 처리됨)', error);
+      }
+
+      // 캐시 정리
+      queryClient.removeQueries({ queryKey: draftQueries.detail(draftId) });
+
+      // 콜백 호출
+      if (onSaveToDatabase) {
+        onSaveToDatabase(noteId);
+      }
+    } catch (error: unknown) {
+      // 409 Conflict 처리 (이미 처리 중)
+      const axiosError = error as { response?: { status?: number } };
+      if (axiosError.response?.status === 409) {
+        console.info('[Draft] 이미 다른 요청에서 처리 중입니다');
+
+        // 잠시 대기 후 Note 목록 새로고침
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        void queryClient.invalidateQueries({ queryKey: ['notes'] });
+      } else {
+        console.error('[Draft] DB 저장 실패', error);
+        throw error;
+      }
+    } finally {
+      isSavingToDbRef.current = false;
     }
   };
 
@@ -173,32 +206,46 @@ export function useNoteDraft(options: UseNoteDraftOptions): UseNoteDraftReturn {
     }, 500),
   ).current;
 
-  // beforeunload: 페이지 이탈 시 자동 저장
+  // beforeunload: 페이지 이탈 시 자동 저장 (useEffect 제거)
+  // useRef로 핸들러 저장하여 최신 값 참조 보장
+  const handleBeforeUnloadRef = useRef<() => void>();
+
+  handleBeforeUnloadRef.current = () => {
+    // DB 저장 중이면 sendBeacon 차단
+    if (isSavingToDbRef.current) {
+      console.info('[Draft] 이미 저장 중이므로 beforeunload 무시');
+      return;
+    }
+
+    // ref로 최신 값 참조 (클로저 회피)
+    if (titleRef.current.trim() && contentRef.current.trim()) {
+      // Navigator.sendBeacon 사용 (비동기, 보장됨)
+      navigator.sendBeacon(
+        `/api/notes/from-draft/${draftId}`,
+        new Blob(
+          [
+            JSON.stringify({
+              title: titleRef.current,
+              content: contentRef.current,
+            }),
+          ],
+          {
+            type: 'application/json',
+          },
+        ),
+      );
+    }
+  };
+
+  // 이벤트 리스너 등록 (한 번만 실행)
   useEffect(() => {
     const handleBeforeUnload = () => {
-      // ref로 최신 값 참조 (클로저 회피)
-      if (titleRef.current.trim() && contentRef.current.trim()) {
-        // Navigator.sendBeacon 사용 (비동기, 보장됨)
-        navigator.sendBeacon(
-          `/api/notes/from-draft/${draftId}`,
-          new Blob(
-            [
-              JSON.stringify({
-                title: titleRef.current,
-                content: contentRef.current,
-              }),
-            ],
-            {
-              type: 'application/json',
-            },
-          ),
-        );
-      }
+      handleBeforeUnloadRef.current?.();
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [draftId]);
+  }, []); // 빈 의존성 배열: 마운트 시 한 번만 등록
 
   // 핸들러
   // TanStack Query Optimistic Update 패턴
