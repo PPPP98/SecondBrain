@@ -66,7 +66,7 @@ export const Graph = () => {
       </div>
     );
   }
-  console.log('graph', memoizedGraphData);
+
   return (
     <div className="h-screen w-full">
       <ForceGraph3D
