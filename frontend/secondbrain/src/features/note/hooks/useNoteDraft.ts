@@ -1,4 +1,4 @@
-import { useRef, useCallback, useEffect } from 'react';
+import { useRef, useCallback, useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { debounce } from 'lodash-es';
 import {
@@ -8,6 +8,7 @@ import {
   saveToDatabase as saveToDatabaseApi,
   draftQueries,
 } from '@/api/client/draftApi';
+import { deleteNotes as deleteNotesApi } from '@/api/client/noteApi';
 import type { NoteDraftRequest, NoteDraftResponse } from '@/shared/types/draft.types';
 
 interface UseNoteDraftOptions {
@@ -23,6 +24,7 @@ interface UseNoteDraftReturn {
   lastModified: Date | null;
   isLoading: boolean;
   isSaving: boolean;
+  dbNoteId: number | null;
 
   // 핸들러
   handleTitleChange: (value: string) => void;
@@ -45,6 +47,9 @@ interface UseNoteDraftReturn {
 export function useNoteDraft(options: UseNoteDraftOptions): UseNoteDraftReturn {
   const { draftId, onSaveToDatabase } = options;
   const queryClient = useQueryClient();
+
+  // DB에 저장된 Note ID 추적
+  const [dbNoteId, setDbNoteId] = useState<number | null>(null);
 
   // TanStack Query로 Draft 관리 (단일 진실 공급원)
   // placeholderData: 새 Draft의 경우 빈 값으로 시작
@@ -156,6 +161,9 @@ export function useNoteDraft(options: UseNoteDraftOptions): UseNoteDraftReturn {
     try {
       const noteId = await saveToDatabaseApi(draftId);
 
+      // DB Note ID 저장
+      setDbNoteId(noteId);
+
       // 카운터 초기화
       changeCountRef.current = 0;
       lastDbSaveTimeRef.current = Date.now();
@@ -248,10 +256,11 @@ export function useNoteDraft(options: UseNoteDraftOptions): UseNoteDraftReturn {
   }, []); // 빈 의존성 배열: 마운트 시 한 번만 등록
 
   // 핸들러
-  // TanStack Query Optimistic Update 패턴
-  // 즉시 캐시 업데이트 → UI 반영 → 서버 저장
+  // Debounced Mutation + Optimistic Update 패턴
+  // onChange → 즉시 setQueryData (UI 반응) + debounced mutation (서버 저장)
+  // 참고: https://lukesmurray.com/blog/react-query-auto-sync-hook
   function handleTitleChange(newTitle: string) {
-    // Optimistic update: 즉시 캐시 업데이트
+    // 1. 즉시 캐시 업데이트 → UI 즉시 반영 (사용자 경험)
     queryClient.setQueryData<NoteDraftResponse>(
       draftQueries.detail(draftId),
       (old: NoteDraftResponse | undefined) =>
@@ -266,7 +275,7 @@ export function useNoteDraft(options: UseNoteDraftOptions): UseNoteDraftReturn {
             },
     );
 
-    // Debounced 서버 저장
+    // 2. Debounced 서버 저장 (성능 최적화)
     saveDraftToRedis({
       noteId: draftId,
       title: newTitle,
@@ -279,7 +288,7 @@ export function useNoteDraft(options: UseNoteDraftOptions): UseNoteDraftReturn {
   // NoteEditor의 useEditor([onChange])가 onChange 변경 시 에디터 재초기화
   const handleContentChange = useCallback(
     (newContent: string) => {
-      // Optimistic update: 즉시 캐시 업데이트
+      // 1. 즉시 캐시 업데이트 → UI 즉시 반영 (사용자 경험)
       queryClient.setQueryData<NoteDraftResponse>(
         draftQueries.detail(draftId),
         (old: NoteDraftResponse | undefined) =>
@@ -294,7 +303,7 @@ export function useNoteDraft(options: UseNoteDraftOptions): UseNoteDraftReturn {
               },
       );
 
-      // Debounced 서버 저장
+      // 2. Debounced 서버 저장 (성능 최적화)
       saveDraftToRedis({
         noteId: draftId,
         title: titleRef.current,
@@ -306,8 +315,14 @@ export function useNoteDraft(options: UseNoteDraftOptions): UseNoteDraftReturn {
   );
 
   const deleteDraft = async () => {
+    // Redis Draft 삭제
     await deleteDraftApi(draftId);
     queryClient.removeQueries({ queryKey: draftQueries.detail(draftId) });
+
+    // DB Note도 삭제 (존재하는 경우)
+    if (dbNoteId) {
+      await deleteNotesApi([dbNoteId]);
+    }
   };
 
   return {
@@ -317,6 +332,7 @@ export function useNoteDraft(options: UseNoteDraftOptions): UseNoteDraftReturn {
     lastModified: draft?.lastModified ? new Date(draft.lastModified) : null,
     isLoading,
     isSaving: saveMutation.isPending,
+    dbNoteId,
     handleTitleChange,
     handleContentChange,
     saveToDatabase,
