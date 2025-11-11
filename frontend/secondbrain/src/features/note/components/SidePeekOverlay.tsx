@@ -20,20 +20,15 @@ export function SidePeekOverlay({ isOpen, onClose, children, mode }: SidePeekOve
   // 드래그로 설정한 커스텀 너비 (null이면 CSS 반응형 사용)
   const [customWidth, setCustomWidth] = useState<number | null>(null);
 
-  // 이벤트 리스너 참조 (cleanup용)
-  const handleMoveRef = useRef<((e: MouseEvent) => void) | null>(null);
-  const handleUpRef = useRef<((e: MouseEvent) => void) | null>(null);
+  // AbortController ref (이벤트 리스너 정리용)
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // 컴포넌트 언마운트 시 이벤트 리스너 정리
   useEffect(() => {
     return () => {
-      if (handleMoveRef.current) {
-        document.removeEventListener('mousemove', handleMoveRef.current);
-        handleMoveRef.current = null;
-      }
-      if (handleUpRef.current) {
-        document.removeEventListener('mouseup', handleUpRef.current);
-        handleUpRef.current = null;
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
       }
       document.body.style.userSelect = '';
     };
@@ -68,38 +63,58 @@ export function SidePeekOverlay({ isOpen, onClose, children, mode }: SidePeekOve
             onMouseDown={(e) => {
               e.preventDefault();
 
-              // 클로저 변수로 드래그 상태 추적
+              // 이전 드래그 중단
+              if (abortControllerRef.current) {
+                abortControllerRef.current.abort();
+              }
+
+              // 새 AbortController 생성
+              const controller = new AbortController();
+              abortControllerRef.current = controller;
+
+              // 드래그 상태 추적
               const startX = e.clientX;
               const panelElement = e.currentTarget.parentElement!;
               const startWidthPx = panelElement.offsetWidth;
               const windowWidth = window.innerWidth;
 
-              // 드래그 중 크기 조절
+              // 드래그 시작: transition 비활성화 (GPU 과부하 방지)
+              panelElement.style.transition = 'none';
+
+              // 드래그 중 크기 조절 (DOM 직접 조작으로 최고 성능)
               const handleMove = (moveEvent: MouseEvent) => {
-                const deltaX = startX - moveEvent.clientX; // 왼쪽으로 드래그하면 +
+                const deltaX = startX - moveEvent.clientX;
                 const newWidthPx = startWidthPx + deltaX;
                 const newWidthPercent = (newWidthPx / windowWidth) * 100;
 
                 // 최소 30%, 최대 95%
                 const clampedWidth = Math.min(Math.max(newWidthPercent, 30), 95);
-                setCustomWidth(clampedWidth);
+
+                // DOM 직접 조작 (React 리렌더링 우회)
+                panelElement.style.width = `${clampedWidth}%`;
               };
 
-              // 드래그 종료 (클린업 포함)
+              // 드래그 종료 (최종 상태만 React에 반영)
               const handleUp = () => {
-                document.removeEventListener('mousemove', handleMove);
-                document.removeEventListener('mouseup', handleUp);
+                // transition 복구
+                panelElement.style.transition = '';
+
+                // 최종 너비를 React 상태로 동기화
+                const finalWidth = parseFloat(panelElement.style.width);
+                if (!isNaN(finalWidth)) {
+                  setCustomWidth(finalWidth);
+                }
+
+                // AbortController로 자동 정리
+                controller.abort();
+                abortControllerRef.current = null;
                 document.body.style.userSelect = '';
-                handleMoveRef.current = null;
-                handleUpRef.current = null;
               };
 
-              // 이벤트 리스너 등록 및 ref 저장
+              // 이벤트 리스너 등록 (AbortController signal 사용)
               document.body.style.userSelect = 'none';
-              handleMoveRef.current = handleMove;
-              handleUpRef.current = handleUp;
-              document.addEventListener('mousemove', handleMove);
-              document.addEventListener('mouseup', handleUp);
+              document.addEventListener('mousemove', handleMove, { signal: controller.signal });
+              document.addEventListener('mouseup', handleUp, { signal: controller.signal });
             }}
             onDoubleClick={() => {
               // 더블클릭으로 커스텀 너비 리셋 (CSS 반응형으로 복귀)
