@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Header, HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from typing import Optional, List
+from typing import List
 import logging
 import requests
 
 from app.services.note_summarize_service import note_summarize_service
+from app.schemas.agents import NoteSummarizeRequest
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +41,7 @@ def _call_external_service(auth_token: str, payload: dict) -> dict:
     description="url, text 데이터 LLM을 활용해서 요약 저장",
 )
 async def note_summarize(
-    data: List[str],
+    data: NoteSummarizeRequest,
     credentials: HTTPAuthorizationCredentials = Depends(security),
 ):
     if not credentials:
@@ -48,7 +49,7 @@ async def note_summarize(
     
     authorization = credentials.credentials
 
-    result = await note_summarize_service.get_note_summarize(data)
+    result = await note_summarize_service.get_note_summarize(data.data)
     if not result:
         raise HTTPException(status_code=400, detail="empty data")
     
