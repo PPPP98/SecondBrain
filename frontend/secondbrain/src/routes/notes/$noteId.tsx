@@ -1,11 +1,11 @@
 import { createFileRoute, redirect } from '@tanstack/react-router';
-import { NotePage } from '@/features/note/pages/NotePage';
+import { NoteViewPage } from '@/features/note/pages/NoteViewPage';
 
 /**
- * 노트 라우트 (/note)
+ * 노트 라우트 (/notes/:noteId)
  * - 보호된 라우트 (인증 필요)
  * - beforeLoad에서 인증 체크 및 리다이렉트
- * - 컴포넌트 렌더링 전에 인증 상태 검증
+ * - SidePeekOverlay로 노트 표시
  */
 export const Route = createFileRoute('/notes/$noteId')({
   // 라우트 로드 전 인증 체크 (TanStack Router 공식 권장 패턴)
@@ -16,5 +16,5 @@ export const Route = createFileRoute('/notes/$noteId')({
       throw redirect({ to: '/' });
     }
   },
-  component: NotePage,
+  component: NoteViewPage,
 });
