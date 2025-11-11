@@ -29,6 +29,12 @@ public class TtsService {
 	}
 
 	public Mono<byte[]> convert(String text, String speaker) {
+		// 텍스트 길이 검증 (Naver API 제한: 2000자)
+		if (text.length() > 2000) {
+			log.warn("TTS 텍스트 길이 초과: {}자", text.length());
+			throw new BaseException(BaseResponseStatus.TTS_TEXT_TOO_LONG);
+		}
+
 		// speaker == null이면 config 기본 값 사용
 		String voiceSpeaker = (speaker == null || speaker.isBlank())
 			? config.getDefaultSpeaker()
