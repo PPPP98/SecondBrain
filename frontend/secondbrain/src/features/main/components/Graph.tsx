@@ -32,7 +32,6 @@ export const Graph = () => {
     },
     [highlightedNodeIds],
   );
-
   const linkWidthCallback = useCallback((link: { score: number }) => link.score * 2, []);
   const handleNodeClick = useCallback((node: unknown) => {
     // TODO: 노드 클릭 시 상세 정보 표시 기능 구현

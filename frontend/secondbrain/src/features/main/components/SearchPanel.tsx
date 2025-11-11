@@ -4,6 +4,7 @@ import { PanelHeader } from '@/features/main/components/PanelHeader';
 import { NoteList } from '@/features/main/components/NoteList';
 import { useRecentNotes } from '@/features/main/hooks/useRecentNotes';
 import { useSearchNotes } from '@/features/main/hooks/useSearchNotes';
+import { GlassContainer } from '@/shared/components/GlassContainer/GlassContainer';
 import type { RecentNote } from '@/features/main/types/search';
 
 export function SearchPanel() {
@@ -45,11 +46,19 @@ export function SearchPanel() {
     } else {
       clearHighlightedNodes();
     }
-  }, [mode, allNoteIds.length, setHighlightedNodes, clearHighlightedNodes]);
+  }, [
+    mode,
+    searchNotesQuery.data,
+    recentNotesQuery.data,
+    setHighlightedNodes,
+    clearHighlightedNodes,
+  ]);
 
   return (
-    <div className="flex h-full flex-col">
-      <PanelHeader allNoteIds={allNoteIds} />
+    <GlassContainer>
+      <PanelHeader />
+      {/* Divider between header and list */}
+      <div className="border-b border-white/75" />
       <div
         data-scroll-container="true"
         className="m-0 flex flex-1 flex-col overflow-y-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
@@ -57,6 +66,6 @@ export function SearchPanel() {
         {mode === 'recent' && <NoteList type="recent" recentQuery={recentNotesQuery} />}
         {mode === 'search' && <NoteList type="search" searchQuery={searchNotesQuery} />}
       </div>
-    </div>
+    </GlassContainer>
   );
 }

@@ -46,6 +46,8 @@ public enum BaseResponseStatus {
 	// TOKEN_HIJACKING_DETECTED(false, HttpStatus.FORBIDDEN, -10419, "보안 위반이 감지되었습니다. 다시 로그인해주세요."),
 	INVALID_AUTHORIZATION_CODE(false, HttpStatus.UNAUTHORIZED, -10420, "유효하지 않거나 만료된 인증 코드입니다."),
 	CODE_NOT_PROVIDED(false, HttpStatus.BAD_REQUEST, -10421, "인증 코드가 제공되지 않았습니다."),
+	UNAUTHORIZED(false, HttpStatus.UNAUTHORIZED, -10422, "인증되지 않은 요청입니다."),
+	FORBIDDEN(false, HttpStatus.FORBIDDEN, -10423, "접근 권한이 없습니다."),
 
 	/**
 	 * -10100 ~ -10199 : 노트(Note) 관련 에러
@@ -94,7 +96,16 @@ public enum BaseResponseStatus {
 	DRAFT_EMPTY(false, HttpStatus.BAD_REQUEST, -10803, "제목과 내용 중 하나는 필수입니다."),
 	REDIS_ERROR(false, HttpStatus.INTERNAL_SERVER_ERROR, -10804, "Redis 저장소 오류"),
 	DRAFT_VERSION_REQUIRED(false, HttpStatus.BAD_REQUEST, -10805, "버전 정보는 필수입니다."),
-	DRAFT_INVALID_VERSION(false, HttpStatus.BAD_REQUEST, -10806, "잘못된 버전 정보입니다.");
+	DRAFT_INVALID_VERSION(false, HttpStatus.BAD_REQUEST, -10806, "잘못된 버전 정보입니다."),
+
+	/**
+	 * -10900 ~ -10909 : TTS 관련 에러
+	 */
+	TTS_TEXT_EMPTY(false, HttpStatus.BAD_REQUEST, -10900, "음성 변환할 텍스트가 비어있습니다."),
+	TTS_TEXT_TOO_LONG(false, HttpStatus.BAD_REQUEST, -10901, "텍스트는 최대 2000자까지 입력 가능합니다."),
+	TTS_API_ERROR(false, HttpStatus.INTERNAL_SERVER_ERROR, -10902, "음성 변환 서비스 오류가 발생했습니다."),
+	TTS_CONNECTION_ERROR(false, HttpStatus.SERVICE_UNAVAILABLE, -10903, "TTS 서버 연결에 실패했습니다."),
+	TTS_INVALID_SPEAKER(false, HttpStatus.BAD_REQUEST, -10904, "지원하지 않는 화자입니다.");
 
 	private final boolean isSuccess;
 	private final HttpStatus httpStatus;
