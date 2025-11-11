@@ -5,7 +5,6 @@ import { NoteList } from '@/features/main/components/NoteList';
 import { useRecentNotes } from '@/features/main/hooks/useRecentNotes';
 import { useSearchNotes } from '@/features/main/hooks/useSearchNotes';
 import { GlassContainer } from '@/shared/components/GlassContainer/GlassContainer';
-import type { RecentNote } from '@/features/main/types/search';
 
 export function SearchPanel() {
   const mode = useSearchPanelStore((state) => state.mode);
@@ -13,46 +12,25 @@ export function SearchPanel() {
   const setHighlightedNodes = useSearchPanelStore((state) => state.setHighlightedNodes);
   const clearHighlightedNodes = useSearchPanelStore((state) => state.clearHighlightedNodes);
 
-  // 실제 데이터 조회
+  // 전체 데이터 조회 (NoteList 컴포넌트용)
   const recentNotesQuery = useRecentNotes();
   const searchNotesQuery = useSearchNotes({ keyword: query });
 
-  // 현재 모드에 따라 전체 노트 ID 추출
-  const getAllNoteIds = (): number[] => {
-    if (mode === 'recent' && recentNotesQuery.data) {
-      const notes = recentNotesQuery.data;
-      if (Array.isArray(notes)) {
-        return notes.map((note: RecentNote) => note.noteId);
-      }
-      return [];
-    }
-
-    if (mode === 'search' && searchNotesQuery.data?.pages) {
-      const allNotes = searchNotesQuery.data.pages.flatMap((page) => {
-        return page.results || [];
-      });
-      return allNotes.map((note) => note.id);
-    }
-
-    return [];
-  };
-
-  const allNoteIds = getAllNoteIds();
+  // 노트 ID만 추출 (React Query의 select를 통해 메모이제이션)
+  const { data: searchNoteIds = [] } = useSearchNotes({
+    keyword: query,
+    select: (data) =>
+      data.pages.flatMap((page) => page.results?.map((note) => note.id) ?? []) ?? [],
+  });
 
   // 검색 모드일 때 검색 결과 노드를 그래프에서 강조
   useEffect(() => {
-    if (mode === 'search' && allNoteIds.length > 0) {
-      setHighlightedNodes(allNoteIds);
+    if (mode === 'search' && searchNoteIds.length > 0) {
+      setHighlightedNodes(searchNoteIds);
     } else {
       clearHighlightedNodes();
     }
-  }, [
-    mode,
-    searchNotesQuery.data,
-    recentNotesQuery.data,
-    setHighlightedNodes,
-    clearHighlightedNodes,
-  ]);
+  }, [mode, searchNoteIds, setHighlightedNodes, clearHighlightedNodes]);
 
   return (
     <GlassContainer>
