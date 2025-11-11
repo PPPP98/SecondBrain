@@ -1,4 +1,16 @@
-import { ChevronsRight, PanelRightClose, Trash2, Expand, X } from 'lucide-react';
+import { ChevronsRight, PanelRightClose, Trash2, Expand } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 interface DraftToolbarProps {
   onBack: () => void;
@@ -9,9 +21,10 @@ interface DraftToolbarProps {
 
 /**
  * Draft 툴바
- * - 전체화면 모드: ChevronsRight (닫기), PanelRightClose (부분화면 전환), Trash2 (삭제)
- * - 부분화면 모드: BackArrow (닫기), Trash2 (삭제)
- * - GlassElement 제거, Tailwind로 Glass 효과 직접 구현
+ * - 전체화면 모드: ChevronsRight (닫기), PanelRightClose (사이드 보기), Trash2 (삭제)
+ * - 부분화면 모드: Expand (전체화면), Trash2 (삭제)
+ * - Tooltip이 모든 버튼에 적용됨
+ * - 삭제 버튼은 AlertDialog로 확인 후 실행
  */
 export function DraftToolbar({ onBack, onDelete, mode, onToggleMode }: DraftToolbarProps) {
   // 공통 버튼 스타일
@@ -22,42 +35,91 @@ export function DraftToolbar({ onBack, onDelete, mode, onToggleMode }: DraftTool
   `;
 
   return (
-    <>
+    <TooltipProvider>
       {mode === 'full-screen' ? (
         // 전체화면 모드: 우측 상단에 3개 버튼
         <div className="fixed right-10 top-10 z-10 flex gap-3">
-          <button onClick={onBack} className={buttonClass} aria-label="닫기">
-            <ChevronsRight className="size-6 text-white" />
-          </button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button onClick={onBack} className={buttonClass} aria-label="닫기">
+                <ChevronsRight className="size-6 text-white" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>닫기</TooltipContent>
+          </Tooltip>
 
-          <button onClick={onToggleMode} className={buttonClass} aria-label="부분 화면으로 전환">
-            <PanelRightClose className="size-6 text-white" />
-          </button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button onClick={onToggleMode} className={buttonClass} aria-label="사이드 보기">
+                <PanelRightClose className="size-6 text-white" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>사이드 보기</TooltipContent>
+          </Tooltip>
 
-          <button onClick={onDelete} className={buttonClass} aria-label="삭제">
-            <Trash2 className="size-6 text-white" />
-          </button>
+          <AlertDialog>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <AlertDialogTrigger asChild>
+                  <button className={buttonClass} aria-label="노트 삭제">
+                    <Trash2 className="size-6 text-red-500" />
+                  </button>
+                </AlertDialogTrigger>
+              </TooltipTrigger>
+              <TooltipContent>노트 삭제</TooltipContent>
+            </Tooltip>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>노트 삭제</AlertDialogTitle>
+                <AlertDialogDescription>이 노트를 삭제하시겠습니까?</AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>취소</AlertDialogCancel>
+                <AlertDialogAction onClick={onDelete}>삭제</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       ) : (
-        // 부분화면 모드: 좌측 Expand (전체화면 전환), 우측 X (닫기) + Delete
+        // 부분화면 모드: 좌측 Expand (전체화면), 우측 Trash2 (삭제)
         <>
           <div className="fixed left-10 top-10 z-10">
-            <button onClick={onToggleMode} className={buttonClass} aria-label="전체화면으로 전환">
-              <Expand className="size-6 text-white" />
-            </button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button onClick={onToggleMode} className={buttonClass} aria-label="전체화면">
+                  <Expand className="size-6 text-white" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>전체화면</TooltipContent>
+            </Tooltip>
           </div>
 
-          <div className="fixed right-10 top-10 z-10 flex gap-3">
-            <button onClick={onBack} className={buttonClass} aria-label="닫기">
-              <X className="size-6 text-white" />
-            </button>
-
-            <button onClick={onDelete} className={buttonClass} aria-label="삭제">
-              <Trash2 className="size-6 text-white" />
-            </button>
+          <div className="fixed right-10 top-10 z-10">
+            <AlertDialog>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <AlertDialogTrigger asChild>
+                    <button className={buttonClass} aria-label="노트 삭제">
+                      <Trash2 className="size-6 text-red-500" />
+                    </button>
+                  </AlertDialogTrigger>
+                </TooltipTrigger>
+                <TooltipContent>노트 삭제</TooltipContent>
+              </Tooltip>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>노트 삭제</AlertDialogTitle>
+                  <AlertDialogDescription>이 노트를 삭제하시겠습니까?</AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>취소</AlertDialogCancel>
+                  <AlertDialogAction onClick={onDelete}>삭제</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </>
       )}
-    </>
+    </TooltipProvider>
   );
 }
