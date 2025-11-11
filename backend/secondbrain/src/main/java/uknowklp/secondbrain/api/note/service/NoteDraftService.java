@@ -61,8 +61,8 @@ public class NoteDraftService {
 
 	// TTL: 24시간
 	private static final Duration DRAFT_TTL = Duration.ofHours(24);
-	// 처리 완료 기록 TTL: 10분
-	private static final Duration PROCESSED_TTL = Duration.ofMinutes(10);
+	// 처리 완료 기록 TTL: 24시간 (Draft와 동일하게 설정하여 완벽한 중복 방지)
+	private static final Duration PROCESSED_TTL = Duration.ofHours(24);
 
 	/**
 	 * Draft 저장 (Redis)
