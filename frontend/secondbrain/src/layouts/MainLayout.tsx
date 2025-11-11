@@ -38,7 +38,7 @@ const MainLayout = ({ children, onPlusClick }: MainLayoutProps) => {
         className={`absolute left-10 top-10 z-50 text-white/80 transition-opacity duration-200 ease-out hover:text-white motion-reduce:transition-none ${
           isOpen ? 'pointer-events-none opacity-0' : 'pointer-events-auto opacity-100'
         }`}
-        aria-label="검색 패널 열기"
+        aria-label={isOpen ? '검색 패널 닫기' : '검색 패널 열기'}
       >
         <MenuIcon className="size-6" />
       </button>
