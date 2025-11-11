@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { toast } from 'sonner';
 import { useNoteDraft } from '@/features/note/hooks/useNoteDraft';
 import { SidePeekOverlay } from '@/features/note/components/SidePeekOverlay';
@@ -16,9 +17,23 @@ interface DraftEditorProps {
  * Draft 에디터 (Side Peek)
  * - NoteTitleInput + NoteEditor 재사용
  * - 자동 저장 (useNoteDraft)
- * - Toolbar: 뒤로가기, 확대, 삭제
+ * - Toolbar: 뒤로가기, 모드 전환, 삭제
+ * - 전체화면/부분화면 모드 지원
  */
 export function DraftEditor({ draftId, isOpen, onClose }: DraftEditorProps) {
+  // 뷰 모드 상태 (기본값: 전체화면)
+  const [viewMode, setViewMode] = useState<'full-screen' | 'side-peek'>('full-screen');
+  const [lastDraftId, setLastDraftId] = useState(draftId);
+
+  // draftId 변경 시 viewMode 초기화 (렌더링 중 처리, useEffect 불필요)
+  if (draftId !== lastDraftId) {
+    setLastDraftId(draftId);
+    setViewMode('full-screen');
+  }
+
+  const handleToggleMode = () => {
+    setViewMode((prev) => (prev === 'full-screen' ? 'side-peek' : 'full-screen'));
+  };
   const { title, content, handleTitleChange, handleContentChange, saveToDatabase, deleteDraft } =
     useNoteDraft({
       draftId,
@@ -65,8 +80,18 @@ export function DraftEditor({ draftId, isOpen, onClose }: DraftEditorProps) {
   };
 
   return (
-    <SidePeekOverlay isOpen={isOpen} onClose={() => void handleClose()}>
-      <DraftToolbar onBack={() => void handleClose()} onDelete={handleDelete} />
+    <SidePeekOverlay
+      isOpen={isOpen}
+      onClose={() => void handleClose()}
+      mode={viewMode}
+      onToggleMode={handleToggleMode}
+    >
+      <DraftToolbar
+        onBack={() => void handleClose()}
+        onDelete={handleDelete}
+        mode={viewMode}
+        onToggleMode={handleToggleMode}
+      />
 
       {/* 중앙 컨텐츠: Title + Editor (전체 스크롤) */}
       <div className="custom-scrollbar absolute inset-x-0 bottom-0 top-32 flex flex-col items-center gap-8 overflow-y-auto px-24">
