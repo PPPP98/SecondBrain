@@ -1,13 +1,20 @@
 from fastapi import APIRouter, Header, HTTPException, Query
 from typing import Optional, List
 import logging
-import httpx
+import requests
 
 from app.services.note_summarize_service import note_summarize_service
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/agents", tags=["agents"])
+
+# --- request help func ---
+def call_external_service(url: str, auth_token: str, payload)-> Optional[dict]:
+    headers = {
+        "Authorization": auth_token,
+    }
+
 
 
 @router.post(
@@ -26,3 +33,6 @@ async def note_summarize(
 
     if not result:
         raise HTTPException(status_code=400, detail="empty data")
+    
+    return {"result": result}
+
