@@ -68,9 +68,6 @@ export function MainPage() {
           isOpen={!!search.draft}
           onClose={handleCloseSidePeek}
         />
-
-        {/* Side Peek: Note (Phase 3) */}
-        {/* {search.noteId && <SidePeekNote noteId={search.noteId} />} */}
       </MainLayout>
       <div
         className={`absolute left-10 top-10 z-40 h-[calc(100%-5rem)] w-[27%] bg-transparent transition-all duration-200 ease-out motion-reduce:transition-none ${
