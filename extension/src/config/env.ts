@@ -6,7 +6,7 @@
 
 const ENV_HINTS: Partial<Record<keyof ImportMetaEnv, string>> = {
   VITE_API_BASE_URL: 'http://localhost:8080',
-  VITE_OAUTH2_LOGIN_URL: 'http://localhost:8080/oauth2/authorization/google',
+  VITE_GOOGLE_CLIENT_ID: '123456789012-abcdefghijklmnopqrstuvwxyz123456.apps.googleusercontent.com',
 };
 
 const getEnvVar = <Key extends keyof ImportMetaEnv>(key: Key): ImportMetaEnv[Key] => {
@@ -26,7 +26,7 @@ const getEnvVar = <Key extends keyof ImportMetaEnv>(key: Key): ImportMetaEnv[Key
 
 export const env = {
   apiBaseUrl: getEnvVar('VITE_API_BASE_URL'),
-  oauth2LoginUrl: getEnvVar('VITE_OAUTH2_LOGIN_URL'),
+  googleClientId: getEnvVar('VITE_GOOGLE_CLIENT_ID'),
 } as const;
 
 export type Env = typeof env;
