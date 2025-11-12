@@ -63,9 +63,9 @@ pnpm dev
 3. "압축해제된 확장 프로그램을 로드합니다" 클릭
 4. `dist` 폴더 선택
 
-## 빌드
+## 프로덕션 빌드
 
-### 프로덕션 빌드
+### 빌드 실행
 
 ```bash
 pnpm build
@@ -75,7 +75,7 @@ pnpm build
 
 ## 프로젝트 구조
 
-```
+```markdown
 extension/
 ├── src/
 │   ├── background/              # Background Service Worker
@@ -205,7 +205,7 @@ pnpm build        # 프로덕션 빌드
 - **tabs**: OAuth 탭 생성/관리, 메시지 전송
 - **activeTab**: 현재 활성 탭 접근
 - **scripting**: Content Script 동적 주입
-- **host_permissions**: API 서버 통신 (https://api.brainsecond.site)
+- **host_permissions**: API 서버 통신 (<https://api.brainsecond.site>)
 
 ## 기술 특징
 
