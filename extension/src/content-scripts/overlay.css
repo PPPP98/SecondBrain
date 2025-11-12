@@ -1,16 +1,14 @@
 /**
  * Chrome Extension Overlay Styles
- * - Tailwind CSS classes
+ * - Tailwind CSS v4 (using @import directive)
  * - Extension-specific utilities
  *
  * Note: 이 파일은 manifest.json의 content_scripts.css에서 참조됩니다.
  * Shadow DOM 내부에 주입되어 스타일 격리를 제공합니다.
  */
 
-/* Tailwind CSS base */
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* Tailwind CSS v4 - Single import directive */
+@import 'tailwindcss';
 
 /* Extension-specific utilities */
 @layer utilities {
