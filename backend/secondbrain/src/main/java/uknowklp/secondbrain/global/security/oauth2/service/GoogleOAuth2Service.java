@@ -79,7 +79,6 @@ public class GoogleOAuth2Service {
 			}
 
 			log.info("Google token exchange successful");
-			log.debug("Token response: {}", tokenResponse);
 
 			return tokenResponse;
 
@@ -124,7 +123,6 @@ public class GoogleOAuth2Service {
 			}
 
 			log.info("Google user info fetched successfully. Email: {}", userInfo.getEmail());
-			log.debug("User info: {}", userInfo);
 
 			return userInfo;
 

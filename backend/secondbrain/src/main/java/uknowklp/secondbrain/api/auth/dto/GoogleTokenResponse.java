@@ -11,7 +11,7 @@ import lombok.ToString;
  */
 @Getter
 @NoArgsConstructor
-@ToString
+@ToString(exclude = {"accessToken", "refreshToken", "idToken"})
 public class GoogleTokenResponse {
 
 	@JsonProperty("access_token")

@@ -16,6 +16,9 @@ public class RestTemplateConfig {
 
 	@Bean
 	public RestTemplate restTemplate(RestTemplateBuilder builder) {
-		return builder.build();
+		return builder
+			.connectTimeout(Duration.ofSeconds(5))   // 연결 timeout (Google API 권장)
+			.readTimeout(Duration.ofSeconds(10))     // 읽기 timeout (OAuth 응답 대기)
+			.build();
 	}
 }

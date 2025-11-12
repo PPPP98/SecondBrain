@@ -113,8 +113,8 @@ public enum BaseResponseStatus {
 	/**
 	 * -11000 ~ -11009 : Google OAuth 관련 에러
 	 */
-	GOOGLE_TOKEN_EXCHANGE_FAILED(false, HttpStatus.BAD_REQUEST, -11000, "Google 토큰 교환에 실패했습니다."),
-	GOOGLE_USER_INFO_FAILED(false, HttpStatus.BAD_REQUEST, -11001, "Google 사용자 정보 조회에 실패했습니다.");
+	GOOGLE_TOKEN_EXCHANGE_FAILED(false, HttpStatus.BAD_REQUEST, -11000, "Google 로그인 중 오류가 발생했습니다. 다시 시도해주세요."),
+	GOOGLE_USER_INFO_FAILED(false, HttpStatus.BAD_REQUEST, -11001, "Google 사용자 정보를 가져올 수 없습니다. 다시 시도해주세요.");
 
 	private final boolean isSuccess;
 	private final HttpStatus httpStatus;
