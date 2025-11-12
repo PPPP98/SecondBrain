@@ -78,44 +78,44 @@ pnpm build
 ```markdown
 extension/
 ├── src/
-│   ├── background/              # Background Service Worker
-│   │   └── service-worker.ts   # 인증, 탭 관리, 메시지 통신
-│   ├── content-scripts/         # Content Scripts
-│   │   ├── overlay/            # 오버레이 UI 컴포넌트
-│   │   │   ├── index.tsx       # 엔트리 포인트
-│   │   │   ├── OverlayRoot.tsx
-│   │   │   ├── ExtensionOverlay.tsx
-│   │   │   ├── LoginPrompt.tsx
-│   │   │   ├── GoogleLoginButton.tsx
-│   │   │   └── ActionButtons.tsx
-│   │   └── overlay.css         # Tailwind CSS v4 스타일
-│   ├── components/              # UI 컴포넌트
-│   │   └── ui/                 # Shadcn UI 컴포넌트
-│   │       └── button.tsx
-│   ├── hooks/                   # 커스텀 훅
-│   │   └── useExtensionAuth.ts
-│   ├── lib/                     # 유틸리티 함수
-│   │   └── utils.ts            # cn, 헬퍼 함수
-│   ├── config/                  # 환경 설정
-│   │   └── env.ts              # 타입 안전 환경 변수
-│   ├── popup/                   # Popup UI (향후 확장용)
-│   ├── index.css                # Tailwind CSS v4 메인 스타일
-│   ├── manifest.json            # Extension Manifest V3
-│   └── vite-env.d.ts           # Vite 타입 정의
+│ ├── background/ # Background Service Worker
+│ │ └── service-worker.ts # 인증, 탭 관리, 메시지 통신
+│ ├── content-scripts/ # Content Scripts
+│ │ ├── overlay/ # 오버레이 UI 컴포넌트
+│ │ │ ├── index.tsx # 엔트리 포인트
+│ │ │ ├── OverlayRoot.tsx
+│ │ │ ├── ExtensionOverlay.tsx
+│ │ │ ├── LoginPrompt.tsx
+│ │ │ ├── GoogleLoginButton.tsx
+│ │ │ └── ActionButtons.tsx
+│ │ └── overlay.css # Tailwind CSS v4 스타일
+│ ├── components/ # UI 컴포넌트
+│ │ └── ui/ # Shadcn UI 컴포넌트
+│ │ └── button.tsx
+│ ├── hooks/ # 커스텀 훅
+│ │ └── useExtensionAuth.ts
+│ ├── lib/ # 유틸리티 함수
+│ │ └── utils.ts # cn, 헬퍼 함수
+│ ├── config/ # 환경 설정
+│ │ └── env.ts # 타입 안전 환경 변수
+│ ├── popup/ # Popup UI (향후 확장용)
+│ ├── index.css # Tailwind CSS v4 메인 스타일
+│ ├── manifest.json # Extension Manifest V3
+│ └── vite-env.d.ts # Vite 타입 정의
 ├── public/
-│   └── assets/                  # 정적 자산
-│       ├── icon.png            # 128x128
-│       ├── icon-48.png
-│       └── icon-16.png
-├── vite.config.ts               # Vite + Tailwind + CRXJS 설정
-├── tsconfig.json                # TypeScript 루트 설정
-├── tsconfig.app.json            # App TypeScript 설정
-├── tsconfig.node.json           # Node TypeScript 설정
-├── eslint.config.js             # ESLint Flat Config
-├── .prettierrc.js               # Prettier 설정
-├── .editorconfig                # 에디터 설정
-├── .env.example                 # 환경 변수 예시
-├── components.json              # Shadcn UI 설정
+│ └── assets/ # 정적 자산
+│ ├── icon.png # 128x128
+│ ├── icon-48.png
+│ └── icon-16.png
+├── vite.config.ts # Vite + Tailwind + CRXJS 설정
+├── tsconfig.json # TypeScript 루트 설정
+├── tsconfig.app.json # App TypeScript 설정
+├── tsconfig.node.json # Node TypeScript 설정
+├── eslint.config.js # ESLint Flat Config
+├── .prettierrc.js # Prettier 설정
+├── .editorconfig # 에디터 설정
+├── .env.example # 환경 변수 예시
+├── components.json # Shadcn UI 설정
 └── package.json
 ```
 
