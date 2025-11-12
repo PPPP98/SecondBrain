@@ -42,11 +42,15 @@ public class NoteSearchService {
 		}
 
 		try {
-			// 1. Multi-match 쿼리 생성 (제목에 2배 가중치)
+			// 1. Multi-match 쿼리 생성 (제목에 2배 가중치, 오타 허용)
 			Query multiMatchQuery = MultiMatchQuery.of(m -> m
 				.query(keyword)
 				.fields("title^2", "content")
 				.type(co.elastic.clients.elasticsearch._types.query_dsl.TextQueryType.BestFields)
+				.fuzziness("1")             // 오타 허용 1글자까지 (균형있는 검색)
+				.prefixLength(0)            // 첫 글자도 오타 허용
+				.maxExpansions(50)          // 검색 범위 적절히 제한
+				.minimumShouldMatch("70%")  // 최소 70% 일치해야 결과 포함
 			)._toQuery();
 
 			// 2. Bool 쿼리 생성
@@ -121,6 +125,10 @@ public class NoteSearchService {
 				.query(searchText)
 				.fields("title^2", "content")
 				.type(co.elastic.clients.elasticsearch._types.query_dsl.TextQueryType.BestFields)
+				.fuzziness("1")             // 오타 허용 1글자까지
+				.prefixLength(0)            // 첫 글자도 오타 허용
+				.maxExpansions(50)          // 검색 범위 적절히 제한
+				.minimumShouldMatch("70%")  // 최소 70% 일치
 			)._toQuery();
 
 			// Bool 쿼리 생성 (자기 자신 제외 + userId 필터)
