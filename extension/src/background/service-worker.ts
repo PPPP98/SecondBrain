@@ -1,6 +1,7 @@
 import browser from 'webextension-polyfill';
-import { exchangeToken, logout as logoutService } from '@/services/authService';
+import { exchangeGoogleToken, logout as logoutService } from '@/services/authService';
 import { getCurrentUser } from '@/services/userService';
+import { env } from '@/config/env';
 import type { UserInfo } from '@/types/auth';
 
 /**
@@ -13,7 +14,7 @@ import type { UserInfo } from '@/types/auth';
 // 메시지 타입 정의
 type ExtensionMessage =
   | { type: 'CHECK_AUTH' }
-  | { type: 'LOGIN'; url: string }
+  | { type: 'LOGIN' }
   | { type: 'LOGOUT' }
   | { type: 'OPEN_TAB'; url: string }
   | { type: 'AUTH_CHANGED' };
@@ -44,8 +45,18 @@ async function checkAuth(): Promise<AuthResponse> {
   }
 }
 
-// OAuth 로그인 처리 (Chrome Identity API 사용)
-async function handleLogin(authUrl: string): Promise<void> {
+/**
+ * OAuth 로그인 처리 (Chrome Identity API - Google 직접 호출)
+ *
+ * Flow:
+ * 1. chrome.identity.getRedirectURL()로 Extension redirect URI 획득
+ * 2. Google OAuth URL 직접 생성 (백엔드 거치지 않음!)
+ * 3. chrome.identity.launchWebAuthFlow()로 OAuth 팝업 실행
+ * 4. Authorization code 추출
+ * 5. 백엔드 API로 code 전송하여 JWT 토큰 교환
+ * 6. 사용자 정보 조회 및 저장
+ */
+async function handleLogin(): Promise<void> {
   // 모든 Extension 탭에 인증 상태 변경 알림
   const notifyAuthChanged = async () => {
     const tabs = await browser.tabs.query({});
@@ -61,22 +72,26 @@ async function handleLogin(authUrl: string): Promise<void> {
   };
 
   try {
-    console.log('🔐 Starting OAuth flow with chrome.identity...');
+    console.log('🔐 Starting OAuth flow with Google...');
 
-    // 1. Extension의 정확한 Redirect URI 가져오기
-    const extensionRedirectUri = chrome.identity.getRedirectURL();
-    console.log('🆔 Extension Redirect URI:', extensionRedirectUri);
-    console.log('📍 Base OAuth URL:', authUrl);
+    // 1. Extension Redirect URI 가져오기
+    const redirectUri = chrome.identity.getRedirectURL();
+    console.log('🆔 Extension Redirect URI:', redirectUri);
 
-    // 2. OAuth URL에 redirect_uri 파라미터 추가
-    const oauthUrl = new URL(authUrl);
-    oauthUrl.searchParams.set('redirect_uri', extensionRedirectUri);
+    // 2. Google OAuth URL 직접 생성 (백엔드 거치지 않음!)
+    const googleAuthUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
+    googleAuthUrl.searchParams.set('client_id', env.googleClientId);
+    googleAuthUrl.searchParams.set('redirect_uri', redirectUri);
+    googleAuthUrl.searchParams.set('response_type', 'code');
+    googleAuthUrl.searchParams.set('scope', 'openid email profile');
+    googleAuthUrl.searchParams.set('access_type', 'offline');
+    googleAuthUrl.searchParams.set('prompt', 'consent');
 
-    console.log('🔗 Final OAuth URL:', oauthUrl.toString());
+    console.log('🔗 Google OAuth URL:', googleAuthUrl.toString());
 
-    // 3. chrome.identity API로 OAuth 팝업 실행
+    // 3. Chrome Identity API로 OAuth 팝업 실행
     const redirectUrl = await chrome.identity.launchWebAuthFlow({
-      url: oauthUrl.toString(),
+      url: googleAuthUrl.toString(),
       interactive: true,
     });
 
@@ -88,7 +103,7 @@ async function handleLogin(authUrl: string): Promise<void> {
 
     console.log('✅ OAuth redirect received:', redirectUrl);
 
-    // 2. Authorization Code 추출
+    // 4. Authorization Code 추출
     const callbackUrl = new URL(redirectUrl);
     const code = callbackUrl.searchParams.get('code');
 
@@ -102,9 +117,9 @@ async function handleLogin(authUrl: string): Promise<void> {
 
     console.log('📋 Authorization code received');
 
-    // 3. 토큰 교환 (기존 로직 유지)
-    console.log('🔄 Exchanging code for token...');
-    const tokenData = await exchangeToken(code);
+    // 5. Google Authorization Code를 Backend JWT로 교환
+    console.log('🔄 Exchanging Google code for JWT token...');
+    const tokenData = await exchangeGoogleToken(code, redirectUri);
 
     if (!tokenData.success || !tokenData.data) {
       console.error('❌ Token exchange failed:', tokenData);
@@ -115,19 +130,19 @@ async function handleLogin(authUrl: string): Promise<void> {
 
     const { accessToken } = tokenData.data;
 
-    // 4. Access Token 저장 (getCurrentUser가 이 토큰을 사용함)
+    // 6. Access Token 저장 (getCurrentUser가 이 토큰을 사용함)
     await browser.storage.local.set({
       access_token: accessToken,
     });
 
     console.log('💾 Access token saved to storage');
 
-    // 5. 사용자 정보 조회 (기존 로직 유지)
+    // 7. 사용자 정보 조회
     try {
       console.log('👤 Fetching user info...');
       const userInfo = await getCurrentUser();
 
-      // 6. 최종 인증 상태 저장 (기존 로직 유지)
+      // 8. 최종 인증 상태 저장
       await browser.storage.local.set({
         authenticated: true,
         user: userInfo,
@@ -135,16 +150,16 @@ async function handleLogin(authUrl: string): Promise<void> {
 
       console.log('✅ Login successful! User:', userInfo.name);
 
-      // 7. 모든 탭에 인증 변경 알림 (기존 로직 유지)
+      // 9. 모든 탭에 인증 변경 알림
       await notifyAuthChanged();
     } catch (userError) {
-      // 사용자 정보 조회 실패 시 정리 (기존 에러 처리 유지)
+      // 사용자 정보 조회 실패 시 정리
       console.error('❌ Failed to fetch user info:', userError);
       await browser.storage.local.remove(['access_token', 'authenticated', 'user']);
       throw new Error('Failed to fetch user information after successful login');
     }
   } catch (error) {
-    // OAuth 전체 실패 처리 (기존 에러 처리 유지)
+    // OAuth 전체 실패 처리
     console.error('❌ OAuth login failed:', error);
     throw error;
   }
@@ -224,13 +239,9 @@ browser.runtime.onMessage.addListener(
           }
 
           case 'LOGIN': {
-            if ('url' in msg) {
-              // 백그라운드에서 로그인 처리 (즉시 응답 반환)
-              void handleLogin(msg.url);
-              sendResponse({ success: true });
-            } else {
-              sendResponse({ authenticated: false });
-            }
+            // 백그라운드에서 로그인 처리 (즉시 응답 반환)
+            void handleLogin();
+            sendResponse({ success: true });
             break;
           }
 
