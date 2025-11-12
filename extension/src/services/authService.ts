@@ -19,9 +19,10 @@ async function getAccessToken(): Promise<string | null> {
 
 /**
  * POST /api/auth/token
- * Authorization Code를 JWT 토큰으로 교환
+ * Authorization Code를 JWT 토큰으로 교환 (웹 앱용)
  * @param code - OAuth2 Authorization Code
  * @returns BaseResponse<TokenResponse>
+ * @deprecated Chrome Extension에서는 exchangeGoogleToken 사용
  */
 export async function exchangeToken(code: string): Promise<BaseResponse<TokenResponse>> {
   const response = await fetch(`${env.apiBaseUrl}/api/auth/token?code=${code}`, {
@@ -34,6 +35,39 @@ export async function exchangeToken(code: string): Promise<BaseResponse<TokenRes
 
   if (!response.ok) {
     throw new Error(`Token exchange failed: ${response.status} ${response.statusText}`);
+  }
+
+  return response.json() as Promise<BaseResponse<TokenResponse>>;
+}
+
+/**
+ * POST /api/auth/token/google
+ * Google Authorization Code를 JWT 토큰으로 교환 (Chrome Extension용)
+ * @param code - Google OAuth2 Authorization Code
+ * @param redirectUri - Chrome Extension Redirect URI
+ * @returns BaseResponse<TokenResponse>
+ */
+export async function exchangeGoogleToken(
+  code: string,
+  redirectUri: string,
+): Promise<BaseResponse<TokenResponse>> {
+  const response = await fetch(`${env.apiBaseUrl}/api/auth/token/google`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      code,
+      redirectUri,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(
+      `Google token exchange failed: ${response.status} ${response.statusText}\n${errorText}`,
+    );
   }
 
   return response.json() as Promise<BaseResponse<TokenResponse>>;
