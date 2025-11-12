@@ -1,3 +1,4 @@
+import { useNavigate } from '@tanstack/react-router';
 import ForceGraph3D from 'react-force-graph-3d';
 import { LoadingSpinner } from '@/shared/components/LoadingSpinner';
 import { useGraphVisualization } from '@/features/main/hooks/useGraphVisualization';
@@ -22,8 +23,13 @@ const calculateLinkWidth = (link: { score: number }) => link.score * 2;
 const calculateParticleWidth = (link: { score: number }) => link.score * 1.5;
 
 export const Graph = () => {
+  const navigate = useNavigate();
   const { data: graphData, isLoading, isError } = useGraphVisualization();
   const highlightedNodeIds = useSearchPanelStore((state) => state.highlightedNodeIds);
+
+  const handleNodeClick = (node: GraphNode) => {
+    void navigate({ to: '/notes/$noteId', params: { noteId: String(node.id) } });
+  };
 
   if (isLoading) {
     return <LoadingSpinner />;
@@ -57,7 +63,7 @@ export const Graph = () => {
         linkDirectionalParticleWidth={calculateParticleWidth}
         backgroundColor="#192030"
         nodeRelSize={8}
-        onNodeClick={(node) => console.info('선택된 노드:', node)}
+        onNodeClick={(node) => handleNodeClick(node as GraphNode)}
         showNavInfo={false}
       />
     </div>
