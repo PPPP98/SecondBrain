@@ -31,6 +31,7 @@
             android:name="com.google.android.gms.version"
             android:value="@integer/google_play_services_version" />
 
+        <!-- 메인 액티비티 -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -41,6 +42,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- 로그인 액티비티 -->
+        <activity
+            android:name=".ui.login.LoginActivity"
+            android:exported="false" />
 
         <!-- 웨이크워드 감지 백그라운드 서비스 -->
         <service
