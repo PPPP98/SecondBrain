@@ -60,7 +60,7 @@ class LoginActivity : AppCompatActivity() {
 
         // Google Sign-In 옵션 설정
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestIdToken("848577674557-fo0ok3fv0o5epfb46o1idp01n0rskpd2.apps.googleusercontent.com") // Android OAuth Client ID
+            .requestIdToken("") // TODO: 혜성으로부터 Android OAuth Client ID 받아서 입력 필요
             .requestEmail()
             .build()
 
