@@ -20,6 +20,9 @@ const config = {
 
   // 플러그인 설정
   plugins: ['prettier-plugin-tailwindcss'], // TailwindCSS 클래스 자동 정렬
+
+  // Tailwind CSS v4 설정
+  tailwindStylesheet: 'src/index.css', // v4: CSS 엔트리 포인트 지정 (필수)
 };
 
 export default config;
