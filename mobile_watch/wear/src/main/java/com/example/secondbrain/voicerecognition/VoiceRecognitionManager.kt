@@ -1,4 +1,4 @@
-package com.example.secondbrain.wakeword
+package com.example.secondbrain.voicerecognition
 
 import android.content.Context
 import android.content.Intent
