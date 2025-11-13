@@ -44,12 +44,16 @@ import com.example.secondbrain.communication.WearableMessageSender
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
     companion object {
         private const val TAG = "MainActivity"
+        private const val SILENCE_LENGTH_MILLIS = 3000L
+        private const val APP_MINIMIZE_DELAY_MILLIS = 1500L
     }
 
     private lateinit var voiceRecognitionManager: VoiceRecognitionManager
@@ -115,14 +119,13 @@ class MainActivity : ComponentActivity() {
                             LogUtils.i(TAG, "모바일로 전송 성공")
                         } else {
                             LogUtils.w(TAG, "모바일로 전송 실패")
-                            voiceRecognitionManager.setError ("모바일 연결 없음")
+                            voiceRecognitionManager.setError("모바일 연결 없음")
                         }
 
                         // 전송 완료 후 앱 최소화 (메인 화면으로 이동)
-                        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                            LogUtils.d(TAG, "앱 최소화")
-                            moveTaskToBack(true)
-                        }, 1500)
+                        delay(APP_MINIMIZE_DELAY_MILLIS)
+                        LogUtils.d(TAG, "앱 최소화")
+                        moveTaskToBack(true)
                     }
                 } else {
                     LogUtils.w(TAG, "빈 텍스트")
@@ -233,8 +236,8 @@ class MainActivity : ComponentActivity() {
 
                 // 음성 인식 자동 완료 설정
                 // 침묵 시간을 짧게 설정하여 빠르게 자동 완료
-                putExtra(android.speech.RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 1500L)
-                putExtra(android.speech.RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 1500L)
+                putExtra(android.speech.RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, SILENCE_LENGTH_MILLIS)
+                putExtra(android.speech.RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, SILENCE_LENGTH_MILLIS)
 
                 // 오프라인 인식 선호하지 않음 (더 정확한 인식)
                 putExtra(android.speech.RecognizerIntent.EXTRA_PREFER_OFFLINE, false)
@@ -272,6 +275,7 @@ class MainActivity : ComponentActivity() {
     override fun onDestroy() {
         super.onDestroy()
         LogUtils.d(TAG, "Destroy - 정리")
+        scope.cancel()
         voiceRecognitionManager.cleanup()
     }
 }
