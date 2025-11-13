@@ -52,13 +52,11 @@ class MainActivity : ComponentActivity() {
 
     companion object {
         private const val TAG = "MainActivity"
-        private const val SILENCE_LENGTH_MILLIS = 1000L
-        private const val MINIMUM_SPEECH_LENGTH_MILLIS = 500L
         private const val APP_MINIMIZE_DELAY_MILLIS = 1500L
     }
 
-    private lateinit var voiceRecognitionManager: VoiceRecognitionManager
     private lateinit var messageSender: WearableMessageSender
+    private lateinit var voiceRecognitionManager: VoiceRecognitionManager
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     // 권한 거부 횟수 추적 (SharedPreferences로 저장)
@@ -100,7 +98,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    // 음성 인식 결과를 받기 위한 launcher
+    // Activity 기반 음성 인식 결과 처리
     private val speechRecognitionLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -123,7 +121,7 @@ class MainActivity : ComponentActivity() {
                             voiceRecognitionManager.setError("모바일 연결 없음")
                         }
 
-                        // 전송 완료 후 앱 최소화 (메인 화면으로 이동)
+                        // 전송 완료 후 앱 최소화
                         delay(APP_MINIMIZE_DELAY_MILLIS)
                         LogUtils.d(TAG, "앱 최소화")
                         moveTaskToBack(true)
@@ -151,8 +149,10 @@ class MainActivity : ComponentActivity() {
 
         LogUtils.d(TAG, "onCreate - 앱 초기화")
 
-        voiceRecognitionManager = VoiceRecognitionManager(this)
         messageSender = WearableMessageSender(this)
+
+        // VoiceRecognitionManager 초기화 (Activity 기반만 사용하므로 콜백 불필요)
+        voiceRecognitionManager = VoiceRecognitionManager(context = this)
 
         // 연결된 모바일 기기 확인 (디버깅용)
         scope.launch {
@@ -229,27 +229,20 @@ class MainActivity : ComponentActivity() {
     private fun startVoiceRecognitionActivity() {
         try {
             val intent = Intent(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-                putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL,
-                    android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                putExtra(
+                    android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                    android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
+                )
                 putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE, "ko-KR")
                 putExtra(android.speech.RecognizerIntent.EXTRA_PROMPT, "말씀하세요")
                 putExtra(android.speech.RecognizerIntent.EXTRA_MAX_RESULTS, 5)
-
-                // 음성 인식 자동 완료 설정
-                // 침묵 시간을 짧게 설정하여 빠르게 자동 완료
-                putExtra(android.speech.RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, SILENCE_LENGTH_MILLIS)
-                putExtra(android.speech.RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, SILENCE_LENGTH_MILLIS)
-                // 최소 음성 길이 설정 (자동 완료 유도)
-                putExtra(android.speech.RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, MINIMUM_SPEECH_LENGTH_MILLIS)
-
-                // 오프라인 인식 선호하지 않음 (더 정확한 인식)
                 putExtra(android.speech.RecognizerIntent.EXTRA_PREFER_OFFLINE, false)
             }
 
             voiceRecognitionManager.setListening(true)
             voiceRecognitionManager.clearMessages()
 
-            LogUtils.d(TAG, "음성 인식 시작 (자동 완료 활성화)")
+            LogUtils.d(TAG, "음성 인식 시작 (Activity 기반)")
             speechRecognitionLauncher.launch(intent)
         } catch (e: SecurityException) {
             LogUtils.e(TAG, "권한 부족", e)
