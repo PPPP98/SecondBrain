@@ -24,14 +24,24 @@ public class GoogleTokenVerifier {
 	@Value("${spring.security.oauth2.client.registration.google.client-id}")
 	private String clientId;
 
+	@Value("${GOOGLE_ANDROID_CLIENT_ID:#{null}}")
+	private String androidClientId;
+
 	// Google ID Token 검증 및 이메일 추출
 	public String verifyIdToken(String idTokenString) {
 		try {
+			// 여러 Client ID를 지원하기 위한 리스트 생성
+			java.util.List<String> clientIds = new java.util.ArrayList<>();
+			clientIds.add(clientId);
+			if (androidClientId != null && !androidClientId.isEmpty()) {
+				clientIds.add(androidClientId);
+			}
+
 			// Google ID Token Verifier 생성
 			GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(
 				new NetHttpTransport(),
 				GsonFactory.getDefaultInstance())
-				.setAudience(Collections.singletonList(clientId))
+				.setAudience(clientIds)
 				.build();
 
 			// ID Token 검증
