@@ -31,39 +31,17 @@ export default defineConfig({
       'react/jsx-dev-runtime',
       'react-dom/client',
       'webextension-polyfill',
-      '@react-three/fiber',
-      '@react-three/drei',
-      'three',
     ],
-    entries: [
-      'src/content-scripts/overlay/index.tsx',
-      'src/background/service-worker.ts',
-      'src/pages/threejs-spinner/index.ts',
-    ],
+    entries: ['src/content-scripts/overlay/index.tsx', 'src/background/service-worker.ts'],
   },
   build: {
     // Chrome Extension 크기 제한 고려 (압축 후 ~20MB)
     chunkSizeWarningLimit: 1000,
     // 빌드 타겟 명시
     target: 'esnext',
-    // Three.js 번들링 문제 해결: minify 비활성화
-    minify: false,
+    minify: 'esbuild',
     rollupOptions: {
-      input: {
-        // CRXJS가 자동으로 처리
-        // threejs-spinner는 별도 빌드 필요
-        'threejs-spinner': 'src/pages/threejs-spinner/index.ts',
-      },
       output: {
-        // Three.js를 별도 청크로 분리
-        manualChunks(id) {
-          if (id.includes('three')) {
-            return 'three-vendor';
-          }
-          if (id.includes('@react-three')) {
-            return 'react-three-vendor';
-          }
-        },
         // 읽기 쉬운 청크 이름
         chunkFileNames: 'assets/[name]-[hash].js',
         entryFileNames: 'assets/[name]-[hash].js',
