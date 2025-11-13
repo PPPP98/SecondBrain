@@ -1,23 +1,22 @@
 import { GoogleLoginButton } from '@/content-scripts/overlay/GoogleLoginButton';
+import { LogoSpinnerIframe } from '@/content-scripts/overlay/components/LogoSpinnerIframe';
 
 /**
  * Login Prompt (Molecule)
  * - 로그인 전 표시되는 프롬프트
+ * - iframe 기반 진짜 3D WebGL 렌더링
+ * - SVG ExtrudeGeometry 입체 조형물
  * - Shadcn UI + Tailwind CSS 기반
  */
 export function LoginPrompt() {
   return (
-    <div className="w-[280px] rounded-xl border border-border bg-card p-6 shadow-lg">
-      <h3 className="mb-2 text-center text-lg font-semibold text-card-foreground">
-        SecondBrain Extension
-      </h3>
-      <p className="mb-6 text-center text-sm text-muted-foreground">로그인이 필요합니다</p>
+    <div className="w-[320px] rounded-xl border border-border bg-card p-6 shadow-lg">
+      {/* iframe 기반 진짜 3D 입체 조형물 */}
+      <div className="mb-6 flex justify-center">
+        <LogoSpinnerIframe size={120} />
+      </div>
 
-      <p className="mb-6 text-center text-sm leading-relaxed text-card-foreground">
-        웹페이지를 저장하고 노트를 생성하려면
-        <br />
-        먼저 로그인해주세요.
-      </p>
+      <h3 className="mb-2 text-center text-lg font-semibold text-card-foreground">Second Brain</h3>
 
       <div className="flex justify-center">
         <GoogleLoginButton text="signin" />
