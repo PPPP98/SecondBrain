@@ -116,7 +116,12 @@ export function LogoSpinnerShadow({
       <Canvas
         frameloop="demand"
         dpr={[1, 2]}
-        gl={{ antialias: false }}
+        gl={{
+          antialias: false,
+          alpha: true,
+          preserveDrawingBuffer: true,
+          powerPreference: 'default',
+        }}
         camera={{ position: [0, 0, 3], fov: 50 }}
         onCreated={(state) => {
           if (!state.gl) {

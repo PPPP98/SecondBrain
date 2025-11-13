@@ -113,8 +113,13 @@ export function LogoSpinner({
         frameloop="demand"
         // 디바이스 픽셀 비율 제한 (고해상도 화면 최적화)
         dpr={[1, 2]}
-        // 안티앨리어싱 비활성화 (로딩 스피너는 불필요)
-        gl={{ antialias: false }}
+        // WebGL 설정 - Content Script 환경 호환
+        gl={{
+          antialias: false,
+          alpha: true,
+          preserveDrawingBuffer: true,
+          powerPreference: 'default',
+        }}
         // 카메라 설정
         camera={{ position: [0, 0, 3], fov: 50 }}
         // 에러 처리
