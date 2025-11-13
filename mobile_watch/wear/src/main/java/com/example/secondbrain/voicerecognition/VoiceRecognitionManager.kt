@@ -7,20 +7,30 @@ import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.util.Log
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
- * 버튼 기반 음성 인식기
+ * 버튼 기반 음성 인식 매니저
+ *
  * 버튼을 누르면 음성 인식을 시작하고, 사용자 음성을 텍스트로 변환합니다.
+ * Wear OS의 제약사항을 고려하여 백그라운드 웨이크워드 방식 대신
+ * 버튼 기반 방식으로 구현되었습니다.
  */
-class WakeWordDetector(private val context: Context) {
+class VoiceRecognitionManager(private val context: Context) {
 
     companion object {
-        private const val TAG = "WakeWordDetector"
+        private const val TAG = "VoiceRecognitionMgr"
+        private const val RECOGNITION_TIMEOUT_MS = 10000L // 10초
     }
 
     private var speechRecognizer: SpeechRecognizer? = null
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     private val _isListening = MutableStateFlow(false)
     val isListening: StateFlow<Boolean> = _isListening
@@ -31,16 +41,31 @@ class WakeWordDetector(private val context: Context) {
     private val _errorMessage = MutableStateFlow("")
     val errorMessage: StateFlow<String> = _errorMessage
 
-    // 사용 가능한 서비스를 lazy하게 체크
-    private val availableServices: List<String> by lazy {
-        checkAvailableRecognitionServices()
-    }
+    // 음성 인식 서비스 가용성을 비동기로 체크
+    private var availableServices: List<String> = emptyList()
+    private var servicesChecked = false
 
     init {
         if (!SpeechRecognizer.isRecognitionAvailable(context)) {
             Log.e(TAG, "음성 인식을 사용할 수 없습니다")
+            _errorMessage.value = "음성 인식을 사용할 수 없습니다"
         } else {
             Log.d(TAG, "음성 인식 사용 가능")
+            // 백그라운드에서 서비스 체크
+            checkAvailableServicesAsync()
+        }
+    }
+
+    /**
+     * 사용 가능한 음성 인식 서비스를 비동기로 체크
+     * ANR 방지를 위해 백그라운드에서 실행
+     */
+    private fun checkAvailableServicesAsync() {
+        scope.launch {
+            availableServices = withContext(Dispatchers.IO) {
+                checkAvailableRecognitionServices()
+            }
+            servicesChecked = true
         }
     }
 
@@ -67,7 +92,7 @@ class WakeWordDetector(private val context: Context) {
     }
 
     private fun findBestRecognizer(): android.content.ComponentName? {
-        try {
+        return try {
             val pm = context.packageManager
             val services = pm.queryIntentServices(
                 Intent("android.speech.RecognitionService"),
@@ -79,7 +104,7 @@ class WakeWordDetector(private val context: Context) {
                 it.serviceInfo.packageName.contains("google", ignoreCase = true)
             }
 
-            return if (googleService != null) {
+            if (googleService != null) {
                 android.content.ComponentName(
                     googleService.serviceInfo.packageName,
                     googleService.serviceInfo.name
@@ -94,7 +119,7 @@ class WakeWordDetector(private val context: Context) {
             }
         } catch (e: Exception) {
             Log.e(TAG, "음성 인식 서비스 찾기 실패", e)
-            return null
+            null
         }
     }
 
@@ -145,6 +170,16 @@ class WakeWordDetector(private val context: Context) {
             speechRecognizer?.startListening(intent)
             _isListening.value = true
             Log.d(TAG, "음성 인식 시작")
+
+            // 타임아웃 설정 (자동 취소)
+            scope.launch {
+                kotlinx.coroutines.delay(RECOGNITION_TIMEOUT_MS)
+                if (_isListening.value) {
+                    Log.w(TAG, "음성 인식 타임아웃")
+                    stopListening()
+                    _errorMessage.value = "음성 인식 시간이 초과되었습니다"
+                }
+            }
         } catch (e: Exception) {
             Log.e(TAG, "음성 인식 시작 실패", e)
             _isListening.value = false
@@ -162,12 +197,23 @@ class WakeWordDetector(private val context: Context) {
 
         try {
             speechRecognizer?.stopListening()
-            speechRecognizer?.destroy()
-            speechRecognizer = null
+            cleanupRecognizer()
             _isListening.value = false
             Log.d(TAG, "음성 인식 중지")
         } catch (e: Exception) {
             Log.e(TAG, "음성 인식 중지 실패", e)
+        }
+    }
+
+    /**
+     * 리소스 정리
+     */
+    private fun cleanupRecognizer() {
+        try {
+            speechRecognizer?.destroy()
+            speechRecognizer = null
+        } catch (e: Exception) {
+            Log.e(TAG, "리소스 정리 실패", e)
         }
     }
 
@@ -197,11 +243,11 @@ class WakeWordDetector(private val context: Context) {
                 SpeechRecognizer.ERROR_AUDIO -> "오디오 장치에 문제가 있습니다"
                 SpeechRecognizer.ERROR_CLIENT -> "음성 인식 서비스를 사용할 수 없습니다"
                 SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "마이크 권한이 필요합니다"
-                SpeechRecognizer.ERROR_NETWORK -> "네트워크에 연결할 수 없습니다"
-                SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> "네트워크 연결이 느립니다"
+                SpeechRecognizer.ERROR_NETWORK -> "네트워크에 연결할 수 없습니다.\n다시 시도해주세요."
+                SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> "네트워크 연결이 느립니다.\n다시 시도해주세요."
                 SpeechRecognizer.ERROR_NO_MATCH -> "다시 말씀해 주세요"
                 SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> "잠시 후 다시 시도해 주세요"
-                SpeechRecognizer.ERROR_SERVER -> "서버 연결에 실패했습니다"
+                SpeechRecognizer.ERROR_SERVER -> "서버 연결에 실패했습니다.\n다시 시도해주세요."
                 SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "음성이 감지되지 않았습니다"
                 else -> "음성 인식에 실패했습니다"
             }
@@ -210,17 +256,26 @@ class WakeWordDetector(private val context: Context) {
             _isListening.value = false
             _errorMessage.value = errorMessage
 
+            // 네트워크 에러시 재시도 힌트
+            if (error == SpeechRecognizer.ERROR_NETWORK || error == SpeechRecognizer.ERROR_NETWORK_TIMEOUT) {
+                // 사용자가 재시도할 수 있도록 상태 유지
+            }
+
             // 정리
-            speechRecognizer?.destroy()
-            speechRecognizer = null
+            cleanupRecognizer()
         }
 
         override fun onResults(results: Bundle?) {
             results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.let { matches ->
                 if (matches.isNotEmpty()) {
                     val recognizedText = matches[0]
-                    _recognizedText.value = recognizedText
-                    Log.i(TAG, "인식 완료: '$recognizedText'")
+                    if (recognizedText.isNotBlank()) {
+                        _recognizedText.value = recognizedText
+                        Log.i(TAG, "인식 완료: '$recognizedText'")
+                    } else {
+                        Log.w(TAG, "인식 결과가 비어있음")
+                        _errorMessage.value = "음성을 인식하지 못했습니다"
+                    }
                 } else {
                     Log.w(TAG, "인식 결과 없음")
                     _errorMessage.value = "음성을 인식하지 못했습니다"
@@ -229,8 +284,7 @@ class WakeWordDetector(private val context: Context) {
 
             // 인식 완료 후 종료
             _isListening.value = false
-            speechRecognizer?.destroy()
-            speechRecognizer = null
+            cleanupRecognizer()
         }
 
         override fun onPartialResults(partialResults: Bundle?) {
@@ -238,7 +292,9 @@ class WakeWordDetector(private val context: Context) {
             partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.let { matches ->
                 if (matches.isNotEmpty()) {
                     val partialText = matches[0]
-                    _recognizedText.value = "인식 중: $partialText"
+                    if (partialText.isNotBlank()) {
+                        _recognizedText.value = "인식 중: $partialText"
+                    }
                 }
             }
         }
@@ -258,8 +314,10 @@ class WakeWordDetector(private val context: Context) {
     }
 
     fun setRecognizedText(text: String) {
-        _recognizedText.value = text
-        Log.d(TAG, "인식 결과: $text")
+        if (text.isNotBlank()) {
+            _recognizedText.value = text
+            Log.d(TAG, "인식 결과: $text")
+        }
     }
 
     fun setError(error: String) {
@@ -270,5 +328,13 @@ class WakeWordDetector(private val context: Context) {
     fun clearMessages() {
         _recognizedText.value = ""
         _errorMessage.value = ""
+    }
+
+    /**
+     * 리소스 정리 - Activity onDestroy에서 호출
+     */
+    fun cleanup() {
+        stopListening()
+        scope.coroutineContext[kotlinx.coroutines.Job]?.cancel()
     }
 }
