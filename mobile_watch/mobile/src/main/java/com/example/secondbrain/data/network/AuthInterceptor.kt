@@ -14,6 +14,7 @@ class AuthInterceptor(
 
         // 토큰이 필요 없는 엔드포인트는 그대로 진행
         if (originalRequest.url.encodedPath.contains("/auth/")) {
+            android.util.Log.d("AuthInterceptor", "인증 불필요 경로: ${originalRequest.url.encodedPath}")
             return chain.proceed(originalRequest)
         }
 
@@ -22,10 +23,12 @@ class AuthInterceptor(
 
         // 토큰이 없으면 그대로 진행
         if (token.isNullOrEmpty()) {
+            android.util.Log.e("AuthInterceptor", "⚠️ 토큰 없음! 경로: ${originalRequest.url.encodedPath}")
             return chain.proceed(originalRequest)
         }
 
         // Authorization 헤더에 Bearer 토큰 추가
+        android.util.Log.d("AuthInterceptor", "✅ 토큰 추가됨: ${token.take(20)}... (경로: ${originalRequest.url.encodedPath})")
         val authenticatedRequest = originalRequest.newBuilder()
             .header("Authorization", "Bearer $token")
             .build()

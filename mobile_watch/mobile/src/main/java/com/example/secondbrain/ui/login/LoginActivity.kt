@@ -59,8 +59,10 @@ class LoginActivity : AppCompatActivity() {
         tvError = findViewById(R.id.tvError)
 
         // Google Sign-In 옵션 설정
+        // ⚠️ CRITICAL: requestIdToken()에는 Web Application Client ID를 사용해야 함!
+        // Android Client ID를 사용하면 Error 10 발생
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestIdToken("") // TODO: 혜성으로부터 Android OAuth Client ID 받아서 입력 필요
+            .requestIdToken("848577674557-9j4fe7rfata7unetfe176dadhegdtqdl.apps.googleusercontent.com") // Web OAuth Client ID (백엔드 GOOGLE_CLIENT_ID와 동일)
             .requestEmail()
             .build()
 
@@ -84,47 +86,65 @@ class LoginActivity : AppCompatActivity() {
 
     // Google Sign-In 결과 처리
     private fun handleSignInResult(completedTask: Task<GoogleSignInAccount>) {
+        android.util.Log.d("LoginActivity", "=== Google Sign-In 결과 처리 ===")
         try {
             val account = completedTask.getResult(ApiException::class.java)
+            android.util.Log.d("LoginActivity", "Google 계정: ${account?.email}")
             val idToken = account?.idToken
 
             if (idToken != null) {
+                android.util.Log.d("LoginActivity", "ID Token 획득 성공")
                 // Google ID Token을 백엔드로 전송
                 authenticateWithBackend(idToken)
             } else {
+                android.util.Log.e("LoginActivity", "ID Token이 null입니다!")
                 showError("ID Token을 가져올 수 없습니다")
             }
         } catch (e: ApiException) {
-            showError("로그인 실패: ${e.message}")
+            android.util.Log.e("LoginActivity", "Google Sign-In 실패!", e)
+            android.util.Log.e("LoginActivity", "에러 코드: ${e.statusCode}")
+            showError("로그인 실패: ${e.statusCode}")
         }
     }
 
     // 백엔드로 Google ID Token 전송 및 JWT 토큰 획득
     private fun authenticateWithBackend(idToken: String) {
         showLoading(true)
+        android.util.Log.d("LoginActivity", "=== 백엔드 인증 시작 ===")
+        android.util.Log.d("LoginActivity", "ID Token 길이: ${idToken.length}")
 
         lifecycleScope.launch {
             try {
                 // API Service 생성
                 val apiService = RetrofitClient.createApiService { tokenManager.getAccessToken() }
+                android.util.Log.d("LoginActivity", "API Service 생성 완료")
 
                 // Google ID Token을 백엔드로 전송
                 val request = GoogleAuthRequest(idToken)
+                android.util.Log.d("LoginActivity", "백엔드로 요청 전송 시작...")
                 val response = apiService.authenticateWithGoogle(request)
+                android.util.Log.d("LoginActivity", "백엔드 응답: code=${response.code}, message=${response.message}")
 
                 if (response.code == 200 && response.data != null) {
                     // JWT 토큰 저장
+                    android.util.Log.d("LoginActivity", "JWT 토큰 저장 중...")
                     tokenManager.saveAccessToken(
                         token = response.data.accessToken,
                         tokenType = response.data.tokenType
                     )
+                    android.util.Log.d("LoginActivity", "로그인 성공! MainActivity로 이동")
 
                     // MainActivity로 이동
                     navigateToMain()
                 } else {
+                    android.util.Log.e("LoginActivity", "인증 실패: ${response.message}")
                     showError("인증 실패: ${response.message}")
                 }
             } catch (e: Exception) {
+                android.util.Log.e("LoginActivity", "예외 발생!", e)
+                android.util.Log.e("LoginActivity", "예외 타입: ${e.javaClass.simpleName}")
+                android.util.Log.e("LoginActivity", "예외 메시지: ${e.message}")
+                e.printStackTrace()
                 showError("네트워크 오류: ${e.message}")
             } finally {
                 showLoading(false)

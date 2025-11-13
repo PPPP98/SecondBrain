@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 // DataStore 확장 프로퍼티
@@ -37,11 +38,9 @@ class TokenManager(private val context: Context) {
 
     // Access Token 가져오기 (suspend 함수)
     suspend fun getAccessToken(): String? {
-        var token: String? = null
-        context.dataStore.data.map { preferences ->
+        return context.dataStore.data.map { preferences ->
             preferences[ACCESS_TOKEN_KEY]
-        }.collect { token = it }
-        return token
+        }.first()
     }
 
     // 로그인 상태 확인

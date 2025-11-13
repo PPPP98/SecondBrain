@@ -17,16 +17,29 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // 기본값: 프로덕션 URL (Release 빌드에서 사용)
+        buildConfigField("String", "BASE_URL", "\"https://api.brainsecond.site/\"")
     }
 
     buildTypes {
+        debug {
+            // 개발: localhost 직접 연결 (Traefik 우회)
+            buildConfigField("String", "BASE_URL", "\"http://10.0.2.2:8080/\"")
+        }
         release {
+            // 프로덕션: Traefik 통과 (Traefik 설정 수정 필요)
+            buildConfigField("String", "BASE_URL", "\"https://api.brainsecond.site/\"")
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
         }
+    }
+
+    buildFeatures {
+        buildConfig = true
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
