@@ -40,6 +40,11 @@ import androidx.wear.compose.material.TimeText
 import com.example.secondbrain.presentation.theme.SecondBrainTheme
 import com.example.secondbrain.voicerecognition.VoiceRecognitionManager
 import com.example.secondbrain.utils.LogUtils
+import com.example.secondbrain.communication.WearableMessageSender
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
@@ -48,6 +53,8 @@ class MainActivity : ComponentActivity() {
     }
 
     private lateinit var voiceRecognitionManager: VoiceRecognitionManager
+    private lateinit var messageSender: WearableMessageSender
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     // 권한 거부 횟수 추적 (SharedPreferences로 저장)
     private val prefs by lazy {
@@ -63,8 +70,8 @@ class MainActivity : ComponentActivity() {
         get() = prefs.getBoolean("show_onboarding", true)
         set(value) = prefs.edit().putBoolean("show_onboarding", value).apply()
 
-    // 음성 인식 시작 플래그 (중복 실행 방지)
-    private var hasStartedRecognition = false
+    // 앱이 처음 실행되었는지 추적 (onCreate 시점)
+    private var isFirstLaunch = true
 
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -101,12 +108,22 @@ class MainActivity : ComponentActivity() {
                     LogUtils.i(TAG, "인식 완료: '$recognizedText'")
                     voiceRecognitionManager.setRecognizedText(recognizedText)
 
-                    // TODO: 여기서 텍스트를 서버로 전송하거나 처리
-                    // 처리 완료 후 앱 최소화 (메인 화면으로 이동)
-                    android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                        LogUtils.d(TAG, "앱 최소화")
-                        moveTaskToBack(true)
-                    }, 1500)
+                    // 모바일 앱으로 텍스트 전송
+                    scope.launch {
+                        val success = messageSender.sendVoiceText(recognizedText)
+                        if (success) {
+                            LogUtils.i(TAG, "모바일로 전송 성공")
+                        } else {
+                            LogUtils.w(TAG, "모바일로 전송 실패")
+                            voiceRecognitionManager.setError ("모바일 연결 없음")
+                        }
+
+                        // 전송 완료 후 앱 최소화 (메인 화면으로 이동)
+                        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                            LogUtils.d(TAG, "앱 최소화")
+                            moveTaskToBack(true)
+                        }, 1500)
+                    }
                 } else {
                     LogUtils.w(TAG, "빈 텍스트")
                     voiceRecognitionManager.setError("인식 실패")
@@ -128,7 +145,15 @@ class MainActivity : ComponentActivity() {
 
         setTheme(android.R.style.Theme_DeviceDefault)
 
+        LogUtils.d(TAG, "onCreate - 앱 초기화")
+
         voiceRecognitionManager = VoiceRecognitionManager(this)
+        messageSender = WearableMessageSender(this)
+
+        // 연결된 모바일 기기 확인 (디버깅용)
+        scope.launch {
+            messageSender.logConnectedNodes()
+        }
 
         setContent {
             WearApp(
@@ -137,6 +162,7 @@ class MainActivity : ComponentActivity() {
                 onDismissOnboarding = {
                     showOnboarding = false
                     // 온보딩 종료 후 자동으로 음성 인식 시작
+                    isFirstLaunch = false
                     checkAndRequestPermission()
                 },
                 onStartListening = { checkAndRequestPermission() }
@@ -146,14 +172,16 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        // 앱이 포그라운드로 올 때마다 자동으로 음성 인식 시작
-        // 단, 온보딩 화면이 아닐 때만, 그리고 아직 시작하지 않았을 때만
-        if (!showOnboarding && !hasStartedRecognition && !voiceRecognitionManager.isCurrentlyListening()) {
-            LogUtils.d(TAG, "앱 실행 - 자동 시작")
-            hasStartedRecognition = true
+        LogUtils.d(TAG, "onResume - isFirstLaunch: $isFirstLaunch")
+
+        // 앱이 처음 실행될 때만 자동으로 음성 인식 시작
+        // 뒤로가기 등으로 다시 돌아왔을 때는 자동 실행하지 않음
+        if (isFirstLaunch && !showOnboarding && !voiceRecognitionManager.isCurrentlyListening()) {
+            LogUtils.d(TAG, "첫 실행 - 자동 음성 인식 시작")
+            isFirstLaunch = false
             checkAndRequestPermission()
         } else {
-            LogUtils.d(TAG, "음성 인식 스킵")
+            LogUtils.d(TAG, "음성 인식 자동 시작 스킵 (firstLaunch: $isFirstLaunch, onboarding: $showOnboarding)")
         }
     }
 
@@ -202,12 +230,20 @@ class MainActivity : ComponentActivity() {
                 putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE, "ko-KR")
                 putExtra(android.speech.RecognizerIntent.EXTRA_PROMPT, "말씀하세요")
                 putExtra(android.speech.RecognizerIntent.EXTRA_MAX_RESULTS, 5)
+
+                // 음성 인식 자동 완료 설정
+                // 침묵 시간을 짧게 설정하여 빠르게 자동 완료
+                putExtra(android.speech.RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 1500L)
+                putExtra(android.speech.RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 1500L)
+
+                // 오프라인 인식 선호하지 않음 (더 정확한 인식)
+                putExtra(android.speech.RecognizerIntent.EXTRA_PREFER_OFFLINE, false)
             }
 
             voiceRecognitionManager.setListening(true)
             voiceRecognitionManager.clearMessages()
 
-            LogUtils.d(TAG, "음성 인식 시작")
+            LogUtils.d(TAG, "음성 인식 시작 (자동 완료 활성화)")
             speechRecognitionLauncher.launch(intent)
         } catch (e: SecurityException) {
             LogUtils.e(TAG, "권한 부족", e)
@@ -226,13 +262,11 @@ class MainActivity : ComponentActivity() {
 
     override fun onPause() {
         super.onPause()
-        LogUtils.d(TAG, "Pause - 정리")
+        LogUtils.d(TAG, "onPause - 정리")
         // 백그라운드로 갈 때 음성 인식 리소스 해제
         if (voiceRecognitionManager.isCurrentlyListening()) {
             voiceRecognitionManager.stopListening()
         }
-        // 플래그 리셋
-        hasStartedRecognition = false
     }
 
     override fun onDestroy() {
@@ -249,9 +283,9 @@ fun WearApp(
     onDismissOnboarding: () -> Unit,
     onStartListening: () -> Unit
 ) {
-    val recognizedText by voiceRecognitionManager.recognizedText.collectAsState()
-    val isListening by voiceRecognitionManager.isListening.collectAsState()
-    val errorMessage by voiceRecognitionManager.errorMessage.collectAsState()
+    val recognizedText by voiceRecognitionManager.recognizedText.collectAsState(initial = "")
+    val isListening by voiceRecognitionManager.isListening.collectAsState(initial = false)
+    val errorMessage by voiceRecognitionManager.errorMessage.collectAsState(initial = "")
     var showHelp by remember { mutableStateOf(showOnboarding) }
 
     SecondBrainTheme {
@@ -274,7 +308,7 @@ fun WearApp(
             } else {
                 // 메인 화면
                 Column(
-                    modifier = Modifier.padding(16.dp),
+                    modifier = Modifier.padding(12.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
@@ -293,20 +327,20 @@ fun WearApp(
                             color = MaterialTheme.colors.onBackground,
                             textAlign = TextAlign.Center
                         )
+                        Spacer(modifier = Modifier.height(8.dp))
                     }
 
                     if (errorMessage.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = errorMessage,
                             style = MaterialTheme.typography.caption1,
                             color = MaterialTheme.colors.error,
                             textAlign = TextAlign.Center
                         )
+                        Spacer(modifier = Modifier.height(8.dp))
                     }
 
-                    Spacer(modifier = Modifier.height(16.dp))
-
+                    // 말하기 버튼
                     Button(
                         onClick = {
                             if (isListening) {
@@ -322,19 +356,9 @@ fun WearApp(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    Text(
-                        text = if (isListening) "🎤 음성 인식 중" else "앱 실행 시 자동 시작\n또는 '말하기' 버튼",
-                        style = MaterialTheme.typography.caption1,
-                        color = MaterialTheme.colors.onBackground,
-                        textAlign = TextAlign.Center
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    // 도움말 버튼
+                    // 도움말 버튼 (컴팩트)
                     Button(
-                        onClick = { showHelp = true },
-                        modifier = Modifier.padding(top = 8.dp)
+                        onClick = { showHelp = true }
                     ) {
                         Text("?")
                     }
