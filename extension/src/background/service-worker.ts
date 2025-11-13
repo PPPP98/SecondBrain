@@ -1,8 +1,10 @@
 import browser from 'webextension-polyfill';
 import { exchangeGoogleToken, logout as logoutService } from '@/services/authService';
 import { getCurrentUser } from '@/services/userService';
+import { saveCurrentPageWithStoredToken } from '@/services/noteService';
 import { env } from '@/config/env';
 import type { UserInfo } from '@/types/auth';
+import type { SavePageResponse, SavePageError } from '@/types/note';
 
 /**
  * Background Service Worker
@@ -17,7 +19,8 @@ type ExtensionMessage =
   | { type: 'LOGIN' }
   | { type: 'LOGOUT' }
   | { type: 'OPEN_TAB'; url: string }
-  | { type: 'AUTH_CHANGED' };
+  | { type: 'AUTH_CHANGED' }
+  | { type: 'SAVE_CURRENT_PAGE' };
 
 interface AuthResponse {
   authenticated: boolean;
@@ -191,7 +194,9 @@ browser.runtime.onMessage.addListener(
   (
     message: unknown,
     _sender: browser.Runtime.MessageSender,
-    sendResponse: (response: AuthResponse | { success: boolean }) => void,
+    sendResponse: (
+      response: AuthResponse | { success: boolean } | SavePageResponse | SavePageError,
+    ) => void,
   ) => {
     void (async () => {
       try {
@@ -235,6 +240,54 @@ browser.runtime.onMessage.addListener(
             // 새 탭에서 URL 열기
             await browser.tabs.create({ url: msg.url });
             sendResponse({ success: true });
+            break;
+          }
+
+          case 'SAVE_CURRENT_PAGE': {
+            try {
+              // 1. 현재 활성 탭 조회
+              const tabs = await browser.tabs.query({ active: true, currentWindow: true });
+              const currentTab = tabs[0];
+
+              if (!currentTab || !currentTab.url) {
+                const error: SavePageError = {
+                  error: 'NO_TAB',
+                  message: 'Could not find current tab URL',
+                };
+                sendResponse(error);
+                break;
+              }
+
+              // 시스템 페이지 검증
+              if (!currentTab.url.startsWith('http://') && !currentTab.url.startsWith('https://')) {
+                const error: SavePageError = {
+                  error: 'INVALID_URL',
+                  message: 'Cannot save system pages (chrome://, about://, etc.)',
+                };
+                sendResponse(error);
+                break;
+              }
+
+              // 2. Note Service 호출 (토큰 자동 획득)
+              const response = await saveCurrentPageWithStoredToken(currentTab.url);
+
+              // 3. 성공 응답
+              sendResponse(response);
+            } catch (error) {
+              // 4. 에러 응답
+              console.error('SAVE_CURRENT_PAGE failed:', error);
+
+              // SavePageError 타입 검증
+              if (error && typeof error === 'object' && 'error' in error) {
+                sendResponse(error as SavePageError);
+              } else {
+                const unknownError: SavePageError = {
+                  error: 'UNKNOWN_ERROR',
+                  message: error instanceof Error ? error.message : 'Unknown error',
+                };
+                sendResponse(unknownError);
+              }
+            }
             break;
           }
 
