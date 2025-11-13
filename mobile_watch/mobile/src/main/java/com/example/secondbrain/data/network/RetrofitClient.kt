@@ -58,4 +58,15 @@ object RetrofitClient {
             .build()
             .create(ApiService::class.java)
     }
+
+    // FastAPI 서비스 생성 함수
+    fun createFastApiService(tokenProvider: suspend () -> String?): FastApiService {
+        // FastAPI는 같은 도메인의 /ai 경로를 사용
+        return Retrofit.Builder()
+            .baseUrl(BASE_URL)
+            .client(createOkHttpClient(tokenProvider))
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(FastApiService::class.java)
+    }
 }
