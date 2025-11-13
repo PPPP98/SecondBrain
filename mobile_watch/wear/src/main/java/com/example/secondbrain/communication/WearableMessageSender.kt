@@ -5,6 +5,7 @@ import com.example.secondbrain.utils.LogUtils
 import com.google.android.gms.wearable.MessageClient
 import com.google.android.gms.wearable.Wearable
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.delay
 
 /**
  * Wear OS에서 모바일 앱으로 메시지를 전송하는 클래스
@@ -23,6 +24,10 @@ class WearableMessageSender(private val context: Context) {
 
         // Wearable Data Layer 메시지 크기 제한 (공식 문서 권장: 100KB)
         private const val MAX_MESSAGE_SIZE = 100 * 1024 // 100KB in bytes
+
+        // 재시도 설정
+        private const val MAX_RETRY_COUNT = 2 // 최대 재시도 횟수
+        private const val RETRY_DELAY_MS = 300L // 재시도 간 대기 시간
     }
 
     private val messageClient: MessageClient = Wearable.getMessageClient(context)
@@ -63,17 +68,30 @@ class WearableMessageSender(private val context: Context) {
             // 모든 연결된 노드에 메시지 전송 및 성공 카운트 추적
             var successCount = 0
             for (node in nodes) {
-                try {
-                    messageClient.sendMessage(
-                        node.id,
-                        PATH_VOICE_TEXT,
-                        data
-                    ).await()
+                var retryCount = 0
+                var sent = false
 
-                    LogUtils.i(TAG, "전송 성공: ${node.displayName} (${node.id})")
-                    successCount++
-                } catch (e: Exception) {
-                    LogUtils.e(TAG, "노드 전송 실패: ${node.displayName}", e)
+                // 재시도 로직
+                while (retryCount <= MAX_RETRY_COUNT && !sent) {
+                    try {
+                        messageClient.sendMessage(
+                            node.id,
+                            PATH_VOICE_TEXT,
+                            data
+                        ).await()
+
+                        LogUtils.i(TAG, "전송 성공: ${node.displayName} (${node.id})${if (retryCount > 0) " - ${retryCount}회 재시도 후" else ""}")
+                        successCount++
+                        sent = true
+                    } catch (e: Exception) {
+                        retryCount++
+                        if (retryCount <= MAX_RETRY_COUNT) {
+                            LogUtils.w(TAG, "전송 실패 (${retryCount}/${MAX_RETRY_COUNT}): ${node.displayName} - ${RETRY_DELAY_MS}ms 후 재시도")
+                            delay(RETRY_DELAY_MS)
+                        } else {
+                            LogUtils.e(TAG, "노드 전송 실패 (최종): ${node.displayName}", e)
+                        }
+                    }
                 }
             }
 
