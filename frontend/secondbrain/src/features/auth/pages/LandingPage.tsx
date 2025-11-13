@@ -18,6 +18,7 @@ export function LandingPage() {
             muted
             playsInline
             className="absolute right-0 h-full w-auto min-w-full object-cover"
+            preload="metadata"
             style={{ transform: 'scale(1.3) translateX(10%)' }}
           >
             <source src="/landing.mp4" type="video/mp4" />
@@ -34,8 +35,6 @@ export function LandingPage() {
               <GoogleLoginButton text="signin" />
             </div>
           </div>
-
-          {/* 로그인 버튼 */}
         </div>
 
         {/* 하단 장식 */}
