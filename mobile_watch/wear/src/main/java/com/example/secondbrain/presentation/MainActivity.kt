@@ -45,6 +45,8 @@ import com.example.secondbrain.communication.WearableMessageSender
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 class MainActivity : ComponentActivity() {
 
@@ -110,9 +112,18 @@ class MainActivity : ComponentActivity() {
                     voiceRecognitionManager.setRecognizedText(recognizedText)
 
                     // 모바일 앱으로 텍스트 전송
-                    lifecycleScope.launch {
-                        val successCount = messageSender.sendVoiceText(recognizedText)
+                    lifecycleScope.launch(Dispatchers.Main) {
+                        // 전송 상태 표시 (UI 업데이트는 Main에서)
+                        voiceRecognitionManager.setListening(false)
+                        voiceRecognitionManager.clearMessages()
+                        voiceRecognitionManager.setRecognizedText(recognizedText)
 
+                        // 네트워크 작업은 IO 스레드에서
+                        val successCount = withContext(Dispatchers.IO) {
+                            messageSender.sendVoiceText(recognizedText)
+                        }
+
+                        // UI 업데이트는 다시 Main에서
                         val delayMillis = if (successCount > 0) {
                             LogUtils.i(TAG, "모바일로 전송 성공 (${successCount}개 노드)")
                             SUCCESS_DELAY_MS
