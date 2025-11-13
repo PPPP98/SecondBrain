@@ -45,6 +45,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -52,7 +53,8 @@ class MainActivity : ComponentActivity() {
 
     companion object {
         private const val TAG = "MainActivity"
-        private const val APP_MINIMIZE_DELAY_MILLIS = 1500L
+        private const val APP_MINIMIZE_DELAY_SUCCESS_MILLIS = 1500L  // 전송 성공 시
+        private const val APP_MINIMIZE_DELAY_FAILURE_MILLIS = 500L   // 전송 실패 시 빠르게 최소화
     }
 
     private lateinit var messageSender: WearableMessageSender
@@ -113,16 +115,19 @@ class MainActivity : ComponentActivity() {
 
                     // 모바일 앱으로 텍스트 전송
                     scope.launch {
-                        val success = messageSender.sendVoiceText(recognizedText)
-                        if (success) {
-                            LogUtils.i(TAG, "모바일로 전송 성공")
+                        val successCount = messageSender.sendVoiceText(recognizedText)
+
+                        val delayMillis = if (successCount > 0) {
+                            LogUtils.i(TAG, "모바일로 전송 성공 (${successCount}개 노드)")
+                            APP_MINIMIZE_DELAY_SUCCESS_MILLIS
                         } else {
-                            LogUtils.w(TAG, "모바일로 전송 실패")
+                            LogUtils.w(TAG, "모바일로 전송 실패 (모든 노드)")
                             voiceRecognitionManager.setError("모바일 연결 없음")
+                            APP_MINIMIZE_DELAY_FAILURE_MILLIS  // 실패 시 빠르게 최소화
                         }
 
-                        // 전송 완료 후 앱 최소화
-                        delay(APP_MINIMIZE_DELAY_MILLIS)
+                        // 전송 결과에 따른 딜레이 후 앱 최소화
+                        delay(delayMillis)
                         LogUtils.d(TAG, "앱 최소화")
                         moveTaskToBack(true)
                     }
@@ -266,6 +271,10 @@ class MainActivity : ComponentActivity() {
         if (voiceRecognitionManager.isCurrentlyListening()) {
             voiceRecognitionManager.stopListening()
         }
+        // 진행 중인 네트워크 작업 취소 (불필요한 리소스 사용 방지)
+        // SupervisorJob을 사용했으므로 개별 작업은 독립적으로 취소됨
+        scope.coroutineContext.cancelChildren()
+        LogUtils.d(TAG, "진행 중인 코루틴 작업 취소됨")
     }
 
     override fun onDestroy() {

@@ -28,9 +28,9 @@ class WearableMessageSender(private val context: Context) {
      * 음성 인식 결과를 모바일 앱으로 전송
      *
      * @param recognizedText 음성 인식된 텍스트
-     * @return 전송 성공 여부
+     * @return 전송 성공한 노드 수 (0이면 모두 실패)
      */
-    suspend fun sendVoiceText(recognizedText: String): Boolean {
+    suspend fun sendVoiceText(recognizedText: String): Int {
         return try {
             LogUtils.d(TAG, "음성 텍스트 전송 시작: '$recognizedText'")
 
@@ -41,14 +41,14 @@ class WearableMessageSender(private val context: Context) {
 
             if (nodes.isEmpty()) {
                 LogUtils.w(TAG, "연결된 모바일 기기 없음")
-                return false
+                return 0
             }
 
             // 텍스트를 바이트 배열로 변환
             val data = recognizedText.toByteArray(Charsets.UTF_8)
 
-            // 모든 연결된 노드에 메시지 전송
-            var sentSuccessfully = false
+            // 모든 연결된 노드에 메시지 전송 및 성공 카운트 추적
+            var successCount = 0
             for (node in nodes) {
                 try {
                     messageClient.sendMessage(
@@ -58,16 +58,17 @@ class WearableMessageSender(private val context: Context) {
                     ).await()
 
                     LogUtils.i(TAG, "전송 성공: ${node.displayName} (${node.id})")
-                    sentSuccessfully = true
+                    successCount++
                 } catch (e: Exception) {
                     LogUtils.e(TAG, "노드 전송 실패: ${node.displayName}", e)
                 }
             }
 
-            sentSuccessfully
+            LogUtils.i(TAG, "전송 결과: ${successCount}/${nodes.size}")
+            successCount
         } catch (e: Exception) {
             LogUtils.e(TAG, "메시지 전송 실패", e)
-            false
+            0
         }
     }
 
