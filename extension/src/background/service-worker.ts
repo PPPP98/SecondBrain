@@ -30,14 +30,12 @@ async function checkAuth(): Promise<AuthResponse> {
     const result = await browser.storage.local.get(['authenticated', 'user']);
 
     if (result.authenticated) {
-      console.log('✅ User is authenticated');
       return {
         authenticated: true,
         user: result.user as UserInfo | undefined,
       };
     }
 
-    console.log('❌ Not authenticated');
     return { authenticated: false };
   } catch (error) {
     console.error('checkAuth failed:', error);
@@ -72,11 +70,8 @@ async function handleLogin(): Promise<void> {
   };
 
   try {
-    console.log('🔐 Starting OAuth flow with Google...');
-
     // 1. Extension Redirect URI 가져오기
     const redirectUri = chrome.identity.getRedirectURL();
-    console.log('🆔 Extension Redirect URI:', redirectUri);
 
     // 2. Google OAuth URL 직접 생성 (백엔드 거치지 않음!)
     const googleAuthUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
@@ -86,8 +81,6 @@ async function handleLogin(): Promise<void> {
     googleAuthUrl.searchParams.set('scope', 'openid email profile');
     googleAuthUrl.searchParams.set('access_type', 'offline');
     googleAuthUrl.searchParams.set('prompt', 'consent');
-
-    console.log('🔗 Google OAuth URL:', googleAuthUrl.toString());
 
     // 3. Chrome Identity API로 OAuth 팝업 실행
     const redirectUrl = await chrome.identity.launchWebAuthFlow({
@@ -101,8 +94,6 @@ async function handleLogin(): Promise<void> {
       throw new Error('OAuth authentication was cancelled or failed to complete');
     }
 
-    console.log('✅ OAuth redirect received:', redirectUrl);
-
     // 4. Authorization Code 추출
     const callbackUrl = new URL(redirectUrl);
     const code = callbackUrl.searchParams.get('code');
@@ -115,18 +106,13 @@ async function handleLogin(): Promise<void> {
       );
     }
 
-    console.log('📋 Authorization code received');
-
     // 5. Google Authorization Code를 Backend JWT로 교환
-    console.log('🔄 Exchanging Google code for JWT token...');
     const tokenData = await exchangeGoogleToken(code, redirectUri);
 
     if (!tokenData.success || !tokenData.data) {
       console.error('❌ Token exchange failed:', tokenData);
       throw new Error('Token exchange returned invalid data');
     }
-
-    console.log('✅ Token exchange successful');
 
     const { accessToken } = tokenData.data;
 
@@ -135,11 +121,8 @@ async function handleLogin(): Promise<void> {
       access_token: accessToken,
     });
 
-    console.log('💾 Access token saved to storage');
-
     // 7. 사용자 정보 조회
     try {
-      console.log('👤 Fetching user info...');
       const userInfo = await getCurrentUser();
 
       // 8. 최종 인증 상태 저장
@@ -147,8 +130,6 @@ async function handleLogin(): Promise<void> {
         authenticated: true,
         user: userInfo,
       });
-
-      console.log('✅ Login successful! User:', userInfo.name);
 
       // 9. 모든 탭에 인증 변경 알림
       await notifyAuthChanged();
@@ -174,7 +155,6 @@ browser.action.onClicked.addListener((tab) => {
 
   // 시스템 페이지에서는 작동하지 않음
   if (!tabUrl.startsWith('http://') && !tabUrl.startsWith('https://')) {
-    console.log('Extension cannot run on this page:', tabUrl);
     return;
   }
 
@@ -185,7 +165,6 @@ browser.action.onClicked.addListener((tab) => {
         await browser.tabs.sendMessage(tabId, { type: 'PING' });
       } catch {
         // Content script가 없으면 동적으로 주입
-        console.log('Content script not found. Injecting...');
         try {
           await browser.scripting.executeScript({
             target: { tabId },
@@ -195,17 +174,14 @@ browser.action.onClicked.addListener((tab) => {
           await new Promise((resolve) => setTimeout(resolve, 1000));
         } catch (injectError) {
           console.error('Failed to inject content script:', injectError);
-          console.log('Please refresh the page and try again.');
           return;
         }
       }
 
       // 2단계: Content Script에 overlay toggle 메시지 전송
       await browser.tabs.sendMessage(tabId, { type: 'TOGGLE_OVERLAY' });
-      console.log('Toggle overlay message sent');
     } catch (error) {
       console.error('Failed to send message to content script:', error);
-      console.log('Tip: Please refresh the page and try again.');
     }
   })();
 });
@@ -239,7 +215,6 @@ browser.runtime.onMessage.addListener(
             try {
               // 백엔드 로그아웃 API 호출 (Refresh Token 무효화)
               await logoutService();
-              console.log('✅ Backend logout successful');
             } catch (error) {
               console.error('Backend logout failed:', error);
               // 백엔드 로그아웃 실패해도 클라이언트 측 로그아웃은 진행
@@ -252,7 +227,6 @@ browser.runtime.onMessage.addListener(
               'user',
               'authenticated',
             ]);
-            console.log('✅ Local storage cleared - logout complete');
             sendResponse({ success: true });
             break;
           }
@@ -277,5 +251,3 @@ browser.runtime.onMessage.addListener(
     return true;
   },
 );
-
-console.log('SecondBrain Extension Background Service Worker loaded');

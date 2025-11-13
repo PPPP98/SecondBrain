@@ -9,12 +9,10 @@ import { Button } from '@/content-scripts/overlay/components/ui/button';
  */
 export function ActionButtons() {
   function handleAddPage(): void {
-    console.log('Add page:', window.location.href);
     // TODO: 페이지 추가 로직 구현
   }
 
   function handleSave(): void {
-    console.log('Save page:', window.location.href);
     // TODO: 저장 로직 구현
   }
 

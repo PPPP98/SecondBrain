@@ -22,7 +22,6 @@ export function GoogleLoginButton({ text = 'signin' }: GoogleLoginButtonProps) {
       await browser.runtime.sendMessage({
         type: 'LOGIN',
       });
-      console.log('✅ Login request sent to service worker');
     } catch (error) {
       console.error('❌ Extension login failed:', error);
     }

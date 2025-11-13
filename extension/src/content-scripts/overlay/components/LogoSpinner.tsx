@@ -92,7 +92,7 @@ function SimpleFallback({ size }: { size: number }) {
  * ```tsx
  * <LogoSpinner
  *   size={150}
- *   onLoad={() => console.log('Loaded!')}
+ *   onLoad={() => {}}
  *   onError={(err) => console.error(err)}
  * />
  * ```

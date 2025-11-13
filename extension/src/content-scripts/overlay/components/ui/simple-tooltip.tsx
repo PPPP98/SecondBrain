@@ -19,11 +19,9 @@ export function SimpleTooltip({ children, content, side = 'bottom' }: SimpleTool
     <div
       className="relative inline-flex"
       onMouseEnter={() => {
-        console.log('🔍 [SimpleTooltip] Mouse enter, showing:', content);
         setIsVisible(true);
       }}
       onMouseLeave={() => {
-        console.log('🔍 [SimpleTooltip] Mouse leave');
         setIsVisible(false);
       }}
     >

@@ -48,16 +48,9 @@ export function ThemeProvider({ children, defaultTheme = 'system' }: ThemeProvid
       if (containerRef.current) {
         if (resolved === 'dark') {
           containerRef.current.classList.add('dark');
-          console.log('🎨 [ThemeProvider] Applied dark mode');
         } else {
           containerRef.current.classList.remove('dark');
-          console.log('🎨 [ThemeProvider] Applied light mode');
         }
-
-        // 디버깅: CSS 변수 확인
-        const computedStyle = window.getComputedStyle(containerRef.current);
-        const bgColor = computedStyle.getPropertyValue('--background');
-        console.log('  --background:', bgColor || 'NOT DEFINED');
       }
     };
 

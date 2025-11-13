@@ -68,7 +68,7 @@ function LoadingFallback({ size = 200 }: { size?: number }) {
  * <LogoSpinnerLazy
  *   size={150}
  *   className="mx-auto mt-4"
- *   onLoad={() => console.log('3D spinner loaded')}
+ *   onLoad={() => {}}
  * />
  * ```
  */
@@ -110,7 +110,7 @@ export function LogoSpinnerShadowLazy(props: Omit<LogoSpinnerProps, 'className'>
  * ```tsx
  * // App 진입점에서 호출
  * preloadLogoSpinner().then(() => {
- *   console.log('Logo spinner preloaded');
+ *   // 프리로드 완료
  * });
  * ```
  */
