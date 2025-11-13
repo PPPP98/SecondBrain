@@ -1,6 +1,7 @@
 import { env } from '@/config/env';
 import type { BaseResponse } from '@/types/api';
 import type { TokenResponse } from '@/types/auth';
+import browser from 'webextension-polyfill';
 
 /**
  * Chrome Extension용 Auth Service (fetch 기반)
@@ -12,7 +13,6 @@ import type { TokenResponse } from '@/types/auth';
  * chrome.storage에서 Access Token 가져오기
  */
 async function getAccessToken(): Promise<string | null> {
-  const { default: browser } = await import('webextension-polyfill');
   const result = await browser.storage.local.get(['access_token']);
   return result.access_token as string | null;
 }
