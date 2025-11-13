@@ -290,6 +290,7 @@ fun WearApp(
     val recognizedText by voiceRecognitionManager.recognizedText.collectAsState(initial = "")
     val isListening by voiceRecognitionManager.isListening.collectAsState(initial = false)
     val errorMessage by voiceRecognitionManager.errorMessage.collectAsState(initial = "")
+    val statusMessage by voiceRecognitionManager.statusMessage.collectAsState(initial = "음성 인식")
     var showHelp by remember { mutableStateOf(showOnboarding) }
 
     SecondBrainTheme {
@@ -316,7 +317,7 @@ fun WearApp(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = if (isListening) "듣는 중..." else "음성 인식",
+                        text = statusMessage,
                         style = MaterialTheme.typography.title3,
                         color = if (isListening) MaterialTheme.colors.primary else MaterialTheme.colors.onBackground,
                         textAlign = TextAlign.Center
