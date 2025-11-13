@@ -26,7 +26,6 @@ class VoiceRecognitionManager(private val context: Context) {
 
     companion object {
         private const val TAG = "VoiceRecognitionMgr"
-        private const val RECOGNITION_TIMEOUT_MS = 10000L // 10초
     }
 
     private var speechRecognizer: SpeechRecognizer? = null
@@ -41,56 +40,19 @@ class VoiceRecognitionManager(private val context: Context) {
     private val _errorMessage = MutableStateFlow("")
     val errorMessage: StateFlow<String> = _errorMessage
 
-    // 음성 인식 서비스 가용성을 비동기로 체크
-    private var availableServices: List<String> = emptyList()
-    private var servicesChecked = false
-
     init {
         if (!SpeechRecognizer.isRecognitionAvailable(context)) {
-            Log.e(TAG, "음성 인식을 사용할 수 없습니다")
-            _errorMessage.value = "음성 인식을 사용할 수 없습니다"
+            Log.e(TAG, "음성 인식 사용 불가")
+            _errorMessage.value = "음성 인식 사용 불가"
         } else {
             Log.d(TAG, "음성 인식 사용 가능")
-            // 백그라운드에서 서비스 체크
-            checkAvailableServicesAsync()
         }
     }
 
     /**
-     * 사용 가능한 음성 인식 서비스를 비동기로 체크
-     * ANR 방지를 위해 백그라운드에서 실행
+     * 최적의 음성 인식 서비스를 찾습니다.
+     * 우선순위: Google 서비스 > 기타 서비스
      */
-    private fun checkAvailableServicesAsync() {
-        scope.launch {
-            availableServices = withContext(Dispatchers.IO) {
-                checkAvailableRecognitionServices()
-            }
-            servicesChecked = true
-        }
-    }
-
-    private fun checkAvailableRecognitionServices(): List<String> {
-        return try {
-            val pm = context.packageManager
-            val activities = pm.queryIntentActivities(
-                Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH),
-                0
-            )
-
-            if (activities.isEmpty()) {
-                Log.w(TAG, "음성 인식 서비스가 설치되어 있지 않습니다")
-                _errorMessage.value = "음성 인식 서비스를 찾을 수 없습니다"
-                emptyList()
-            } else {
-                Log.d(TAG, "사용 가능한 음성 인식 서비스: ${activities.size}개")
-                activities.map { it.activityInfo.packageName }
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "음성 인식 서비스 체크 실패", e)
-            emptyList()
-        }
-    }
-
     private fun findBestRecognizer(): android.content.ComponentName? {
         return try {
             val pm = context.packageManager
@@ -99,26 +61,23 @@ class VoiceRecognitionManager(private val context: Context) {
                 0
             )
 
-            // 우선순위: Google 서비스 > 기타 서비스
             val googleService = services.find {
                 it.serviceInfo.packageName.contains("google", ignoreCase = true)
             }
 
-            if (googleService != null) {
-                android.content.ComponentName(
+            when {
+                googleService != null -> android.content.ComponentName(
                     googleService.serviceInfo.packageName,
                     googleService.serviceInfo.name
                 )
-            } else if (services.isNotEmpty()) {
-                android.content.ComponentName(
+                services.isNotEmpty() -> android.content.ComponentName(
                     services[0].serviceInfo.packageName,
                     services[0].serviceInfo.name
                 )
-            } else {
-                null
+                else -> null
             }
         } catch (e: Exception) {
-            Log.e(TAG, "음성 인식 서비스 찾기 실패", e)
+            Log.e(TAG, "서비스 찾기 실패", e)
             null
         }
     }
@@ -170,16 +129,6 @@ class VoiceRecognitionManager(private val context: Context) {
             speechRecognizer?.startListening(intent)
             _isListening.value = true
             Log.d(TAG, "음성 인식 시작")
-
-            // 타임아웃 설정 (자동 취소)
-            scope.launch {
-                kotlinx.coroutines.delay(RECOGNITION_TIMEOUT_MS)
-                if (_isListening.value) {
-                    Log.w(TAG, "음성 인식 타임아웃")
-                    stopListening()
-                    _errorMessage.value = "음성 인식 시간이 초과되었습니다"
-                }
-            }
         } catch (e: Exception) {
             Log.e(TAG, "음성 인식 시작 실패", e)
             _isListening.value = false
@@ -240,28 +189,21 @@ class VoiceRecognitionManager(private val context: Context) {
 
         override fun onError(error: Int) {
             val errorMessage = when (error) {
-                SpeechRecognizer.ERROR_AUDIO -> "오디오 장치에 문제가 있습니다"
-                SpeechRecognizer.ERROR_CLIENT -> "음성 인식 서비스를 사용할 수 없습니다"
-                SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "마이크 권한이 필요합니다"
-                SpeechRecognizer.ERROR_NETWORK -> "네트워크에 연결할 수 없습니다.\n다시 시도해주세요."
-                SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> "네트워크 연결이 느립니다.\n다시 시도해주세요."
-                SpeechRecognizer.ERROR_NO_MATCH -> "다시 말씀해 주세요"
-                SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> "잠시 후 다시 시도해 주세요"
-                SpeechRecognizer.ERROR_SERVER -> "서버 연결에 실패했습니다.\n다시 시도해주세요."
-                SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "음성이 감지되지 않았습니다"
-                else -> "음성 인식에 실패했습니다"
+                SpeechRecognizer.ERROR_AUDIO -> "오디오 에러"
+                SpeechRecognizer.ERROR_CLIENT -> "서비스 에러"
+                SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "권한 필요"
+                SpeechRecognizer.ERROR_NETWORK -> "네트워크 에러"
+                SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> "연결 시간초과"
+                SpeechRecognizer.ERROR_NO_MATCH -> "다시 말해주세요"
+                SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> "잠시 후 재시도"
+                SpeechRecognizer.ERROR_SERVER -> "서버 에러"
+                SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "음성 없음"
+                else -> "인식 실패"
             }
-            Log.w(TAG, "음성 인식 에러 ($error): $errorMessage")
+            Log.w(TAG, "에러($error): $errorMessage")
 
             _isListening.value = false
             _errorMessage.value = errorMessage
-
-            // 네트워크 에러시 재시도 힌트
-            if (error == SpeechRecognizer.ERROR_NETWORK || error == SpeechRecognizer.ERROR_NETWORK_TIMEOUT) {
-                // 사용자가 재시도할 수 있도록 상태 유지
-            }
-
-            // 정리
             cleanupRecognizer()
         }
 
@@ -271,18 +213,17 @@ class VoiceRecognitionManager(private val context: Context) {
                     val recognizedText = matches[0]
                     if (recognizedText.isNotBlank()) {
                         _recognizedText.value = recognizedText
-                        Log.i(TAG, "인식 완료: '$recognizedText'")
+                        Log.i(TAG, "완료: '$recognizedText'")
                     } else {
-                        Log.w(TAG, "인식 결과가 비어있음")
-                        _errorMessage.value = "음성을 인식하지 못했습니다"
+                        Log.w(TAG, "빈 결과")
+                        _errorMessage.value = "인식 실패"
                     }
                 } else {
-                    Log.w(TAG, "인식 결과 없음")
-                    _errorMessage.value = "음성을 인식하지 못했습니다"
+                    Log.w(TAG, "결과 없음")
+                    _errorMessage.value = "인식 실패"
                 }
             }
 
-            // 인식 완료 후 종료
             _isListening.value = false
             cleanupRecognizer()
         }
