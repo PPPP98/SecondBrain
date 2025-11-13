@@ -5,11 +5,16 @@
  * https://developers.google.com/identity/branding-guidelines
  */
 
+import { useState } from 'react';
+
 interface GoogleLoginButtonProps {
   text?: 'signin' | 'signup' | 'continue';
 }
 
 export function GoogleLoginButton({ text = 'signin' }: GoogleLoginButtonProps) {
+  const [isHovered, setIsHovered] = useState(false);
+  const [isPressed, setIsPressed] = useState(false);
+
   const buttonText = {
     signin: 'Sign in with Google',
     signup: 'Sign up with Google',
@@ -27,23 +32,29 @@ export function GoogleLoginButton({ text = 'signin' }: GoogleLoginButtonProps) {
     }
   }
 
-  // Shadow DOM 호환 inline styles
+  // Shadow DOM 호환 inline styles with Neumorphism 3D effects
   const buttonStyle: React.CSSProperties = {
     display: 'flex',
     minWidth: '200px',
     cursor: 'pointer',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: '4px',
-    border: '1px solid #747775',
-    backgroundColor: '#ffffff',
+    borderRadius: '8px',
+    border: 'none',
+    backgroundColor: '#f0f0f3',
     padding: '10px 12px',
     fontSize: '14px',
     fontWeight: '500',
     lineHeight: '20px',
     color: '#1F1F1F',
-    transition: 'all 0.2s',
+    transition: 'box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
     fontFamily: 'Roboto, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+    // Neumorphism 3D Effect - box-shadow only, no transform
+    boxShadow: isPressed
+      ? 'inset 4px 4px 8px rgba(0, 0, 0, 0.15), inset -4px -4px 8px rgba(255, 255, 255, 0.7)'
+      : isHovered
+        ? '8px 8px 16px rgba(0, 0, 0, 0.15), -8px -8px 16px rgba(255, 255, 255, 0.7)'
+        : '6px 6px 12px rgba(0, 0, 0, 0.1), -6px -6px 12px rgba(255, 255, 255, 0.5)',
   };
 
   const svgStyle: React.CSSProperties = {
@@ -59,6 +70,13 @@ export function GoogleLoginButton({ text = 'signin' }: GoogleLoginButtonProps) {
   return (
     <button
       onClick={() => void handleLogin()}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => {
+        setIsHovered(false);
+        setIsPressed(false);
+      }}
+      onMouseDown={() => setIsPressed(true)}
+      onMouseUp={() => setIsPressed(false)}
       type="button"
       aria-label={buttonText[text]}
       style={buttonStyle}
