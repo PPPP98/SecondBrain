@@ -14,6 +14,7 @@ from typing import Any
 import logging
 import asyncio
 import json
+import traceback
 
 logger = logging.getLogger(__name__)
 SEARCH_LIMIT = 10
@@ -276,3 +277,97 @@ class Nodes:
                 **state,
                 "documents": [],
             }
+
+    @staticmethod
+    async def relevance_check_node(state: State) -> State:
+        """
+        연관성 체크 노드: LLM으로 문서-질문 관련성 검증 (단순화)
+
+        작업:
+        1. 각 문서의 title과 original_query 비교 (병렬)
+        2. LLM으로 관련성 판단 (true/false만)
+        3. 관련 있는 문서만 필터링
+
+        Returns:
+            documents: 관련성 있는 문서만 (0-3개)
+        """
+
+        try:
+            logger.debug("🔍 연관성 체크 시작")
+
+            # 1. 파라미터 추출
+            documents = state.get("documents", [])
+            original_query = state.get("original_query", "")
+
+            if not documents:
+                logger.warning("문서가 없습니다")
+                return {**state, "documents": []}
+
+            if not original_query:
+                logger.warning("원본 질문이 없습니다")
+                return state  # 체크 생략
+
+            logger.debug(f"📚 체크할 문서: {len(documents)}개")
+            logger.debug(f"💬 원본 질문: {original_query}")
+
+            # 2. LLM 모델 준비
+            models = Models()
+            relevance_model = models.get_relevance_check_model()
+
+            # 3. 각 문서 체크 (병렬)
+            async def check_single_document(doc: dict, idx: int) -> tuple[dict, bool]:
+                """단일 문서 체크"""
+                try:
+                    title = doc.get("title", "")
+
+                    # 프롬프트 생성
+                    prompt = Prompts.RELEVANCE_CHECK_PROMPT.format(
+                        query=original_query, title=title
+                    )
+
+                    # LLM 호출
+                    result = await relevance_model.ainvoke(prompt)
+
+                    logger.debug(
+                        f"  [{idx+1}] {title}: "
+                        f"{'✅ 관련' if result.is_relevant else '❌ 무관'}"
+                    )
+
+                    return doc, result.is_relevant
+
+                except Exception as e:
+                    logger.error(f"문서 체크 실패 [{doc.get('title')}]: {e}")
+                    # 에러 시 관련 없음으로 처리
+                    return doc, False
+
+            # 병렬 처리
+            logger.debug("🔄 병렬 체크 중...")
+            tasks = [check_single_document(doc, i) for i, doc in enumerate(documents)]
+            results = await asyncio.gather(*tasks)
+
+            # 4. 관련 있는 문서만 필터링
+            filtered_documents = [doc for doc, is_relevant in results if is_relevant]
+
+            logger.debug(
+                f"✅ 연관성 체크 완료: "
+                f"{len(filtered_documents)}/{len(documents)}개 관련 있음"
+            )
+
+            if filtered_documents:
+                logger.info("📝 관련 문서:")
+                for i, doc in enumerate(filtered_documents, 1):
+                    logger.debug(f"  [{i}] {doc.get('title')}")
+            else:
+                logger.warning("⚠️  관련 있는 문서 없음")
+
+            return {
+                **state,
+                "documents": filtered_documents,
+            }
+
+        except Exception as e:
+            logger.error(f"❌ 연관성 체크 에러: {str(e)}")
+
+            traceback.print_exc()
+            # 에러 시 원본 그대로 반환
+            return state

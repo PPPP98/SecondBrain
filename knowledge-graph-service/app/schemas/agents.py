@@ -72,3 +72,7 @@ class SimpleLookupOutput(BaseModel):
     """Simple Lookup 출력"""
     documents: List[Dict] = Field(description="검색된 노트 리스트")
     count: int = Field(description="검색된 노트 개수")
+
+class RelevanceCheckOutput(BaseModel):
+    """연관성 체크 출력"""
+    is_relevant: bool = Field(description="질문과 관련이 있는가")

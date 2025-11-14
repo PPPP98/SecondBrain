@@ -1,7 +1,7 @@
 from langchain.chat_models import init_chat_model
 from app.core.config import get_settings
 
-from app.schemas.agents import PreFilterOutput
+from app.schemas.agents import PreFilterOutput, RelevanceCheckOutput
 import os
 
 
@@ -24,5 +24,11 @@ class Models:
             model=self.settings.search_agent_model,
             temperature=self.settings.search_agent_temperature,
         )
-        structured_model = model.with_structured_output(PreFilterOutput)
-        return structured_model
+        return model.with_structured_output(PreFilterOutput)
+    
+    def get_relevance_check_model(self):
+        model = init_chat_model(
+            model=self.settings.search_agent_model,
+            temperature=self.settings.search_agent_temperature,
+        )
+        return model.with_structured_output(RelevanceCheckOutput)
