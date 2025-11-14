@@ -60,7 +60,7 @@ class PreFilterOutput(BaseModel):
     )
     # 검색 타입
     search_type: str = Field(
-        description="검색 타입: simple_lookup | similarity",
+        description="검색 타입: simple_lookup | similarity | direct_answer",
     )
     # Similarity 분기용
     query: str = Field(

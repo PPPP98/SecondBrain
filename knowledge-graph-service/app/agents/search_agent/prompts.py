@@ -17,7 +17,9 @@ class Prompts:
 
     ### 2. search_type (검색 타입)
 
-    **2가지 타입**:
+    **3가지 타입**:
+    **A. direct_answer** (검색 불필요)
+    - 조건: 노트 검색이 필요 없는 일반 질문
 
     **simple_lookup**:
     - 조건: 시간 표현만 있고 구체적 검색어 없음

@@ -21,7 +21,11 @@ SEARCH_LIMIT = 10
 
 
 class Nodes:
-    """ """
+    """ 
+    
+    
+    
+    """
 
     @staticmethod
     async def pre_filter_node(state: State) -> State:
@@ -30,7 +34,7 @@ class Nodes:
 
         작업:
         1. 시간 범위 추출
-        2. 검색 타입 결정 (simple_lookup | similarity)
+        2. 검색 타입 결정 (simple_lookup | similarity | direct_answer)
         3. 쿼리 재작성 (similarity용, 풍부한 검색)
         """
 
