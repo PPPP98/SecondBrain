@@ -125,10 +125,10 @@ class MainActivity : ComponentActivity() {
 
                         // UI 업데이트는 다시 Main에서
                         val delayMillis = if (successCount > 0) {
-                            LogUtils.i(TAG, "모바일로 전송 성공 (${successCount}개 노드)")
+                            LogUtils.i(TAG, "✓ 모바일로 전송 성공 (${successCount}개 노드)")
                             SUCCESS_DELAY_MS
                         } else {
-                            LogUtils.w(TAG, "모바일로 전송 실패 (모든 노드)")
+                            LogUtils.w(TAG, "✗ 모바일로 전송 실패 (연결된 노드 없음)")
                             voiceRecognitionManager.setError("모바일 연결 없음")
                             FAILURE_DELAY_MS  // 실패 시 빠르게 최소화
                         }
