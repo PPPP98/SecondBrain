@@ -14,6 +14,8 @@ import android.provider.Settings
 import android.view.KeyEvent
 import android.view.View
 import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputMethodManager
+import android.content.Context
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
@@ -199,6 +201,9 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
+        // 키보드 숨김
+        hideKeyboard()
+
         lifecycleScope.launch {
             try {
                 // 토큰 확인
@@ -274,6 +279,14 @@ class MainActivity : AppCompatActivity() {
                 searchAdapter.updateResults(emptyList())
                 rvSearchResults.visibility = View.GONE
             }
+        }
+    }
+
+    // 키보드 숨김
+    private fun hideKeyboard() {
+        val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        currentFocus?.let { view ->
+            imm.hideSoftInputFromWindow(view.windowToken, 0)
         }
     }
 
