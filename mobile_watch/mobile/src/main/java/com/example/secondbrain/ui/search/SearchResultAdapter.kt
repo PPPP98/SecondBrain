@@ -73,18 +73,27 @@ class SearchResultAdapter(
         }
 
         private fun formatDateTime(dateTime: String): String {
-            // 간단한 날짜 포맷 (ISO 8601 형식 -> 간단한 표시)
             return try {
-                val parts = dateTime.split("T")
-                if (parts.size >= 2) {
-                    val date = parts[0]
-                    val time = parts[1].substring(0, 5) // HH:mm만 표시
-                    "$date $time"
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                    // Android 8.0 (API 26) 이상: DateTimeFormatter 사용
+                    val inputFormatter = java.time.format.DateTimeFormatter.ISO_DATE_TIME
+                    val outputFormatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+                    val dateTimeParsed = java.time.LocalDateTime.parse(dateTime, inputFormatter)
+                    dateTimeParsed.format(outputFormatter)
                 } else {
-                    dateTime
+                    // Android 7.x 이하: SimpleDateFormat 사용
+                    val inputFormat = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.getDefault())
+                    val outputFormat = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm", java.util.Locale.getDefault())
+                    val date = inputFormat.parse(dateTime.substringBefore("."))
+                    if (date != null) {
+                        outputFormat.format(date)
+                    } else {
+                        dateTime
+                    }
                 }
             } catch (e: Exception) {
-                dateTime
+                android.util.Log.w("SearchResultAdapter", "Date parsing failed: $dateTime", e)
+                dateTime // 파싱 실패 시 원본 반환
             }
         }
     }
