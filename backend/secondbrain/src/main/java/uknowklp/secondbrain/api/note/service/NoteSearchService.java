@@ -65,10 +65,10 @@ public class NoteSearchService {
 				boolQueryBuilder.filter(userFilter);
 			}
 
-			// 4. Native Query 생성 (최소 점수 10 이상만 반환)
+			// 4. Native Query 생성 (최소 점수 5 이상만 반환)
 			NativeQuery searchQuery = NativeQuery.builder()
 				.withQuery(boolQueryBuilder.build()._toQuery())
-				.withMinScore(10.0f)                // 점수 10 미만 결과 제외
+				.withMinScore(5.0f)                 // 점수 5 미만 결과 제외
 				.withPageable(pageable)
 				.build();
 
@@ -146,9 +146,10 @@ public class NoteSearchService {
 				)._toQuery());
 			}
 
-			// Native Query 생성
+			// Native Query 생성 (최소 점수 5 이상만 반환)
 			NativeQuery searchQuery = NativeQuery.builder()
 				.withQuery(boolQueryBuilder.build()._toQuery())
+				.withMinScore(5.0f)                 // 점수 5 미만 결과 제외
 				.withMaxResults(limit)
 				.build();
 
