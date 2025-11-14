@@ -42,10 +42,10 @@ public class NoteSearchService {
 		}
 
 		try {
-			// 1. Multi-match 쿼리 생성 (제목 10배 가중치, 엄격한 점수 필터링)
+			// 1. Multi-match 쿼리 생성 (제목 5배 가중치, 엄격한 점수 필터링)
 			Query multiMatchQuery = MultiMatchQuery.of(m -> m
 				.query(keyword)
-				.fields("title^10", "content")      // 제목 가중치 10배
+				.fields("title^5", "content")      // 제목 가중치 5배
 				.type(co.elastic.clients.elasticsearch._types.query_dsl.TextQueryType.BestFields)
 				.fuzziness("AUTO")                  // 단어 길이 기반 자동 조정
 				.prefixLength(1)                    // 첫 글자 고정 (성능 + 정확도)
@@ -123,7 +123,7 @@ public class NoteSearchService {
 
 			Query multiMatchQuery = MultiMatchQuery.of(m -> m
 				.query(searchText)
-				.fields("title^10", "content")      // 제목 가중치 10배
+				.fields("title^5", "content")       // 제목 가중치 5배 (키워드 검색과 동일)
 				.type(co.elastic.clients.elasticsearch._types.query_dsl.TextQueryType.BestFields)
 				.fuzziness("AUTO")                  // 단어 길이 기반 자동 조정
 				.prefixLength(1)                    // 첫 글자 고정
