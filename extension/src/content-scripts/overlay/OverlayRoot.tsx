@@ -3,6 +3,8 @@ import { ThemeProvider } from '@/contexts/ThemeContext';
 import { ShadowRootProvider } from '@/contexts/ShadowRootContext';
 import { SimpleToastContainer } from '@/content-scripts/overlay/components/molecules/SimpleToast';
 import { useEffect } from 'react';
+import { useDragSearchStore } from '@/stores/dragSearchStore';
+import type { NoteSearchResult } from '@/types/note';
 
 /**
  * Shadow DOM 내부에 렌더링되는 React 루트 컴포넌트
@@ -19,6 +21,8 @@ interface OverlayRootProps {
 }
 
 export function OverlayRoot({ isOpen, onToggle, shadowRoot }: OverlayRootProps) {
+  const { setSearchResults, setError, setLoading, loadHistory } = useDragSearchStore();
+
   // Inject animation keyframes into Shadow DOM
   useEffect(() => {
     if (shadowRoot instanceof ShadowRoot) {
@@ -62,6 +66,47 @@ export function OverlayRoot({ isOpen, onToggle, shadowRoot }: OverlayRootProps) 
       }
     }
   }, [shadowRoot]);
+
+  // 드래그 검색 메시지 리스너
+  useEffect(() => {
+    const handleMessage = (
+      event: MessageEvent<{
+        type: string;
+        payload?: { keyword?: string; results?: unknown; totalCount?: number; error?: string };
+      }>,
+    ) => {
+      if (event.data?.type === 'SECONDBRAIN_DRAG_SEARCH_RESULT' && event.data.payload) {
+        const { keyword, results, totalCount } = event.data.payload;
+        if (keyword && Array.isArray(results) && typeof totalCount === 'number') {
+          setSearchResults(keyword, results as NoteSearchResult[], totalCount);
+
+          // Overlay 자동 열기
+          if (!isOpen) {
+            onToggle(true);
+          }
+        }
+      } else if (event.data?.type === 'SECONDBRAIN_DRAG_SEARCH_ERROR' && event.data.payload) {
+        const { keyword, error } = event.data.payload;
+        if (keyword && error) {
+          setError(`"${keyword}" 검색 실패: ${error}`);
+
+          // Overlay 자동 열기
+          if (!isOpen) {
+            onToggle(true);
+          }
+        }
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+
+    // 히스토리 로드
+    void loadHistory();
+
+    return () => {
+      window.removeEventListener('message', handleMessage);
+    };
+  }, [setSearchResults, setError, setLoading, loadHistory, isOpen, onToggle]);
 
   return (
     <ShadowRootProvider shadowRoot={shadowRoot}>

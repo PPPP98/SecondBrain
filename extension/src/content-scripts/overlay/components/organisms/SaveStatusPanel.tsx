@@ -23,8 +23,8 @@ export function SaveStatusPanel({ isOpen, onClose }: SaveStatusPanelProps) {
   return (
     <div
       className={cn(
-        'absolute left-0 top-full z-10 mt-2 w-full rounded-lg border border-border bg-card shadow-xl transition-all duration-300',
-        isOpen ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2 pointer-events-none'
+        'absolute top-full left-0 z-10 mt-2 w-full rounded-lg border border-border bg-card shadow-xl transition-all duration-300',
+        isOpen ? 'translate-y-0 opacity-100' : 'pointer-events-none -translate-y-2 opacity-0',
       )}
       style={{
         maxHeight: '300px',

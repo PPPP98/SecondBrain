@@ -11,7 +11,7 @@ export function LoginPrompt() {
       {/* 로고 이미지 (회전 애니메이션) */}
       <div className="mb-6 flex justify-center">
         <div
-          className="flex items-center justify-center rounded-full bg-black p-6 animate-spin"
+          className="flex animate-spin items-center justify-center rounded-full bg-black p-6"
           style={{ animationDuration: '6s' }}
         >
           <img

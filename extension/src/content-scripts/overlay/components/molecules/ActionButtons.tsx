@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Plus, Download } from 'lucide-react';
+import { Plus, Download, Settings } from 'lucide-react';
 import { Button } from '@/content-scripts/overlay/components/ui/button';
 import { CounterBadge } from '@/content-scripts/overlay/components/atoms/CounterBadge';
 import { URLListModal } from '@/content-scripts/overlay/components/organisms/URLListModal';
 import { SaveStatusPanel } from '@/content-scripts/overlay/components/organisms/SaveStatusPanel';
+import { DragSearchSettingsPanel } from '@/content-scripts/overlay/components/organisms/DragSearchSettingsPanel';
 import { usePageCollectionStore } from '@/stores/pageCollectionStore';
 import { useSaveStatusStore } from '@/stores/saveStatusStore';
 import browser from 'webextension-polyfill';
@@ -36,6 +37,7 @@ function getErrorMessage(errorCode: string): string {
 export function ActionButtons() {
   const [showURLList, setShowURLList] = useState(false);
   const [showSaveStatus, setShowSaveStatus] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
   const { pages, addPage, removePage, clearPages, getPageList } = usePageCollectionStore();
   const { addSaveRequest, updateSaveStatus, getSavingCount } = useSaveStatusStore();
@@ -99,9 +101,7 @@ export function ActionButtons() {
 
         const savedCount = finalUrls.length;
         showToast(
-          savedCount > 1
-            ? `${savedCount}개 페이지가 저장되었습니다`
-            : '페이지가 저장되었습니다',
+          savedCount > 1 ? `${savedCount}개 페이지가 저장되었습니다` : '페이지가 저장되었습니다',
           'success',
         );
 
@@ -150,15 +150,22 @@ export function ActionButtons() {
 
         {/* Save Status Toggle Button */}
         {savingCount > 0 && (
-          <CounterBadge
-            count={savingCount}
-            onClick={() => setShowSaveStatus(!showSaveStatus)}
-          />
+          <CounterBadge count={savingCount} onClick={() => setShowSaveStatus(!showSaveStatus)} />
         )}
 
         {/* Save Status Panel */}
         <SaveStatusPanel isOpen={showSaveStatus} onClose={() => setShowSaveStatus(false)} />
       </div>
+
+      {/* Settings Button */}
+      <Button
+        variant="outline"
+        className="w-full justify-start gap-2 hover:bg-accent"
+        onClick={() => setShowSettings(!showSettings)}
+      >
+        <Settings className="h-4 w-4" />
+        <span>드래그 검색 설정</span>
+      </Button>
 
       {/* URL List Modal */}
       <URLListModal
@@ -171,6 +178,13 @@ export function ActionButtons() {
           setShowURLList(false);
         }}
       />
+
+      {/* Settings Panel */}
+      {showSettings && (
+        <div className="absolute top-0 left-0 z-10 w-full">
+          <DragSearchSettingsPanel onClose={() => setShowSettings(false)} />
+        </div>
+      )}
     </div>
   );
 }

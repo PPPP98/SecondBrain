@@ -67,7 +67,7 @@ export function SaveStatusItem({ request, onRemove }: SaveStatusItemProps) {
       className={cn(
         'flex items-center gap-2 rounded-md border border-border p-2 transition-all duration-500',
         config.bgClass,
-        isRemoving && 'opacity-0 translate-x-4'
+        isRemoving && 'translate-x-4 opacity-0',
       )}
     >
       <Icon className={cn('h-4 w-4 flex-shrink-0', config.iconClass)} />

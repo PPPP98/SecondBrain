@@ -3,9 +3,11 @@ import { Toolbar } from '@/content-scripts/overlay/components/molecules/Toolbar'
 import { LoginPrompt } from '@/content-scripts/overlay/components/molecules/LoginPrompt';
 import { ActionButtons } from '@/content-scripts/overlay/components/molecules/ActionButtons';
 import { FloatingButton } from '@/content-scripts/overlay/components/atoms/FloatingButton';
+import { DragSearchPanel } from '@/content-scripts/overlay/components/organisms/DragSearchPanel';
 import { useExtensionAuth } from '@/hooks/useExtensionAuth';
 import { useOverlayState } from '@/hooks/useOverlayState';
 import { usePageCollectionStore } from '@/stores/pageCollectionStore';
+import { useDragSearchStore } from '@/stores/dragSearchStore';
 import * as storage from '@/services/storageService';
 
 /**
@@ -25,6 +27,14 @@ export function ExtensionOverlay({ isOpen, onToggle }: ExtensionOverlayProps) {
   const { loading, authenticated, user, logout } = useExtensionAuth();
   const { isExpanded, isCollapsed, isHidden, expand, collapse } = useOverlayState();
   const { initialize, syncFromStorage } = usePageCollectionStore();
+  const {
+    keyword,
+    results,
+    totalCount,
+    isLoading,
+    error,
+    isVisible: isDragSearchVisible,
+  } = useDragSearchStore();
   const [isAnimating, setIsAnimating] = useState(false);
   const [animationPhase, setAnimationPhase] = useState<'idle' | 'expanding' | 'collapsing'>('idle');
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -166,7 +176,7 @@ export function ExtensionOverlay({ isOpen, onToggle }: ExtensionOverlayProps) {
           {(loading || isLoggingOut) && (
             <div className="flex flex-col items-center justify-center p-8">
               <div
-                className="flex items-center justify-center rounded-full bg-black p-4 animate-spin"
+                className="flex animate-spin items-center justify-center rounded-full bg-black p-4"
                 style={{ animationDuration: '1s' }}
               >
                 <img
@@ -183,7 +193,25 @@ export function ExtensionOverlay({ isOpen, onToggle }: ExtensionOverlayProps) {
 
           {!loading && !isLoggingOut && !authenticated && <LoginPrompt />}
 
-          {!loading && !isLoggingOut && authenticated && <ActionButtons />}
+          {!loading && !isLoggingOut && authenticated && (
+            <>
+              {/* 드래그 검색 결과 패널 (있으면 표시) */}
+              {isDragSearchVisible && (
+                <div className="mb-4">
+                  <DragSearchPanel
+                    keyword={keyword}
+                    results={results}
+                    totalCount={totalCount}
+                    isLoading={isLoading}
+                    error={error}
+                  />
+                </div>
+              )}
+
+              {/* 기존 액션 버튼 */}
+              <ActionButtons />
+            </>
+          )}
         </div>
       </div>
     </div>

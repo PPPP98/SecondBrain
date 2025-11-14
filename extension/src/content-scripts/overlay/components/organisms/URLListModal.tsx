@@ -21,7 +21,7 @@ export function URLListModal({ isOpen, onClose, urls, onRemove, onClearAll }: UR
 
   return (
     <div
-      className="absolute left-0 top-full z-10 mt-2 w-full rounded-lg border border-border bg-card shadow-xl"
+      className="absolute top-full left-0 z-10 mt-2 w-full rounded-lg border border-border bg-card shadow-xl"
       style={{
         maxHeight: '400px',
         display: 'flex',
