@@ -4,6 +4,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import com.example.secondbrain.R
 import com.example.secondbrain.data.model.NoteSearchResult
@@ -26,9 +27,30 @@ class SearchResultAdapter(
 
     override fun getItemCount(): Int = searchResults.size
 
-    fun updateResults(results: List<NoteSearchResult>) {
-        searchResults = results
-        notifyDataSetChanged()
+    fun updateResults(newResults: List<NoteSearchResult>) {
+        val diffCallback = NoteSearchDiffCallback(searchResults, newResults)
+        val diffResult = DiffUtil.calculateDiff(diffCallback)
+
+        searchResults = newResults
+        diffResult.dispatchUpdatesTo(this)
+    }
+
+    private class NoteSearchDiffCallback(
+        private val oldList: List<NoteSearchResult>,
+        private val newList: List<NoteSearchResult>
+    ) : DiffUtil.Callback() {
+
+        override fun getOldListSize(): Int = oldList.size
+
+        override fun getNewListSize(): Int = newList.size
+
+        override fun areItemsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
+            return oldList[oldItemPosition].id == newList[newItemPosition].id
+        }
+
+        override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
+            return oldList[oldItemPosition] == newList[newItemPosition]
+        }
     }
 
     class SearchResultViewHolder(
