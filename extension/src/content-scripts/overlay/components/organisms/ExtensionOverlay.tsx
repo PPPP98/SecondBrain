@@ -136,12 +136,16 @@ export function ExtensionOverlay({ isOpen, onToggle }: ExtensionOverlayProps) {
         <div className="p-4">
           {(loading || isLoggingOut) && (
             <div className="flex flex-col items-center justify-center p-8">
-              <img
-                src={chrome.runtime.getURL('Logo_upscale.png')}
-                alt="Loading"
-                className="h-16 w-16 animate-spin object-contain"
+              <div
+                className="flex items-center justify-center rounded-full bg-black p-4 animate-spin"
                 style={{ animationDuration: '1s' }}
-              />
+              >
+                <img
+                  src={chrome.runtime.getURL('Logo_upscale.png')}
+                  alt="Loading"
+                  className="h-16 w-16 object-contain"
+                />
+              </div>
               <p className="mt-4 text-sm text-muted-foreground">
                 {isLoggingOut ? '로그아웃 중...' : '로딩 중...'}
               </p>
