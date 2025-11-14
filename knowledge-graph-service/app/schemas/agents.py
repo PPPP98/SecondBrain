@@ -51,13 +51,19 @@ class TimeFilter(BaseModel):
 
 
 class PreFilterOutput(BaseModel):
-    """Pre-Filter 출력 스키마"""
+    """Pre-Filter 출력 스키마 (통합)"""
 
-    timespan: Optional[TimeFilter] = Field(default=None, description="시간 범위 필터")
-    tags: List[str] = Field(default_factory=list, description="태그 리스트")
-    exact_title: Optional[str] = Field(default=None, description="정확한 제목")
-    note_id: Optional[str] = Field(default=None, description="노트 ID")
-    is_simple_lookup: bool = Field(
-        default=False, description="필터만으로 검색 가능한가"
+    # 시간 필터
+    timespan: Optional[TimeFilter] = Field(
+        default=None,
+        description="시간 범위 필터",
     )
-    cleaned_query: str = Field(description="필터를 제거한 순수 검색어")
+    # 검색 타입
+    search_type: str = Field(
+        description="검색 타입: simple_lookup | similarity",
+    )
+    # Similarity 분기용
+    query: str = Field(
+        default="",
+        description="재작성된 쿼리 (search_type=similarity일 때 사용)",
+    )
