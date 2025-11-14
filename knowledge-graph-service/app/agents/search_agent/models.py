@@ -20,15 +20,25 @@ class Models:
         os.environ["OPENAI_API_BASE"] = self.settings.openai_base_url
 
     def get_prefilter_model(self):
+        """Pre-filter용 structured output 모델"""
         model = init_chat_model(
             model=self.settings.search_agent_model,
             temperature=self.settings.search_agent_temperature,
         )
         return model.with_structured_output(PreFilterOutput)
-    
+
     def get_relevance_check_model(self):
+        """연관성 체크용 structured output 모델"""
         model = init_chat_model(
             model=self.settings.search_agent_model,
             temperature=self.settings.search_agent_temperature,
         )
         return model.with_structured_output(RelevanceCheckOutput)
+
+    def get_response_model(self):
+        """응답 생성용 일반 모델"""
+        model = init_chat_model(
+            model=self.settings.search_agent_model,
+            temperature=self.settings.search_agent_temperature,
+        )
+        return model
