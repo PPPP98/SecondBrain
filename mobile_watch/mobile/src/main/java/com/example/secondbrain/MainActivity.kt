@@ -2,6 +2,7 @@ package com.example.secondbrain
 
 import android.Manifest
 import android.app.NotificationManager
+import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
@@ -10,6 +11,11 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
+import android.view.KeyEvent
+import android.view.View
+import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputMethodManager
+import android.content.Context
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
@@ -18,10 +24,13 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import android.content.ComponentName
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.example.secondbrain.data.local.TokenManager
 import com.example.secondbrain.service.WakeWordService
 import com.example.secondbrain.ui.login.LoginActivity
 import com.example.secondbrain.ui.note.NoteDetailActivity
+import com.example.secondbrain.ui.search.SearchResultAdapter
 import com.google.android.gms.wearable.CapabilityClient
 import com.google.android.gms.wearable.Wearable
 import kotlinx.coroutines.flow.first
@@ -37,6 +46,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var etNoteId: EditText
     private lateinit var btnSearchNote: Button
     private lateinit var tvTestResult: TextView
+    private lateinit var etSearchKeyword: EditText
+    private lateinit var btnSearch: Button
+    private lateinit var rvSearchResults: RecyclerView
+    private lateinit var searchAdapter: SearchResultAdapter
     private lateinit var btnCheckWearConnection: Button
     private lateinit var tvWearStatus: TextView
     private lateinit var btnOpenSettings: Button
@@ -107,11 +120,18 @@ class MainActivity : AppCompatActivity() {
         etNoteId = findViewById(R.id.etNoteId)
         btnSearchNote = findViewById(R.id.btnSearchNote)
         tvTestResult = findViewById(R.id.tvTestResult)
+        etSearchKeyword = findViewById(R.id.etSearchKeyword)
+        btnSearch = findViewById(R.id.btnSearch)
+        rvSearchResults = findViewById(R.id.rvSearchResults)
         btnCheckWearConnection = findViewById(R.id.btnCheckWearConnection)
         tvWearStatus = findViewById(R.id.tvWearStatus)
         btnOpenSettings = findViewById(R.id.btnOpenSettings)
 
         // 웨이크워드로 앱이 실행된 경우 표시
+        // RecyclerView 설정
+        setupRecyclerView()
+
+        // 웨이크워드로 앱이 실행된 경우
         if (intent.getBooleanExtra("wake_word_detected", false)) {
             intent.removeExtra("wake_word_detected")
             intent.removeExtra("auto_opened")
@@ -142,6 +162,22 @@ class MainActivity : AppCompatActivity() {
             searchNoteById()
         }
 
+        // 검색 버튼
+        btnSearch.setOnClickListener {
+            performSearch()
+        }
+
+        // 검색어 입력 시 엔터 키로 검색
+        etSearchKeyword.setOnEditorActionListener { _, actionId, event ->
+            if (actionId == EditorInfo.IME_ACTION_SEARCH ||
+                (event != null && event.keyCode == KeyEvent.KEYCODE_ENTER && event.action == KeyEvent.ACTION_DOWN)) {
+                performSearch()
+                true
+            } else {
+                false
+            }
+        }
+
         // 워치 연결 확인 버튼
         btnCheckWearConnection.setOnClickListener {
             checkWearableConnection()
@@ -150,6 +186,116 @@ class MainActivity : AppCompatActivity() {
         // 앱 설정 열기 버튼
         btnOpenSettings.setOnClickListener {
             openAppSettings()
+        }
+    }
+
+    // RecyclerView 설정
+    private fun setupRecyclerView() {
+        searchAdapter = SearchResultAdapter { noteId ->
+            // 검색 결과 클릭 시 상세 페이지로 이동
+            val intent = Intent(this, NoteDetailActivity::class.java)
+            intent.putExtra("NOTE_ID", noteId)
+            startActivity(intent)
+        }
+        rvSearchResults.layoutManager = LinearLayoutManager(this)
+        rvSearchResults.adapter = searchAdapter
+    }
+
+    // 노트 검색 수행
+    private fun performSearch() {
+        val keyword = etSearchKeyword.text.toString()
+
+        if (keyword.isEmpty()) {
+            rvSearchResults.visibility = View.GONE
+            return
+        }
+
+        // 키보드 숨김
+        hideKeyboard()
+
+        lifecycleScope.launch {
+            try {
+                // 토큰 확인
+                val token = tokenManager.getAccessToken()
+                if (token.isNullOrEmpty()) {
+                    android.util.Log.w("MainActivity", "검색 실패: 액세스 토큰 없음")
+                    searchAdapter.updateResults(emptyList())
+                    rvSearchResults.visibility = View.GONE
+                    return@launch
+                }
+
+                // API 서비스 생성
+                val apiService = com.example.secondbrain.data.network.RetrofitClient.createApiService {
+                    tokenManager.getAccessToken()
+                }
+
+                // 검색 실행
+                val response = apiService.searchNotes(keyword)
+
+                when (response.code) {
+                    200 -> {
+                        if (response.data != null) {
+                            val searchResponse = response.data
+                            searchAdapter.updateResults(searchResponse.results, keyword)
+                            if (searchResponse.results.isNotEmpty()) {
+                                rvSearchResults.visibility = View.VISIBLE
+                            } else {
+                                rvSearchResults.visibility = View.GONE
+                            }
+                        } else {
+                            android.util.Log.w("MainActivity", "검색 결과가 없습니다")
+                            searchAdapter.updateResults(emptyList(), keyword)
+                            rvSearchResults.visibility = View.GONE
+                        }
+                    }
+                    401 -> {
+                        // 인증 오류 (토큰 만료 등)
+                        android.util.Log.e("MainActivity", "검색 실패: 인증 오류 (401)")
+                        searchAdapter.updateResults(emptyList(), keyword)
+                        rvSearchResults.visibility = View.GONE
+                    }
+                    in 500..599 -> {
+                        // 서버 오류
+                        android.util.Log.e("MainActivity", "검색 실패: 서버 오류 (${response.code})")
+                        searchAdapter.updateResults(emptyList(), keyword)
+                        rvSearchResults.visibility = View.GONE
+                    }
+                    else -> {
+                        // 기타 오류
+                        android.util.Log.e("MainActivity", "검색 실패: 예상치 못한 응답 코드 (${response.code})")
+                        searchAdapter.updateResults(emptyList(), keyword)
+                        rvSearchResults.visibility = View.GONE
+                    }
+                }
+            } catch (e: java.net.UnknownHostException) {
+                // 네트워크 연결 오류
+                android.util.Log.e("MainActivity", "검색 실패: 네트워크 연결 오류", e)
+                searchAdapter.updateResults(emptyList(), keyword)
+                rvSearchResults.visibility = View.GONE
+            } catch (e: java.net.SocketTimeoutException) {
+                // 네트워크 타임아웃
+                android.util.Log.e("MainActivity", "검색 실패: 네트워크 타임아웃", e)
+                searchAdapter.updateResults(emptyList(), keyword)
+                rvSearchResults.visibility = View.GONE
+            } catch (e: java.io.IOException) {
+                // 기타 네트워크 오류
+                android.util.Log.e("MainActivity", "검색 실패: 네트워크 I/O 오류", e)
+                searchAdapter.updateResults(emptyList(), keyword)
+                rvSearchResults.visibility = View.GONE
+            } catch (e: Exception) {
+                // 예상치 못한 오류
+                android.util.Log.e("MainActivity", "검색 실패: 예상치 못한 오류", e)
+                searchAdapter.updateResults(emptyList(), keyword)
+                rvSearchResults.visibility = View.GONE
+            }
+        }
+    }
+
+    // 키보드 숨김
+    private fun hideKeyboard() {
+        val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        currentFocus?.let { view ->
+            imm.hideSoftInputFromWindow(view.windowToken, 0)
         }
     }
 
