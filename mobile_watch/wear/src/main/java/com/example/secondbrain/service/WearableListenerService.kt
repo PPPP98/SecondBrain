@@ -21,7 +21,7 @@ import com.google.android.gms.wearable.WearableListenerService
  * 모바일 앱에서 전송한 백엔드 응답을 수신하고
  * 워치에 알림(Notification)을 표시합니다.
  */
-class WearableListenerService : WearableListenerService() {
+class WearWearableListenerService : WearableListenerService() {
 
     companion object {
         private const val TAG = "WearableListener"

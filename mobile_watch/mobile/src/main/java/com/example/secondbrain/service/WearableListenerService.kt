@@ -3,6 +3,9 @@ package com.example.secondbrain.service
 import android.util.Log
 import com.example.secondbrain.communication.WearableConstants
 import com.example.secondbrain.data.local.TokenManager
+import com.google.android.gms.wearable.DataEvent
+import com.google.android.gms.wearable.DataEventBuffer
+import com.google.android.gms.wearable.DataMapItem
 import com.google.android.gms.wearable.MessageEvent
 import com.google.android.gms.wearable.Wearable
 import com.google.android.gms.wearable.WearableListenerService
@@ -19,7 +22,7 @@ import kotlinx.coroutines.tasks.await
  * 워치 앱에서 전송한 음성 텍스트를 수신하고
  * 백엔드 서버로 전달
  */
-class WearableListenerService : WearableListenerService() {
+class MobileWearableListenerService : WearableListenerService() {
 
     companion object {
         private const val TAG = "WearableListener"
@@ -29,11 +32,45 @@ class WearableListenerService : WearableListenerService() {
 
     override fun onCreate() {
         super.onCreate()
-        Log.i(TAG, "WearableListenerService 시작 - 워치 메시지 수신 대기")
+        Log.i(TAG, "MobileWearableListenerService onCreate() 호출됨!")
+        Log.i(TAG, "WearableListenerService 시작 - 워치 데이터 수신 대기 (백그라운드 동작)")
     }
 
     /**
-     * 워치에서 메시지를 수신했을 때 호출됨
+     * 워치에서 DataItem을 수신했을 때 호출됨 (백그라운드에서도 동작!)
+     */
+    override fun onDataChanged(dataEvents: DataEventBuffer) {
+        super.onDataChanged(dataEvents)
+
+        Log.i(TAG, "DataItem 수신됨: ${dataEvents.count}개")
+
+        for (event in dataEvents) {
+            if (event.type == DataEvent.TYPE_CHANGED) {
+                val dataItem = event.dataItem
+                Log.i(TAG, "DataItem 경로: ${dataItem.uri.path}")
+
+                when (dataItem.uri.path) {
+                    WearableConstants.PATH_VOICE_TEXT -> {
+                        val dataMap = DataMapItem.fromDataItem(dataItem).dataMap
+                        val recognizedText = dataMap.getString("text") ?: ""
+                        val timestamp = dataMap.getLong("timestamp", 0L)
+
+                        Log.i(TAG, "음성 텍스트 수신: '$recognizedText' (timestamp: $timestamp)")
+
+                        scope.launch {
+                            sendToBackend(recognizedText)
+                        }
+                    }
+                    else -> {
+                        Log.w(TAG, "알 수 없는 경로: ${dataItem.uri.path}")
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * 워치에서 메시지를 수신했을 때 호출됨 (백엔드 응답용)
      */
     override fun onMessageReceived(messageEvent: MessageEvent) {
         super.onMessageReceived(messageEvent)
@@ -41,13 +78,6 @@ class WearableListenerService : WearableListenerService() {
         Log.i(TAG, "워치 메시지 수신 - 경로: ${messageEvent.path}, 크기: ${messageEvent.data.size}B")
 
         when (messageEvent.path) {
-            WearableConstants.PATH_VOICE_TEXT -> {
-                val recognizedText = String(messageEvent.data, Charsets.UTF_8)
-                Log.i(TAG, "음성 텍스트: '$recognizedText'")
-                scope.launch {
-                    sendToBackend(recognizedText)
-                }
-            }
             WearableConstants.PATH_VOICE_REQUEST -> {
                 val requestText = String(messageEvent.data, Charsets.UTF_8)
                 Log.i(TAG, "음성 요청: '$requestText'")

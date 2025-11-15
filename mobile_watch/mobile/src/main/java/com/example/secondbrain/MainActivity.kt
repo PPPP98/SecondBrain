@@ -30,6 +30,9 @@ import com.example.secondbrain.ui.note.NoteDetailActivity
 import com.example.secondbrain.ui.search.SearchResultAdapter
 import com.google.android.gms.wearable.CapabilityClient
 import com.google.android.gms.wearable.Wearable
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
@@ -65,6 +68,14 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Application 클래스 확인
+        android.util.Log.e("MainActivity", "Application 클래스: ${application.javaClass.name}")
+        if (application is SecondBrainApplication) {
+            android.util.Log.i("MainActivity", "✓ SecondBrainApplication 사용 중")
+        } else {
+            android.util.Log.e("MainActivity", "❌ SecondBrainApplication이 아님! 기본 Application 사용 중")
+        }
 
         // Full-Screen Intent로 열릴 때 화면 켜기 및 잠금 해제
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
@@ -447,41 +458,56 @@ class MainActivity : AppCompatActivity() {
      * Google Play Services가 WearableListenerService를 자동으로 바인딩하도록 합니다.
      */
     private fun enableWearableListenerService() {
-        lifecycleScope.launch {
+        try {
+            android.util.Log.i("MainActivity", "WearableListenerService 활성화 시작")
+
+            // PackageManager를 통해 서비스 컴포넌트 강제 활성화
             try {
-                android.util.Log.i("MainActivity", "WearableListenerService 활성화 시작")
-
-                // CapabilityClient를 통해 Wearable API 초기화
-                // Google Play Services가 WearableListenerService를 자동 발견하고 바인딩
-                val capabilityClient = Wearable.getCapabilityClient(this@MainActivity)
-                try {
-                    val capability = capabilityClient.getCapability("voice_recognition", CapabilityClient.FILTER_REACHABLE).await()
-                    android.util.Log.i("MainActivity", "Capability 확인: ${capability.nodes.size}개 노드")
-                } catch (e: Exception) {
-                    android.util.Log.w("MainActivity", "Capability 확인 실패 (정상): ${e.message}")
-                }
-
-                // ComponentName을 통해 WearableListenerService 상태 확인
-                val pm = packageManager
-                val componentName = ComponentName(this@MainActivity, com.example.secondbrain.service.WearableListenerService::class.java)
-                val componentEnabledSetting = pm.getComponentEnabledSetting(componentName)
-
-                android.util.Log.i("MainActivity", "WearableListenerService 상태: $componentEnabledSetting")
-
-                if (componentEnabledSetting == android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_DISABLED) {
-                    android.util.Log.w("MainActivity", "WearableListenerService 비활성화 상태 - 활성화")
-                    pm.setComponentEnabledSetting(
-                        componentName,
-                        android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
-                        android.content.pm.PackageManager.DONT_KILL_APP
-                    )
-                }
-
-                android.util.Log.i("MainActivity", "WearableListenerService 활성화 완료")
-
+                val componentName = android.content.ComponentName(
+                    this,
+                    com.example.secondbrain.service.MobileWearableListenerService::class.java
+                )
+                packageManager.setComponentEnabledSetting(
+                    componentName,
+                    android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
+                    android.content.pm.PackageManager.DONT_KILL_APP
+                )
+                android.util.Log.i("MainActivity", "서비스 컴포넌트 활성화 완료")
             } catch (e: Exception) {
-                android.util.Log.e("MainActivity", "WearableListenerService 활성화 실패", e)
+                android.util.Log.e("MainActivity", "서비스 컴포넌트 활성화 실패", e)
             }
+
+            // Activity 생명주기와 무관하게 실행되도록 독립적인 CoroutineScope 사용
+            CoroutineScope(SupervisorJob() + Dispatchers.Main).launch {
+                try {
+                    // Google Play Services Wearable API 초기화
+                    val dataClient = Wearable.getDataClient(this@MainActivity)
+                    val nodeClient = Wearable.getNodeClient(this@MainActivity)
+
+                    android.util.Log.i("MainActivity", "Wearable API 클라이언트 초기화 완료")
+
+                    // DataClient 리스너 등록 (이것이 서비스 바인딩 트리거)
+                    val testDataReq = com.google.android.gms.wearable.PutDataMapRequest.create("/test_trigger").apply {
+                        dataMap.putLong("timestamp", System.currentTimeMillis())
+                    }
+                    dataClient.putDataItem(testDataReq.asPutDataRequest()).await()
+                    android.util.Log.i("MainActivity", "테스트 DataItem 전송 - 서비스 바인딩 트리거")
+
+                    // 연결된 노드 확인
+                    val nodes = nodeClient.connectedNodes.await()
+                    android.util.Log.i("MainActivity", "연결된 노드: ${nodes.size}개")
+
+                    kotlinx.coroutines.delay(500) // 서비스 바인딩 대기
+                    android.util.Log.i("MainActivity", "WearableListenerService 바인딩 트리거 완료")
+                    android.util.Log.i("MainActivity", "만약 'MobileWearableListenerService onCreate()' 로그가 안 보이면 앱 재설치 필요")
+
+                } catch (e: Exception) {
+                    android.util.Log.e("MainActivity", "Wearable API 초기화 실패", e)
+                }
+            }
+
+        } catch (e: Exception) {
+            android.util.Log.e("MainActivity", "WearableListenerService 활성화 실패", e)
         }
     }
 

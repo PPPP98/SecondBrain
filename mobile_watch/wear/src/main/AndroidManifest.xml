@@ -75,15 +75,9 @@
 
         <!-- Wearable Message Listener Service -->
         <service
-            android:name=".service.WearableListenerService"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="com.google.android.gms.wearable.MESSAGE_RECEIVED" />
-                <data
-                    android:scheme="wear"
-                    android:host="*"
-                    android:pathPrefix="/backend_response" />
-            </intent-filter>
+            android:name=".service.WearWearableListenerService"
+            android:exported="true"
+            android:enabled="true">
         </service>
     </application>
 
