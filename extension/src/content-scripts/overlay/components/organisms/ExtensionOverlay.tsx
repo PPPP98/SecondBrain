@@ -173,32 +173,46 @@ export function ExtensionOverlay({ isOpen, onToggle }: ExtensionOverlayProps) {
         />
 
         <div className="p-4">
-          {(loading || isLoggingOut || !authenticated) && (
-            <AuthCard
-              state={loading || isLoggingOut ? 'loading' : 'login'}
-              message={isLoggingOut ? '로그아웃 중...' : '로딩 중...'}
-            />
+          {/* 드래그 검색 결과 패널 (인증 완료 후 표시) */}
+          {authenticated && !loading && !isLoggingOut && isDragSearchVisible && (
+            <div className="mb-4">
+              <DragSearchPanel
+                keyword={keyword}
+                results={results}
+                totalCount={totalCount}
+                isLoading={isLoading}
+                error={error}
+              />
+            </div>
           )}
 
-          {!loading && !isLoggingOut && authenticated && (
-            <>
-              {/* 드래그 검색 결과 패널 (있으면 표시) */}
-              {isDragSearchVisible && (
-                <div className="mb-4">
-                  <DragSearchPanel
-                    keyword={keyword}
-                    results={results}
-                    totalCount={totalCount}
-                    isLoading={isLoading}
-                    error={error}
-                  />
-                </div>
-              )}
+          {/* Transition wrapper - 부드러운 크기 조절 애니메이션 */}
+          <div className="relative overflow-hidden">
+            {/* AuthCard - 위로 슬라이드 + 페이드 아웃 */}
+            <div
+              className={`transition-all duration-500 ease-in-out ${
+                loading || isLoggingOut || !authenticated
+                  ? 'translate-y-0 opacity-100'
+                  : '-translate-y-full opacity-0 absolute top-0 left-0 w-full pointer-events-none'
+              }`}
+            >
+              <AuthCard
+                state={loading || isLoggingOut ? 'loading' : 'login'}
+                message={isLoggingOut ? '로그아웃 중...' : '로딩 중...'}
+              />
+            </div>
 
-              {/* 기존 액션 버튼 */}
-              <ActionButtons />
-            </>
-          )}
+            {/* ActionButtons - 아래에서 슬라이드 + 페이드 인 */}
+            <div
+              className={`transition-all duration-500 ease-in-out ${
+                !loading && !isLoggingOut && authenticated
+                  ? 'translate-y-0 opacity-100'
+                  : 'translate-y-full opacity-0 pointer-events-none'
+              }`}
+            >
+              {!loading && !isLoggingOut && authenticated && <ActionButtons />}
+            </div>
+          </div>
         </div>
       </div>
     </div>
