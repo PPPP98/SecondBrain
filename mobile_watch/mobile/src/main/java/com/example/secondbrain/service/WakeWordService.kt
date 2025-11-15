@@ -12,7 +12,6 @@ import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.example.secondbrain.MainActivity
-import com.example.secondbrain.R
 import com.example.secondbrain.wakeword.WakeWordDetector
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
