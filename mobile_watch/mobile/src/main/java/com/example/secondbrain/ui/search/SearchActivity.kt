@@ -44,6 +44,7 @@ class SearchActivity : AppCompatActivity() {
     private lateinit var tvResultsTitle: TextView
     private lateinit var tvElasticTitle: TextView
     private lateinit var tvAgentTitle: TextView
+    private lateinit var tvAgentLoading: TextView
     private lateinit var tvAgentResponse: TextView
     private lateinit var rvElasticResults: RecyclerView
     private lateinit var rvAgentResults: RecyclerView
@@ -127,6 +128,7 @@ class SearchActivity : AppCompatActivity() {
         tvResultsTitle = findViewById(R.id.tvResultsTitle)
         tvElasticTitle = findViewById(R.id.tvElasticTitle)
         tvAgentTitle = findViewById(R.id.tvAgentTitle)
+        tvAgentLoading = findViewById(R.id.tvAgentLoading)
         tvAgentResponse = findViewById(R.id.tvAgentResponse)
         rvElasticResults = findViewById(R.id.rvElasticResults)
         rvAgentResults = findViewById(R.id.rvAgentResults)
@@ -253,11 +255,17 @@ class SearchActivity : AppCompatActivity() {
                 launch {
                     // AI Agent 결과 처리 (독립적)
                     try {
+                        // AI 로딩 상태 표시
+                        showAgentLoading()
+
                         val agentResponse = fastApiService.searchWithAgent(query, userId)
-                        // Agent 응답 메시지와 documents 모두 전달
+
+                        // 로딩 상태 숨기고 결과 표시
+                        hideAgentLoading()
                         displayAgentResults(agentResponse.response, agentResponse.documents ?: emptyList())
                     } catch (e: Exception) {
                         android.util.Log.e("SearchActivity", "Agent 검색 실패: ${e.message}", e)
+                        hideAgentLoading()
                         // Agent 실패는 조용히 처리 (선택적 기능)
                     }
                 }
@@ -293,6 +301,20 @@ class SearchActivity : AppCompatActivity() {
         }
     }
 
+    private fun showAgentLoading() {
+        runOnUiThread {
+            tvResultsTitle.visibility = View.VISIBLE
+            tvAgentTitle.visibility = View.VISIBLE
+            tvAgentLoading.visibility = View.VISIBLE
+        }
+    }
+
+    private fun hideAgentLoading() {
+        runOnUiThread {
+            tvAgentLoading.visibility = View.GONE
+        }
+    }
+
     private fun displayAgentResults(responseMessage: String, results: List<AgentNoteResult>) {
         runOnUiThread {
             android.util.Log.d("SearchActivity", "displayAgentResults 호출: 메시지='$responseMessage', 결과=${results.size}개")
@@ -320,6 +342,7 @@ class SearchActivity : AppCompatActivity() {
         tvResultsTitle.visibility = View.GONE
         tvElasticTitle.visibility = View.GONE
         tvAgentTitle.visibility = View.GONE
+        tvAgentLoading.visibility = View.GONE
         tvAgentResponse.visibility = View.GONE
         rvElasticResults.visibility = View.GONE
         rvAgentResults.visibility = View.GONE

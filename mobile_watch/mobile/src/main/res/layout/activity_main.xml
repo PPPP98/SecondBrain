@@ -9,10 +9,21 @@
     android:background="#F5F5F5"
     tools:context=".MainActivity">
 
+    <!-- 상태 표시 -->
+    <TextView
+        android:id="@+id/tvStatus"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="대기 중..."
+        android:textSize="14sp"
+        android:textColor="#666666"
+        android:textAlignment="center"
+        android:padding="8dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
     <!-- 음성 검색 페이지 이동 버튼 -->
-
-    <!-- 검색 및 테스트 영역 -->
-
     <Button
         android:id="@+id/btnGoToVoiceSearch"
         android:layout_width="0dp"
@@ -24,10 +35,10 @@
         android:text="음성/텍스트 검색 페이지"
         android:textSize="18sp"
         android:textStyle="bold"
+        android:layout_marginTop="8dp"
+        app:layout_constraintTop_toBottomOf="@id/tvStatus"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
-        app:layout_constraintStart_toStartOf="parent"
-        tools:layout_editor_absoluteY="34dp" />
+        app:layout_constraintStart_toStartOf="parent" />
 
     <LinearLayout
         android:id="@+id/searchLayout"
