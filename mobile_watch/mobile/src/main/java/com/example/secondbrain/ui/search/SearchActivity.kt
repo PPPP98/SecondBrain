@@ -44,6 +44,7 @@ class SearchActivity : AppCompatActivity() {
     private lateinit var tvResultsTitle: TextView
     private lateinit var tvElasticTitle: TextView
     private lateinit var tvAgentTitle: TextView
+    private lateinit var tvAgentResponse: TextView
     private lateinit var rvElasticResults: RecyclerView
     private lateinit var rvAgentResults: RecyclerView
     private lateinit var tvNoResults: TextView
@@ -126,6 +127,7 @@ class SearchActivity : AppCompatActivity() {
         tvResultsTitle = findViewById(R.id.tvResultsTitle)
         tvElasticTitle = findViewById(R.id.tvElasticTitle)
         tvAgentTitle = findViewById(R.id.tvAgentTitle)
+        tvAgentResponse = findViewById(R.id.tvAgentResponse)
         rvElasticResults = findViewById(R.id.rvElasticResults)
         rvAgentResults = findViewById(R.id.rvAgentResults)
         tvNoResults = findViewById(R.id.tvNoResults)
@@ -252,9 +254,8 @@ class SearchActivity : AppCompatActivity() {
                     // AI Agent 결과 처리 (독립적)
                     try {
                         val agentResponse = fastApiService.searchWithAgent(query, userId)
-                        agentResponse.documents?.let { documents ->
-                            displayAgentResults(documents)
-                        }
+                        // Agent 응답 메시지와 documents 모두 전달
+                        displayAgentResults(agentResponse.response, agentResponse.documents ?: emptyList())
                     } catch (e: Exception) {
                         android.util.Log.e("SearchActivity", "Agent 검색 실패: ${e.message}", e)
                         // Agent 실패는 조용히 처리 (선택적 기능)
@@ -292,17 +293,25 @@ class SearchActivity : AppCompatActivity() {
         }
     }
 
-    private fun displayAgentResults(results: List<AgentNoteResult>) {
+    private fun displayAgentResults(responseMessage: String, results: List<AgentNoteResult>) {
         runOnUiThread {
-            android.util.Log.d("SearchActivity", "displayAgentResults 호출: ${results.size}개")
-            if (results.isNotEmpty()) {
+            android.util.Log.d("SearchActivity", "displayAgentResults 호출: 메시지='$responseMessage', 결과=${results.size}개")
+
+            // AI 응답 메시지는 항상 표시
+            if (responseMessage.isNotEmpty()) {
                 tvResultsTitle.visibility = View.VISIBLE
                 tvAgentTitle.visibility = View.VISIBLE
+                tvAgentResponse.visibility = View.VISIBLE
+                tvAgentResponse.text = responseMessage
+            }
+
+            // 노트 결과가 있으면 RecyclerView 표시
+            if (results.isNotEmpty()) {
                 rvAgentResults.visibility = View.VISIBLE
                 agentAdapter.submitList(results.toList())
-                android.util.Log.d("SearchActivity", "Agent 결과 화면에 표시 완료")
+                android.util.Log.d("SearchActivity", "Agent 노트 결과 ${results.size}개 화면에 표시 완료")
             } else {
-                android.util.Log.d("SearchActivity", "Agent 결과가 비어있음")
+                android.util.Log.d("SearchActivity", "Agent 노트 결과가 비어있음 (메시지만 표시)")
             }
         }
     }
@@ -311,6 +320,7 @@ class SearchActivity : AppCompatActivity() {
         tvResultsTitle.visibility = View.GONE
         tvElasticTitle.visibility = View.GONE
         tvAgentTitle.visibility = View.GONE
+        tvAgentResponse.visibility = View.GONE
         rvElasticResults.visibility = View.GONE
         rvAgentResults.visibility = View.GONE
         tvNoResults.visibility = View.GONE

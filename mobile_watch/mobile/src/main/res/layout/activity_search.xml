@@ -164,6 +164,19 @@
                 android:paddingTop="16dp"
                 android:visibility="gone" />
 
+            <!-- AI 에이전트 응답 메시지 -->
+            <TextView
+                android:id="@+id/tvAgentResponse"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="14sp"
+                android:textColor="#555555"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp"
+                android:visibility="gone" />
+
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/rvAgentResults"
                 android:layout_width="match_parent"
