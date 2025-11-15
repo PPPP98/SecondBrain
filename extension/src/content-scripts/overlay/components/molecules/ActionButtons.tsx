@@ -63,11 +63,18 @@ export function ActionButtons({ activePanel, onTogglePanel }: ActionButtonsProps
 
   async function handleSave(): Promise<void> {
     try {
+      const MAX_SAVE_COUNT = 6;
       const urlsToSave = Array.from(pages);
       const currentUrl = window.location.href;
 
       // 수집된 페이지가 있으면 전체 저장, 없으면 현재 페이지만 저장
-      const finalUrls = urlsToSave.length > 0 ? urlsToSave : [currentUrl];
+      let finalUrls = urlsToSave.length > 0 ? urlsToSave : [currentUrl];
+
+      // 최대 개수 제한
+      if (finalUrls.length > MAX_SAVE_COUNT) {
+        showToast(`한 번에 최대 ${MAX_SAVE_COUNT}개까지 저장할 수 있습니다`, 'info');
+        finalUrls = finalUrls.slice(0, MAX_SAVE_COUNT);
+      }
 
       // 1. 각 URL을 Store에 'saving' 상태로 추가
       const requestIds = finalUrls.map((url) => addSaveRequest(url));
