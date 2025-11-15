@@ -33,8 +33,6 @@ export async function handleDragSearchMessage(
     // 캐시 확인
     const cached = searchCache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-      console.log(`[SecondBrain] 캐시에서 검색 결과 반환: "${message.keyword}"`);
-
       // 캐시된 결과 전송
       const cachedResponse: DragSearchResponse = {
         type: 'DRAG_SEARCH_RESULT',
@@ -42,7 +40,9 @@ export async function handleDragSearchMessage(
         results: cached.results,
         totalCount: cached.totalCount,
       };
-      await browser.tabs.sendMessage(sender.tab!.id!, cachedResponse);
+      browser.tabs.sendMessage(sender.tab!.id!, cachedResponse).catch((err) => {
+        console.error('[SecondBrain] 캐시 결과 전송 실패:', err);
+      });
       return;
     }
 
@@ -56,12 +56,11 @@ export async function handleDragSearchMessage(
         keyword: message.keyword,
         error: 'NO_TOKEN',
       };
-      await browser.tabs.sendMessage(sender.tab!.id!, errorResponse);
-      console.error('[SecondBrain] 드래그 검색 실패: 로그인 필요');
+      browser.tabs.sendMessage(sender.tab!.id!, errorResponse).catch((err) => {
+        console.error('[SecondBrain] 에러 응답 전송 실패:', err);
+      });
       return;
     }
-
-    console.log(`[SecondBrain] 드래그 검색 시작 (API 호출): "${message.keyword}"`);
 
     // API 호출 (최대 5개 결과)
     const response = await fetch(
@@ -81,10 +80,6 @@ export async function handleDragSearchMessage(
 
     const data = (await response.json()) as NoteSearchApiResponse;
 
-    console.log(
-      `[SecondBrain] 드래그 검색 완료: "${message.keyword}" - ${data.data.totalCount}개 결과`,
-    );
-
     // 캐시 저장
     searchCache.set(cacheKey, {
       keyword: message.keyword,
@@ -100,7 +95,7 @@ export async function handleDragSearchMessage(
       }
     }
 
-    // 결과 전송
+    // 결과 전송 (fire-and-forget: 응답 대기 불필요)
     const successResponse: DragSearchResponse = {
       type: 'DRAG_SEARCH_RESULT',
       keyword: message.keyword,
@@ -108,7 +103,9 @@ export async function handleDragSearchMessage(
       totalCount: data.data.totalCount,
     };
 
-    await browser.tabs.sendMessage(sender.tab!.id!, successResponse);
+    browser.tabs.sendMessage(sender.tab!.id!, successResponse).catch((err) => {
+      console.error('[SecondBrain] 검색 결과 전송 실패:', err);
+    });
   } catch (error) {
     console.error('[SecondBrain] 드래그 검색 오류:', error);
 
@@ -118,10 +115,8 @@ export async function handleDragSearchMessage(
       error: error instanceof Error ? error.message : 'UNKNOWN_ERROR',
     };
 
-    try {
-      await browser.tabs.sendMessage(sender.tab!.id!, errorResponse);
-    } catch (sendError) {
+    browser.tabs.sendMessage(sender.tab!.id!, errorResponse).catch((sendError) => {
       console.error('[SecondBrain] 에러 응답 전송 실패:', sendError);
-    }
+    });
   }
 }

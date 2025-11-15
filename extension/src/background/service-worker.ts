@@ -314,9 +314,12 @@ browser.runtime.onMessage.addListener(
         const msg = message as ExtensionMessage;
 
         // 드래그 검색 메시지 처리 (별도 핸들러)
+        // fire-and-forget: Background가 browser.tabs.sendMessage로 별도 응답
         if (msg.type === 'SEARCH_DRAG_TEXT') {
-          void handleDragSearchMessage(msg, sender);
+          // 즉시 응답하여 메시지 채널 정상 종료
           sendResponse({ success: true });
+          // 비동기 처리는 별도로 진행 (browser.tabs.sendMessage로 결과 전송)
+          void handleDragSearchMessage(msg, sender);
           return;
         }
 
