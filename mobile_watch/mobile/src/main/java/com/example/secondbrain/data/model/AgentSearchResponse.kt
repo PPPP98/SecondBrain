@@ -4,21 +4,30 @@ import com.google.gson.annotations.SerializedName
 
 // AI 에이전트 검색 응답 모델
 data class AgentSearchResponse(
-    @SerializedName("results")
-    val results: List<AgentNoteResult>
+    @SerializedName("success")
+    val success: Boolean,
+
+    @SerializedName("response")
+    val response: String,
+
+    @SerializedName("documents")
+    val documents: List<AgentNoteResult>?
 )
 
 // 에이전트가 추천하는 개별 노트 데이터
 data class AgentNoteResult(
-    @SerializedName("id")
+    @SerializedName("note_id")
     val id: Long,
 
     @SerializedName("title")
     val title: String,
 
-    @SerializedName("content")
-    val content: String,
+    @SerializedName("similarity_score")
+    val similarityScore: Double? = null,
 
-    @SerializedName("reason")
-    val reason: String? = null  // 추천 이유 (선택적)
+    @SerializedName("created_at")
+    val createdAt: String? = null,
+
+    @SerializedName("updated_at")
+    val updatedAt: String? = null
 )

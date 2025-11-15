@@ -19,6 +19,8 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.secondbrain.R
 import com.example.secondbrain.data.local.TokenManager
+import com.example.secondbrain.data.model.AgentNoteResult
+import com.example.secondbrain.data.model.NoteSearchResult
 import com.example.secondbrain.data.network.RetrofitClient
 import com.example.secondbrain.ui.note.NoteDetailActivity
 import kotlinx.coroutines.async
@@ -89,17 +91,21 @@ class SearchActivity : AppCompatActivity() {
         setContentView(R.layout.activity_search)
 
         tokenManager = TokenManager(this)
-        userId = tokenManager.getUserId() ?: -1
 
-        if (userId == -1L) {
-            Toast.makeText(this, "사용자 정보를 찾을 수 없습니다", Toast.LENGTH_SHORT).show()
-            finish()
-            return
+        // userId를 코루틴에서 가져오기
+        lifecycleScope.launch {
+            userId = tokenManager.getUserId() ?: -1
+
+            if (userId == -1L) {
+                Toast.makeText(this@SearchActivity, "사용자 정보를 찾을 수 없습니다", Toast.LENGTH_SHORT).show()
+                finish()
+                return@launch
+            }
+
+            initializeViews()
+            setupRecyclerViews()
+            setupListeners()
         }
-
-        initializeViews()
-        setupRecyclerViews()
-        setupListeners()
     }
 
     private fun initializeViews() {
@@ -209,44 +215,42 @@ class SearchActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             try {
-                val apiService = RetrofitClient.apiService
-                val fastApiService = RetrofitClient.fastApiService
+                // TokenManager에서 토큰 가져오기
+                val apiService = RetrofitClient.createApiService { tokenManager.getAccessToken() }
+                val fastApiService = RetrofitClient.createFastApiService { tokenManager.getAccessToken() }
 
-                // 병렬 API 호출
-                val elasticDeferred = async {
-                    apiService.searchNotes(query)
+                // 병렬 API 호출 (각각 독립적으로 실행)
+                launch {
+                    // ElasticSearch 결과 처리
+                    try {
+                        val apiResponse = apiService.searchNotes(query)
+                        apiResponse.data?.let { searchResponse ->
+                            displayElasticResults(searchResponse.results)
+                        }
+                    } catch (e: Exception) {
+                        android.util.Log.e("SearchActivity", "ElasticSearch 실패: ${e.message}", e)
+                        tvError.text = "검색 실패: ${e.message}"
+                        tvError.visibility = View.VISIBLE
+                    } finally {
+                        progressBar.visibility = View.GONE
+                    }
                 }
 
-                val agentDeferred = async {
-                    fastApiService.searchWithAgent(query, userId)
-                }
-
-                // ElasticSearch 결과를 먼저 처리
-                try {
-                    val elasticResponse = elasticDeferred.await()
-                    displayElasticResults(elasticResponse.results)
-                } catch (e: Exception) {
-                    tvError.text = "검색 실패: ${e.message}"
-                    tvError.visibility = View.VISIBLE
-                }
-
-                // AI Agent 결과를 비동기로 처리
-                try {
-                    val agentResponse = agentDeferred.await()
-                    displayAgentResults(agentResponse.results)
-                } catch (e: Exception) {
-                    // Agent 실패는 조용히 처리 (선택적 기능)
-                    tvAgentTitle.text = "AI 추천 결과 (로딩 실패)"
-                }
-
-                progressBar.visibility = View.GONE
-
-                // 둘 다 결과가 없으면 "결과 없음" 표시
-                if (elasticAdapter.itemCount == 0 && agentAdapter.itemCount == 0) {
-                    tvNoResults.visibility = View.VISIBLE
+                launch {
+                    // AI Agent 결과 처리 (독립적)
+                    try {
+                        val agentResponse = fastApiService.searchWithAgent(query, userId)
+                        agentResponse.documents?.let { documents ->
+                            displayAgentResults(documents)
+                        }
+                    } catch (e: Exception) {
+                        android.util.Log.e("SearchActivity", "Agent 검색 실패: ${e.message}", e)
+                        // Agent 실패는 조용히 처리 (선택적 기능)
+                    }
                 }
 
             } catch (e: Exception) {
+                android.util.Log.e("SearchActivity", "검색 중 오류: ${e.message}", e)
                 progressBar.visibility = View.GONE
                 tvError.text = "검색 중 오류 발생: ${e.message}"
                 tvError.visibility = View.VISIBLE
@@ -254,21 +258,40 @@ class SearchActivity : AppCompatActivity() {
         }
     }
 
-    private fun displayElasticResults(results: List<com.example.secondbrain.data.model.NoteSearchResult>) {
-        if (results.isNotEmpty()) {
-            tvResultsTitle.visibility = View.VISIBLE
-            tvElasticTitle.visibility = View.VISIBLE
-            rvElasticResults.visibility = View.VISIBLE
-            elasticAdapter.submitList(results)
+    private fun displayElasticResults(results: List<NoteSearchResult>) {
+        runOnUiThread {
+            android.util.Log.d("SearchActivity", "displayElasticResults 호출: ${results.size}개")
+            android.util.Log.d("SearchActivity", "첫 번째 결과: ${results.firstOrNull()?.title}")
+            if (results.isNotEmpty()) {
+                tvResultsTitle.visibility = View.VISIBLE
+                tvElasticTitle.visibility = View.VISIBLE
+                rvElasticResults.visibility = View.VISIBLE
+                elasticAdapter.updateResults(results)
+                rvElasticResults.post {
+                    android.util.Log.d("SearchActivity", "어댑터 itemCount: ${elasticAdapter.itemCount}")
+                    android.util.Log.d("SearchActivity", "RecyclerView visibility: ${rvElasticResults.visibility}")
+                    android.util.Log.d("SearchActivity", "RecyclerView height: ${rvElasticResults.height}")
+                    android.util.Log.d("SearchActivity", "RecyclerView childCount: ${rvElasticResults.childCount}")
+                }
+                android.util.Log.d("SearchActivity", "ElasticSearch 결과 화면에 표시 완료")
+            } else {
+                android.util.Log.d("SearchActivity", "ElasticSearch 결과가 비어있음")
+            }
         }
     }
 
-    private fun displayAgentResults(results: List<com.example.secondbrain.data.model.AgentNoteResult>) {
-        if (results.isNotEmpty()) {
-            tvResultsTitle.visibility = View.VISIBLE
-            tvAgentTitle.visibility = View.VISIBLE
-            rvAgentResults.visibility = View.VISIBLE
-            agentAdapter.submitList(results)
+    private fun displayAgentResults(results: List<AgentNoteResult>) {
+        runOnUiThread {
+            android.util.Log.d("SearchActivity", "displayAgentResults 호출: ${results.size}개")
+            if (results.isNotEmpty()) {
+                tvResultsTitle.visibility = View.VISIBLE
+                tvAgentTitle.visibility = View.VISIBLE
+                rvAgentResults.visibility = View.VISIBLE
+                agentAdapter.submitList(results.toList())
+                android.util.Log.d("SearchActivity", "Agent 결과 화면에 표시 완료")
+            } else {
+                android.util.Log.d("SearchActivity", "Agent 결과가 비어있음")
+            }
         }
     }
 

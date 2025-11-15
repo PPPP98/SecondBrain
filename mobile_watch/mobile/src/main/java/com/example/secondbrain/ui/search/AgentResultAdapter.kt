@@ -39,20 +39,17 @@ class AgentResultAdapter(
         fun bind(result: AgentNoteResult) {
             tvNoteTitle.text = result.title
 
-            // 내용 미리보기 (최대 100자)
-            tvNotePreview.text = if (result.content.length > 100) {
-                result.content.substring(0, 100) + "..."
-            } else {
-                result.content
+            // 유사도 점수 표시
+            result.similarityScore?.let { score ->
+                val percentage = (score * 100).toInt()
+                tvNotePreview.text = "유사도: ${percentage}%"
+                tvNotePreview.visibility = View.VISIBLE
+            } ?: run {
+                tvNotePreview.visibility = View.GONE
             }
 
-            // 추천 이유가 있으면 표시
-            if (!result.reason.isNullOrBlank()) {
-                tvReason.visibility = View.VISIBLE
-                tvReason.text = "추천 이유: ${result.reason}"
-            } else {
-                tvReason.visibility = View.GONE
-            }
+            // 추천 이유는 항상 숨김 (API에서 제공 안 함)
+            tvReason.visibility = View.GONE
 
             itemView.setOnClickListener {
                 onItemClick(result.id)

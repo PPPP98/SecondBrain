@@ -19,7 +19,7 @@ interface FastApiService {
     ): NeighborNodeResponse
 
     // AI 에이전트 검색 (노트 추천)
-    @GET("ai/api/v1/agents/search")
+    @GET("api/v1/agents/search")
     suspend fun searchWithAgent(
         @Query("query") query: String,
         @Header("X-User-ID") userId: Long
