@@ -74,7 +74,9 @@ export const DragSearchPanel: React.FC<DragSearchPanelProps> = ({
           <div className="mb-3 rounded-full bg-gray-50 p-3">
             <Search className="h-12 w-12 text-gray-300" />
           </div>
-          <p className="font-medium text-gray-600">&quot;{keyword}&quot;와 관련된 노트가 없습니다</p>
+          <p className="font-medium text-gray-600">
+            &quot;{keyword}&quot;와 관련된 노트가 없습니다
+          </p>
           <p className="mt-1 text-sm text-gray-400">다른 키워드로 검색해보세요</p>
         </div>
 

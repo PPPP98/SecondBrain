@@ -168,7 +168,9 @@ class DragSearchManager {
   /**
    * 설정 업데이트 메시지 수신
    */
-  private handleSettingsUpdate = (event: MessageEvent<{ type: string; settings?: unknown }>): void => {
+  private handleSettingsUpdate = (
+    event: MessageEvent<{ type: string; settings?: unknown }>,
+  ): void => {
     if (event.data?.type === 'DRAG_SEARCH_SETTINGS_UPDATED' && event.data.settings) {
       const newSettings = event.data.settings as DragSearchSettings;
       this.settings = newSettings;
