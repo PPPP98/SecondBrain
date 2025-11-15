@@ -122,7 +122,7 @@ export function ActionButtons() {
   const pageCount = pages.size;
 
   return (
-    <div className="relative w-[260px] space-y-2 rounded-xl border border-border bg-card p-4 shadow-lg">
+    <div className="relative w-[320px] space-y-2 rounded-xl border border-border bg-card p-4 shadow-lg">
       {/* Add Button + Counter Badge */}
       <div className="flex items-center gap-2">
         <Button

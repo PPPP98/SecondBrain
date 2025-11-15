@@ -7,6 +7,7 @@
 
 import { useState, useContext } from 'react';
 import { ThemeContext } from '@/contexts/ThemeContext';
+import { useExtensionAuth } from '@/hooks/useExtensionAuth';
 
 interface GoogleLoginButtonProps {
   text?: 'signin' | 'signup' | 'continue';
@@ -16,6 +17,7 @@ export function GoogleLoginButton({ text = 'signin' }: GoogleLoginButtonProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isPressed, setIsPressed] = useState(false);
   const { resolvedTheme } = useContext(ThemeContext);
+  const { login } = useExtensionAuth();
 
   const buttonText = {
     signin: 'Sign in with Google',
@@ -24,14 +26,7 @@ export function GoogleLoginButton({ text = 'signin' }: GoogleLoginButtonProps) {
   };
 
   async function handleLogin() {
-    try {
-      const { default: browser } = await import('webextension-polyfill');
-      await browser.runtime.sendMessage({
-        type: 'LOGIN',
-      });
-    } catch (error) {
-      console.error('❌ Extension login failed:', error);
-    }
+    await login();
   }
 
   // Theme-specific color palettes for Neumorphism

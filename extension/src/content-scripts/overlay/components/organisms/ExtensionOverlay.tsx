@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Toolbar } from '@/content-scripts/overlay/components/molecules/Toolbar';
-import { LoginPrompt } from '@/content-scripts/overlay/components/molecules/LoginPrompt';
+import { AuthCard } from '@/content-scripts/overlay/components/molecules/AuthCard';
 import { ActionButtons } from '@/content-scripts/overlay/components/molecules/ActionButtons';
 import { FloatingButton } from '@/content-scripts/overlay/components/atoms/FloatingButton';
-import { Spinner } from '@/content-scripts/overlay/components/atoms/Spinner';
 import { DragSearchPanel } from '@/content-scripts/overlay/components/organisms/DragSearchPanel';
 import { useExtensionAuth } from '@/hooks/useExtensionAuth';
 import { useOverlayState } from '@/hooks/useOverlayState';
@@ -174,16 +173,12 @@ export function ExtensionOverlay({ isOpen, onToggle }: ExtensionOverlayProps) {
         />
 
         <div className="p-4">
-          {(loading || isLoggingOut) && (
-            <div className="flex flex-col items-center justify-center p-8">
-              <Spinner size="sm" duration={1} />
-              <p className="mt-4 text-sm text-muted-foreground">
-                {isLoggingOut ? '로그아웃 중...' : '로딩 중...'}
-              </p>
-            </div>
+          {(loading || isLoggingOut || !authenticated) && (
+            <AuthCard
+              state={loading || isLoggingOut ? 'loading' : 'login'}
+              message={isLoggingOut ? '로그아웃 중...' : '로딩 중...'}
+            />
           )}
-
-          {!loading && !isLoggingOut && !authenticated && <LoginPrompt />}
 
           {!loading && !isLoggingOut && authenticated && (
             <>
