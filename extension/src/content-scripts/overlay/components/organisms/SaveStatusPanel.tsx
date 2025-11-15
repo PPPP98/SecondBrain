@@ -1,16 +1,25 @@
 import { X } from 'lucide-react';
 import { Button } from '@/content-scripts/overlay/components/ui/button';
+import { SaveBatchGroup } from '@/content-scripts/overlay/components/molecules/SaveBatchGroup';
 import { SaveStatusItem } from '@/content-scripts/overlay/components/molecules/SaveStatusItem';
 import { useSaveStatusStore } from '@/stores/saveStatusStore';
+import type { SaveRequest } from '@/types/save';
 
 interface SaveStatusPanelProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
+interface BatchGroup {
+  batchId: string;
+  requests: SaveRequest[];
+  timestamp: number;
+}
+
 /**
  * 저장 상태 패널 (Organism)
  * - 현재 진행 중인 저장 요청 목록 표시
+ * - 배치별로 그룹화하여 표시
  * - 실시간 상태 업데이트
  * - 완료된 항목 자동 제거
  * - Shadow DOM 환경 최적화
@@ -18,6 +27,26 @@ interface SaveStatusPanelProps {
 export function SaveStatusPanel({ onClose }: SaveStatusPanelProps) {
   const { getRequestList, removeSaveRequest } = useSaveStatusStore();
   const requests = getRequestList();
+
+  // batchId로 그룹화
+  function groupByBatchId(requests: SaveRequest[]): BatchGroup[] {
+    const groups = new Map<string, SaveRequest[]>();
+
+    requests.forEach((req) => {
+      const existing = groups.get(req.batchId) || [];
+      groups.set(req.batchId, [...existing, req]);
+    });
+
+    return Array.from(groups.entries())
+      .map(([batchId, reqs]) => ({
+        batchId,
+        requests: reqs,
+        timestamp: reqs[0]?.batchTimestamp || Date.now(),
+      }))
+      .sort((a, b) => b.timestamp - a.timestamp); // 최신순
+  }
+
+  const batches = groupByBatchId(requests);
 
   return (
     <div
@@ -42,16 +71,31 @@ export function SaveStatusPanel({ onClose }: SaveStatusPanelProps) {
         </Button>
       </div>
 
-      {/* Status List */}
-      <div className="flex-1 space-y-2 overflow-y-auto p-3 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-muted [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-muted-foreground/50">
-        {requests.length === 0 ? (
+      {/* Batch Groups / Single Items */}
+      <div className="flex-1 space-y-3 overflow-y-auto p-3 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-muted [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-muted-foreground/50">
+        {batches.length === 0 ? (
           <div className="py-8 text-center text-sm text-muted-foreground">
             저장 중인 항목이 없습니다
           </div>
         ) : (
-          requests.map((request) => (
-            <SaveStatusItem key={request.id} request={request} onRemove={removeSaveRequest} />
-          ))
+          batches.map((batch) =>
+            batch.requests.length === 1 ? (
+              // 단일 페이지: 낱개 표시
+              <SaveStatusItem
+                key={batch.requests[0].id}
+                request={batch.requests[0]}
+                onRemove={removeSaveRequest}
+              />
+            ) : (
+              // 다중 페이지: 그룹 표시
+              <SaveBatchGroup
+                key={batch.batchId}
+                batchId={batch.batchId}
+                requests={batch.requests}
+                onRemove={removeSaveRequest}
+              />
+            ),
+          )
         )}
       </div>
     </div>

@@ -76,8 +76,12 @@ export function ActionButtons({ activePanel, onTogglePanel }: ActionButtonsProps
         finalUrls = finalUrls.slice(0, MAX_SAVE_COUNT);
       }
 
+      // 배치 ID 및 타임스탬프 생성
+      const batchId = `batch_${Date.now()}`;
+      const batchTimestamp = Date.now();
+
       // 1. 각 URL을 Store에 'saving' 상태로 추가
-      const requestIds = finalUrls.map((url) => addSaveRequest(url));
+      const requestIds = finalUrls.map((url) => addSaveRequest(url, batchId, batchTimestamp));
 
       // 2. 패널 자동 열기 (이미 열려있지 않으면)
       if (activePanel !== 'saveStatus') {

@@ -24,4 +24,10 @@ export interface SaveRequest {
 
   /** 에러 메시지 (선택적) */
   error?: string;
+
+  /** 배치 ID (같은 Save 클릭으로 저장된 항목들) */
+  batchId: string;
+
+  /** 배치 타임스탬프 */
+  batchTimestamp: number;
 }

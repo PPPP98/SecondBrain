@@ -8,9 +8,11 @@ interface SaveStatusStore {
   /**
    * 새 저장 요청 추가
    * @param url 저장할 URL
+   * @param batchId 배치 ID
+   * @param batchTimestamp 배치 타임스탬프
    * @returns 생성된 요청 ID
    */
-  addSaveRequest: (url: string) => string;
+  addSaveRequest: (url: string, batchId: string, batchTimestamp: number) => string;
 
   /**
    * 저장 상태 업데이트
@@ -51,13 +53,15 @@ interface SaveStatusStore {
 export const useSaveStatusStore = create<SaveStatusStore>((set, get) => ({
   saveRequests: new Map(),
 
-  addSaveRequest: (url: string) => {
+  addSaveRequest: (url: string, batchId: string, batchTimestamp: number) => {
     const id = `save-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
     const request: SaveRequest = {
       id,
       url,
       status: 'saving',
       startTime: Date.now(),
+      batchId,
+      batchTimestamp,
     };
 
     set((state) => {
