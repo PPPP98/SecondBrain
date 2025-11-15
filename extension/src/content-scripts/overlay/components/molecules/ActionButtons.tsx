@@ -1,10 +1,6 @@
-import { useState } from 'react';
 import { Plus, Download, Settings } from 'lucide-react';
 import { Button } from '@/content-scripts/overlay/components/ui/button';
 import { CounterBadge } from '@/content-scripts/overlay/components/atoms/CounterBadge';
-import { URLListModal } from '@/content-scripts/overlay/components/organisms/URLListModal';
-import { SaveStatusPanel } from '@/content-scripts/overlay/components/organisms/SaveStatusPanel';
-import { DragSearchSettingsPanel } from '@/content-scripts/overlay/components/organisms/DragSearchSettingsPanel';
 import { usePageCollectionStore } from '@/stores/pageCollectionStore';
 import { useSaveStatusStore } from '@/stores/saveStatusStore';
 import browser from 'webextension-polyfill';
@@ -34,12 +30,16 @@ function getErrorMessage(errorCode: string): string {
  * - 비동기 요청 큐 관리로 여러 저장 요청 동시 처리
  * - Shadcn UI + Tailwind CSS 기반
  */
-export function ActionButtons() {
-  const [showURLList, setShowURLList] = useState(false);
-  const [showSaveStatus, setShowSaveStatus] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
 
-  const { pages, addPage, removePage, clearPages, getPageList } = usePageCollectionStore();
+type ActivePanel = null | 'urlList' | 'saveStatus' | 'settings';
+
+interface ActionButtonsProps {
+  activePanel: ActivePanel;
+  onTogglePanel: (panel: 'urlList' | 'saveStatus' | 'settings') => void;
+}
+
+export function ActionButtons({ onTogglePanel }: ActionButtonsProps) {
+  const { pages, addPage } = usePageCollectionStore();
   const { addSaveRequest, updateSaveStatus, getSavingCount } = useSaveStatusStore();
 
   async function handleAddPage(): Promise<void> {
@@ -63,7 +63,7 @@ export function ActionButtons() {
 
   async function handleSave(): Promise<void> {
     try {
-      const urlsToSave = getPageList();
+      const urlsToSave = Array.from(pages);
       const currentUrl = window.location.href;
 
       // 수집된 페이지가 있으면 전체 저장, 없으면 현재 페이지만 저장
@@ -73,7 +73,7 @@ export function ActionButtons() {
       const requestIds = finalUrls.map((url) => addSaveRequest(url));
 
       // 2. 패널 자동 열기
-      setShowSaveStatus(true);
+      onTogglePanel('saveStatus');
 
       // 3. Background Service Worker에 메시지 전송 (URLs 배열 포함)
       const rawResponse: unknown = await browser.runtime.sendMessage({
@@ -106,10 +106,7 @@ export function ActionButtons() {
         );
 
         // 성공 시 수집 목록 초기화
-        if (urlsToSave.length > 0) {
-          void clearPages();
-          setShowURLList(false);
-        }
+        // clearPages는 ExtensionOverlay의 onClearAll에서 처리됨
       }
     } catch (error) {
       // 예외 처리 (Background 통신 실패)
@@ -134,7 +131,7 @@ export function ActionButtons() {
           <span>Add</span>
         </Button>
 
-        <CounterBadge count={pageCount} onClick={() => setShowURLList(!showURLList)} />
+        <CounterBadge count={pageCount} onClick={() => onTogglePanel('urlList')} />
       </div>
 
       {/* Save Button + Status Toggle */}
@@ -150,41 +147,19 @@ export function ActionButtons() {
 
         {/* Save Status Toggle Button */}
         {savingCount > 0 && (
-          <CounterBadge count={savingCount} onClick={() => setShowSaveStatus(!showSaveStatus)} />
+          <CounterBadge count={savingCount} onClick={() => onTogglePanel('saveStatus')} />
         )}
-
-        {/* Save Status Panel */}
-        <SaveStatusPanel isOpen={showSaveStatus} onClose={() => setShowSaveStatus(false)} />
       </div>
 
       {/* Settings Button */}
       <Button
         variant="outline"
         className="w-full justify-start gap-2 hover:bg-accent"
-        onClick={() => setShowSettings(!showSettings)}
+        onClick={() => onTogglePanel('settings')}
       >
         <Settings className="h-4 w-4" />
         <span>드래그 검색 설정</span>
       </Button>
-
-      {/* URL List Modal */}
-      <URLListModal
-        isOpen={showURLList}
-        onClose={() => setShowURLList(false)}
-        urls={getPageList()}
-        onRemove={(url: string) => void removePage(url)}
-        onClearAll={() => {
-          void clearPages();
-          setShowURLList(false);
-        }}
-      />
-
-      {/* Settings Panel */}
-      {showSettings && (
-        <div className="absolute top-0 left-0 z-10 w-full">
-          <DragSearchSettingsPanel onClose={() => setShowSettings(false)} />
-        </div>
-      )}
     </div>
   );
 }

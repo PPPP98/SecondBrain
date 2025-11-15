@@ -4,11 +4,16 @@ import { AuthCard } from '@/content-scripts/overlay/components/molecules/AuthCar
 import { ActionButtons } from '@/content-scripts/overlay/components/molecules/ActionButtons';
 import { FloatingButton } from '@/content-scripts/overlay/components/atoms/FloatingButton';
 import { DragSearchPanel } from '@/content-scripts/overlay/components/organisms/DragSearchPanel';
+import { URLListModal } from '@/content-scripts/overlay/components/organisms/URLListModal';
+import { SaveStatusPanel } from '@/content-scripts/overlay/components/organisms/SaveStatusPanel';
+import { DragSearchSettingsPanel } from '@/content-scripts/overlay/components/organisms/DragSearchSettingsPanel';
 import { useExtensionAuth } from '@/hooks/useExtensionAuth';
 import { useOverlayState } from '@/hooks/useOverlayState';
 import { usePageCollectionStore } from '@/stores/pageCollectionStore';
 import { useDragSearchStore } from '@/stores/dragSearchStore';
 import * as storage from '@/services/storageService';
+
+type ActivePanel = null | 'urlList' | 'saveStatus' | 'settings';
 
 /**
  * Extension Overlay (Organism)
@@ -26,7 +31,8 @@ interface ExtensionOverlayProps {
 export function ExtensionOverlay({ isOpen, onToggle }: ExtensionOverlayProps) {
   const { loading, authenticated, user, logout } = useExtensionAuth();
   const { isExpanded, isCollapsed, isHidden, expand, collapse } = useOverlayState();
-  const { initialize, syncFromStorage } = usePageCollectionStore();
+  const { initialize, syncFromStorage, getPageList, removePage, clearPages } =
+    usePageCollectionStore();
   const {
     keyword,
     results,
@@ -38,6 +44,7 @@ export function ExtensionOverlay({ isOpen, onToggle }: ExtensionOverlayProps) {
   const [isAnimating, setIsAnimating] = useState(false);
   const [animationPhase, setAnimationPhase] = useState<'idle' | 'expanding' | 'collapsing'>('idle');
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [activePanel, setActivePanel] = useState<ActivePanel>(null);
 
   // Storage 초기화 (마운트 시 한 번만)
   useEffect(() => {
@@ -122,6 +129,10 @@ export function ExtensionOverlay({ isOpen, onToggle }: ExtensionOverlayProps) {
     })();
   };
 
+  function handleTogglePanel(panel: 'urlList' | 'saveStatus' | 'settings'): void {
+    setActivePanel((prev) => (prev === panel ? null : panel));
+  }
+
   // Collapsed 상태: Floating 버튼만 표시 (with animation)
   if (isCollapsed && !isAnimating) {
     return (
@@ -194,7 +205,7 @@ export function ExtensionOverlay({ isOpen, onToggle }: ExtensionOverlayProps) {
                 className={`transition-all duration-500 ease-in-out ${
                   loading || isLoggingOut || !authenticated
                     ? 'translate-y-0 opacity-100'
-                    : '-translate-y-full opacity-0 absolute top-0 left-0 w-full pointer-events-none'
+                    : 'pointer-events-none absolute top-0 left-0 w-full -translate-y-full opacity-0'
                 }`}
               >
                 <AuthCard
@@ -209,11 +220,77 @@ export function ExtensionOverlay({ isOpen, onToggle }: ExtensionOverlayProps) {
               className={`transition-all duration-500 ease-in-out ${
                 !loading && !isLoggingOut && authenticated
                   ? 'translate-y-0 opacity-100'
-                  : 'translate-y-full opacity-0 pointer-events-none'
+                  : 'pointer-events-none translate-y-full opacity-0'
               }`}
             >
-              {!loading && !isLoggingOut && authenticated && <ActionButtons />}
+              {!loading && !isLoggingOut && authenticated && (
+                <ActionButtons activePanel={activePanel} onTogglePanel={handleTogglePanel} />
+              )}
             </div>
+
+            {/* 패널 영역 - 드롭다운처럼 펼쳐짐 */}
+            {!loading && !isLoggingOut && authenticated && (
+              <div
+                className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                  activePanel === 'settings'
+                    ? 'mt-4 max-h-[600px] opacity-100'
+                    : activePanel
+                      ? 'mt-4 max-h-[400px] opacity-100'
+                      : 'max-h-0 opacity-0'
+                }`}
+              >
+                {activePanel && (
+                  <div className="relative">
+                    {/* URLListModal */}
+                    <div
+                      className={`transition-opacity duration-150 ${
+                        activePanel === 'urlList'
+                          ? 'opacity-100'
+                          : 'pointer-events-none absolute inset-0 opacity-0'
+                      }`}
+                    >
+                      <URLListModal
+                        isOpen={activePanel === 'urlList'}
+                        onClose={() => setActivePanel(null)}
+                        urls={getPageList()}
+                        onRemove={(url: string) => {
+                          void removePage(url);
+                        }}
+                        onClearAll={() => {
+                          void clearPages();
+                          setActivePanel(null);
+                        }}
+                      />
+                    </div>
+
+                    {/* SaveStatusPanel */}
+                    <div
+                      className={`transition-opacity duration-150 ${
+                        activePanel === 'saveStatus'
+                          ? 'opacity-100'
+                          : 'pointer-events-none absolute inset-0 opacity-0'
+                      }`}
+                    >
+                      <SaveStatusPanel
+                        isOpen={activePanel === 'saveStatus'}
+                        onClose={() => setActivePanel(null)}
+                      />
+                    </div>
+
+                    {/* DragSearchSettingsPanel */}
+                    <div
+                      className={`transition-opacity duration-150 ${
+                        activePanel === 'settings'
+                          ? 'opacity-100'
+                          : 'pointer-events-none absolute inset-0 opacity-0'
+                      }`}
+                    >
+                      <DragSearchSettingsPanel onClose={() => setActivePanel(null)} />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>

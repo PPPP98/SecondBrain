@@ -2,7 +2,6 @@ import { X } from 'lucide-react';
 import { Button } from '@/content-scripts/overlay/components/ui/button';
 import { SaveStatusItem } from '@/content-scripts/overlay/components/molecules/SaveStatusItem';
 import { useSaveStatusStore } from '@/stores/saveStatusStore';
-import { cn } from '@/lib/utils/utils';
 
 interface SaveStatusPanelProps {
   isOpen: boolean;
@@ -16,16 +15,13 @@ interface SaveStatusPanelProps {
  * - 완료된 항목 자동 제거
  * - Shadow DOM 환경 최적화
  */
-export function SaveStatusPanel({ isOpen, onClose }: SaveStatusPanelProps) {
+export function SaveStatusPanel({ onClose }: SaveStatusPanelProps) {
   const { getRequestList, removeSaveRequest } = useSaveStatusStore();
   const requests = getRequestList();
 
   return (
     <div
-      className={cn(
-        'absolute top-full left-0 z-10 mt-2 w-full rounded-lg border border-border bg-card shadow-xl transition-all duration-300',
-        isOpen ? 'translate-y-0 opacity-100' : 'pointer-events-none -translate-y-2 opacity-0',
-      )}
+      className="w-[320px] rounded-lg border border-border bg-card shadow-xl"
       style={{
         maxHeight: '300px',
         display: 'flex',

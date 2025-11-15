@@ -37,7 +37,7 @@ export function AuthCard({ state, message = '로딩 중...' }: AuthCardProps) {
         {/* Loading 상태 내용 */}
         <div
           className={`transition-opacity duration-300 ${
-            state === 'loading' ? 'opacity-100' : 'opacity-0 absolute inset-0 pointer-events-none'
+            state === 'loading' ? 'opacity-100' : 'pointer-events-none absolute inset-0 opacity-0'
           }`}
         >
           <p className="text-center text-sm text-muted-foreground">{message}</p>
@@ -46,10 +46,12 @@ export function AuthCard({ state, message = '로딩 중...' }: AuthCardProps) {
         {/* Login 상태 내용 */}
         <div
           className={`transition-opacity duration-300 ${
-            state === 'login' ? 'opacity-100' : 'opacity-0 pointer-events-none'
+            state === 'login' ? 'opacity-100' : 'pointer-events-none opacity-0'
           }`}
         >
-          <h3 className="mb-2 text-center text-lg font-semibold text-card-foreground">Second Brain</h3>
+          <h3 className="mb-2 text-center text-lg font-semibold text-card-foreground">
+            Second Brain
+          </h3>
 
           <div className="flex justify-center">
             <GoogleLoginButton text="signin" />
