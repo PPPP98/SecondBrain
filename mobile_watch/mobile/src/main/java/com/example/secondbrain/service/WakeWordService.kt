@@ -5,10 +5,12 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
+import android.os.PowerManager
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.example.secondbrain.MainActivity
@@ -145,6 +147,18 @@ class WakeWordService : Service() {
     private fun onWakeWordDetected() {
         Log.i(TAG, "웨이크워드 처리 시작")
 
+        // 화면 켜기 (WakeLock 사용)
+        val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
+        val wakeLock = powerManager.newWakeLock(
+            PowerManager.SCREEN_BRIGHT_WAKE_LOCK or
+                    PowerManager.ACQUIRE_CAUSES_WAKEUP or
+                    PowerManager.ON_AFTER_RELEASE,
+            "SecondBrain:WakeWordWakeLock"
+        )
+
+        // 10초 동안 화면 켜기
+        wakeLock.acquire(10000)
+
         // SearchActivity 직접 시작 (백그라운드에서 foreground로 가져오기)
         val activityIntent = Intent(this, com.example.secondbrain.ui.search.SearchActivity::class.java).apply {
             // 새 태스크로 시작하고, 기존 인스턴스가 있으면 재사용
@@ -160,6 +174,11 @@ class WakeWordService : Service() {
             Log.i(TAG, "✅ SearchActivity 시작 성공 (STT 자동 시작)")
         } catch (e: Exception) {
             Log.e(TAG, "❌ 액티비티 시작 실패", e)
+        } finally {
+            // WakeLock이 자동으로 해제되도록 했지만, 명시적으로 해제
+            if (wakeLock.isHeld) {
+                wakeLock.release()
+            }
         }
 
         // 알림을 수동으로 클릭했을 때 사용할 Intent (STT 자동 시작 없음)
