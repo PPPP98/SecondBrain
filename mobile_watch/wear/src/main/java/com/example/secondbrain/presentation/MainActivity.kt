@@ -42,7 +42,6 @@ import com.example.secondbrain.presentation.theme.SecondBrainTheme
 import com.example.secondbrain.voicerecognition.VoiceRecognitionManager
 import com.example.secondbrain.utils.LogUtils
 import com.example.secondbrain.communication.WearableMessageSender
-import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
