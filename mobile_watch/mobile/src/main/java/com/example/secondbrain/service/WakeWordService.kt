@@ -145,22 +145,21 @@ class WakeWordService : Service() {
     private fun onWakeWordDetected() {
         Log.i(TAG, "웨이크워드 처리 시작")
 
-        // Android 15에서는 백그라운드에서 액티비티를 직접 시작할 수 없음
-        // Full-Screen Intent를 통해서만 가능
-        val activityIntent = Intent(this, MainActivity::class.java).apply {
+        // SearchActivity 직접 시작 (백그라운드에서 foreground로 가져오기)
+        val activityIntent = Intent(this, com.example.secondbrain.ui.search.SearchActivity::class.java).apply {
             // 새 태스크로 시작하고, 기존 인스턴스가 있으면 재사용
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or
-                    Intent.FLAG_ACTIVITY_SINGLE_TOP
-            putExtra("wake_word_detected", true)
-            putExtra("auto_opened", true) // 자동으로 열렸음을 표시
+                    Intent.FLAG_ACTIVITY_SINGLE_TOP or
+                    Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+            putExtra("auto_start_stt", true)  // STT 자동 시작 플래그
         }
 
-        // 알림을 탭해서 열 때 사용할 Intent (자동 종료하지 않음)
-        val manualIntent = Intent(this, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or
-                    Intent.FLAG_ACTIVITY_SINGLE_TOP
-            putExtra("wake_word_detected", true)
-            putExtra("auto_opened", false) // 수동으로 열렸음을 표시
+        // 액티비티 직접 시작
+        try {
+            startActivity(activityIntent)
+            Log.i(TAG, "✅ SearchActivity 시작 성공 (STT 자동 시작)")
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ 액티비티 시작 실패", e)
         }
 
         // Full-Screen Intent PendingIntent 생성
