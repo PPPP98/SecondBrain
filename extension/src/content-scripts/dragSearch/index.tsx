@@ -45,10 +45,8 @@ class DragSearchManager {
     // Background로부터 응답 수신
     browser.runtime.onMessage.addListener(this.handleBackgroundMessage);
 
-    // 설정 변경 메시지 수신
-    window.addEventListener('message', this.handleSettingsUpdate);
-
-    console.log('[SecondBrain] 드래그 검색 기능 활성화됨', this.settings);
+    // Storage 변경 감지 (설정 업데이트)
+    browser.storage.onChanged.addListener(this.handleStorageChange);
   }
 
   /**
@@ -60,19 +58,33 @@ class DragSearchManager {
   };
 
   /**
-   * 플로팅 버튼 표시
+   * 플로팅 버튼 표시 (Shadow DOM 사용)
    */
   private showFloatingButton(position: FloatingButtonPosition): void {
     // 기존 버튼 제거
     this.hideFloatingButton();
 
-    // 컨테이너 생성
+    // Shadow Host 생성
     this.floatingButtonContainer = document.createElement('div');
     this.floatingButtonContainer.id = 'secondbrain-drag-search-button';
+    this.floatingButtonContainer.style.cssText =
+      'all: initial; position: fixed; z-index: 2147483647;';
     document.body.appendChild(this.floatingButtonContainer);
 
+    // Shadow DOM 생성
+    const shadowRoot = this.floatingButtonContainer.attachShadow({ mode: 'open' });
+
+    // Tailwind CSS 주입
+    const style = document.createElement('style');
+    style.textContent = this.getTailwindStyles();
+    shadowRoot.appendChild(style);
+
+    // React 컨테이너 생성
+    const reactContainer = document.createElement('div');
+    shadowRoot.appendChild(reactContainer);
+
     // React 렌더링
-    this.floatingButtonRoot = ReactDOM.createRoot(this.floatingButtonContainer);
+    this.floatingButtonRoot = ReactDOM.createRoot(reactContainer);
     this.floatingButtonRoot.render(
       <FloatingSearchButton
         position={position}
@@ -82,6 +94,108 @@ class DragSearchManager {
         autoHideMs={this.settings.autoHideMs}
       />,
     );
+  }
+
+  /**
+   * FloatingSearchButton용 Tailwind 스타일
+   */
+  private getTailwindStyles(): string {
+    return `
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+      }
+
+      .fixed { position: fixed; }
+      .flex { display: flex; }
+      .items-center { align-items: center; }
+      .gap-2 { gap: 0.5rem; }
+      .rounded-lg { border-radius: 0.5rem; }
+      .bg-white { background-color: white; }
+      .shadow-lg { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
+      .hover\\:shadow-xl:hover { box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); }
+      .px-3 { padding-left: 0.75rem; padding-right: 0.75rem; }
+      .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+      .px-2 { padding-left: 0.5rem; padding-right: 0.5rem; }
+      .text-sm { font-size: 0.875rem; line-height: 1.25rem; }
+      .font-medium { font-weight: 500; }
+      .text-gray-700 { color: rgb(55, 65, 81); }
+      .text-gray-400 { color: rgb(156, 163, 175); }
+      .hover\\:text-blue-600:hover { color: rgb(37, 99, 235); }
+      .hover\\:text-gray-600:hover { color: rgb(75, 85, 99); }
+      .transition-colors { transition-property: color, background-color, border-color, text-decoration-color, fill, stroke; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); transition-duration: 150ms; }
+      .transition-all { transition-property: all; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); transition-duration: 150ms; }
+      .duration-200 { transition-duration: 200ms; }
+      .max-w-\\[200px\\] { max-width: 200px; }
+      .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .flex-shrink-0 { flex-shrink: 0; }
+      .cursor-pointer { cursor: pointer; }
+
+      button {
+        all: unset;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+      }
+
+      .floating-button {
+        position: fixed;
+        z-index: 999999;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.25rem;
+        background-color: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        border: 1px solid rgba(0, 0, 0, 0.05);
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .floating-button:hover {
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      }
+
+      .search-button {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: rgb(55, 65, 81);
+        transition: color 150ms;
+      }
+
+      .search-button:hover {
+        color: rgb(37, 99, 235);
+      }
+
+      .close-button {
+        padding: 0.5rem;
+        color: rgb(156, 163, 175);
+        transition: color 150ms;
+      }
+
+      .close-button:hover {
+        color: rgb(75, 85, 99);
+      }
+
+      .keyword-text {
+        max-width: 200px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .icon {
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
+      }
+    `;
   }
 
   /**
@@ -119,7 +233,7 @@ class DragSearchManager {
   /**
    * Background로부터 검색 결과 수신
    */
-  private handleBackgroundMessage = (message: unknown): void => {
+  private handleBackgroundMessage = (message: unknown): void | boolean => {
     const response = message as DragSearchResponse;
 
     if (response.type === 'DRAG_SEARCH_RESULT') {
@@ -129,6 +243,7 @@ class DragSearchManager {
         response.results || [],
         response.totalCount || 0,
       );
+      return; // 명시적 undefined 반환 (비동기 응답 불필요)
     } else if (response.type === 'DRAG_SEARCH_ERROR') {
       // 에러 표시
       console.error('[SecondBrain] 드래그 검색 에러:', response.error);
@@ -144,7 +259,11 @@ class DragSearchManager {
         },
         '*',
       );
+      return; // 명시적 undefined 반환 (비동기 응답 불필요)
     }
+
+    // 이 리스너가 처리하지 않는 메시지는 무시
+    return; // 명시적 undefined 반환
   };
 
   /**
@@ -166,16 +285,18 @@ class DragSearchManager {
   }
 
   /**
-   * 설정 업데이트 메시지 수신
+   * Storage 변경 감지 (설정 업데이트)
    */
-  private handleSettingsUpdate = (
-    event: MessageEvent<{ type: string; settings?: unknown }>,
+  private handleStorageChange = (
+    changes: Record<string, browser.Storage.StorageChange>,
+    areaName: string,
   ): void => {
-    if (event.data?.type === 'DRAG_SEARCH_SETTINGS_UPDATED' && event.data.settings) {
-      const newSettings = event.data.settings as DragSearchSettings;
-      this.settings = newSettings;
-      this.listener?.updateSettings(newSettings);
-      console.log('[SecondBrain] 드래그 검색 설정 업데이트됨', newSettings);
+    if (areaName === 'local' && changes.dragSearchSettings) {
+      const newSettings = changes.dragSearchSettings.newValue as DragSearchSettings | undefined;
+      if (newSettings) {
+        this.settings = { ...DEFAULT_SETTINGS, ...newSettings };
+        this.listener?.updateSettings(this.settings);
+      }
     }
   };
 
@@ -186,7 +307,7 @@ class DragSearchManager {
     this.listener?.destroy();
     this.hideFloatingButton();
     browser.runtime.onMessage.removeListener(this.handleBackgroundMessage);
-    window.removeEventListener('message', this.handleSettingsUpdate);
+    browser.storage.onChanged.removeListener(this.handleStorageChange);
   }
 }
 
