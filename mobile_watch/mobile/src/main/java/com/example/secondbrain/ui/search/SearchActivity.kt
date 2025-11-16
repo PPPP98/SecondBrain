@@ -3,9 +3,11 @@ package com.example.secondbrain.ui.search
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.speech.RecognizerIntent
 import android.view.View
+import android.view.WindowManager
 import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.ProgressBar
@@ -20,6 +22,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.secondbrain.R
 import com.example.secondbrain.data.local.TokenManager
 import com.example.secondbrain.data.model.AgentNoteResult
+import com.example.secondbrain.data.model.AgentSearchResponse
 import com.example.secondbrain.data.model.NoteSearchResult
 import com.example.secondbrain.data.network.RetrofitClient
 import com.example.secondbrain.ui.note.NoteDetailActivity
@@ -108,8 +111,16 @@ class SearchActivity : AppCompatActivity() {
             setupRecyclerViews()
             setupListeners()
 
+            // 워치에서 전달된 검색 결과 처리
+            if (intent.getBooleanExtra("FROM_WEARABLE", false)) {
+                handleWearableSearchResult()
+            }
+            // 워치 알림에서 Deep Link로 실행된 경우
+            else if (intent.action == Intent.ACTION_VIEW && intent.data != null) {
+                handleDeepLink()
+            }
             // 웨이크워드로 실행된 경우 자동으로 STT 시작
-            if (intent.getBooleanExtra("auto_start_stt", false)) {
+            else if (intent.getBooleanExtra("auto_start_stt", false)) {
                 android.util.Log.d("SearchActivity", "웨이크워드 감지로 실행됨 - STT 자동 시작")
                 // UI가 완전히 준비된 후 STT 시작
                 btnVoiceSearch.postDelayed({
@@ -347,6 +358,108 @@ class SearchActivity : AppCompatActivity() {
         rvElasticResults.visibility = View.GONE
         rvAgentResults.visibility = View.GONE
         tvNoResults.visibility = View.GONE
+    }
+
+    /**
+     * 워치에서 전달된 검색 결과 처리
+     */
+    private fun handleWearableSearchResult() {
+        try {
+            // 화면 켜기 및 잠금 화면 위에 표시
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+                setShowWhenLocked(true)
+                setTurnScreenOn(true)
+            } else {
+                @Suppress("DEPRECATION")
+                window.addFlags(
+                    WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
+                    WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON or
+                    WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
+                )
+            }
+
+            val query = intent.getStringExtra("SEARCH_QUERY") ?: ""
+            val responseMessage = intent.getStringExtra("SEARCH_RESPONSE") ?: ""
+            val searchResult = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                intent.getSerializableExtra("SEARCH_RESULT", AgentSearchResponse::class.java)
+            } else {
+                @Suppress("DEPRECATION")
+                intent.getSerializableExtra("SEARCH_RESULT") as? AgentSearchResponse
+            }
+
+            android.util.Log.d("SearchActivity", "워치 검색 결과 수신: query='$query', response='$responseMessage'")
+
+            // 검색어를 입력창에 표시
+            etSearchQuery.setText(query)
+
+            // 결과 표시
+            hideAllResults()
+
+            if (searchResult != null) {
+                displayAgentResults(
+                    searchResult.response,
+                    searchResult.documents ?: emptyList()
+                )
+                android.util.Log.d("SearchActivity", "워치 검색 결과 표시 완료: ${searchResult.documents?.size ?: 0}개 노트")
+            } else {
+                // 검색 결과가 없는 경우 메시지만 표시
+                tvResultsTitle.visibility = View.VISIBLE
+                tvAgentTitle.visibility = View.VISIBLE
+                tvAgentResponse.visibility = View.VISIBLE
+                tvAgentResponse.text = responseMessage
+                android.util.Log.d("SearchActivity", "워치 검색 메시지만 표시: $responseMessage")
+            }
+
+        } catch (e: Exception) {
+            android.util.Log.e("SearchActivity", "워치 검색 결과 처리 실패", e)
+            Toast.makeText(this, "검색 결과를 표시할 수 없습니다", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    /**
+     * 워치 알림에서 Deep Link로 열렸을 때 처리
+     * URI: secondbrain://search?message=<응답 메시지>
+     */
+    private fun handleDeepLink() {
+        try {
+            val uri = intent.data
+            android.util.Log.d("SearchActivity", "Deep Link 수신: $uri")
+
+            // 화면 켜기 및 잠금 화면 위에 표시
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+                setShowWhenLocked(true)
+                setTurnScreenOn(true)
+            } else {
+                @Suppress("DEPRECATION")
+                window.addFlags(
+                    WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
+                    WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON or
+                    WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
+                )
+            }
+
+            if (uri?.scheme == "secondbrain" && uri.host == "search") {
+                val message = uri.getQueryParameter("message")
+                android.util.Log.d("SearchActivity", "Deep Link 메시지: '$message'")
+
+                // 결과 표시
+                hideAllResults()
+
+                if (!message.isNullOrBlank()) {
+                    tvResultsTitle.visibility = View.VISIBLE
+                    tvAgentTitle.visibility = View.VISIBLE
+                    tvAgentResponse.visibility = View.VISIBLE
+                    tvAgentResponse.text = message
+                    android.util.Log.d("SearchActivity", "Deep Link 메시지 표시 완료")
+                }
+            } else {
+                android.util.Log.w("SearchActivity", "알 수 없는 Deep Link: $uri")
+            }
+
+        } catch (e: Exception) {
+            android.util.Log.e("SearchActivity", "Deep Link 처리 실패", e)
+            Toast.makeText(this, "알림을 열 수 없습니다", Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun navigateToNoteDetail(noteId: Long) {
