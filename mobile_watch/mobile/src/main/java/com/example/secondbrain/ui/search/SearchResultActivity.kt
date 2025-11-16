@@ -3,7 +3,6 @@ package com.example.secondbrain.ui.search
 import android.content.Intent
 import android.os.Bundle
 import android.view.View
-import android.widget.ImageButton
 import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
@@ -26,7 +25,8 @@ import kotlinx.coroutines.launch
 class SearchResultActivity : AppCompatActivity() {
 
     // UI 컴포넌트
-    private lateinit var btnBack: ImageButton
+    private lateinit var btnBack: TextView
+    private lateinit var tvSearchQuery: TextView
     private lateinit var progressBar: ProgressBar
     private lateinit var tvResultsTitle: TextView
     private lateinit var tvElasticTitle: TextView
@@ -37,6 +37,8 @@ class SearchResultActivity : AppCompatActivity() {
     private lateinit var rvAgentResults: RecyclerView
     private lateinit var tvNoResults: TextView
     private lateinit var tvError: TextView
+    private lateinit var divider1: View
+    private lateinit var divider2: View
 
     // 어댑터
     private lateinit var elasticAdapter: SearchResultAdapter
@@ -77,6 +79,7 @@ class SearchResultActivity : AppCompatActivity() {
 
     private fun initializeViews() {
         btnBack = findViewById(R.id.btnBack)
+        tvSearchQuery = findViewById(R.id.tvSearchQuery)
         progressBar = findViewById(R.id.progressBar)
         tvResultsTitle = findViewById(R.id.tvResultsTitle)
         tvElasticTitle = findViewById(R.id.tvElasticTitle)
@@ -87,6 +90,12 @@ class SearchResultActivity : AppCompatActivity() {
         rvAgentResults = findViewById(R.id.rvAgentResults)
         tvNoResults = findViewById(R.id.tvNoResults)
         tvError = findViewById(R.id.tvError)
+        divider1 = findViewById(R.id.divider1)
+        divider2 = findViewById(R.id.divider2)
+
+        // 검색어 표시
+        val query = intent.getStringExtra("SEARCH_QUERY") ?: ""
+        tvSearchQuery.text = query
 
         // 뒤로가기 버튼 클릭 리스너
         btnBack.setOnClickListener {
@@ -182,6 +191,7 @@ class SearchResultActivity : AppCompatActivity() {
                 tvResultsTitle.visibility = View.VISIBLE
                 tvElasticTitle.visibility = View.VISIBLE
                 rvElasticResults.visibility = View.VISIBLE
+                divider1.visibility = View.VISIBLE
                 elasticAdapter.updateResults(results)
                 android.util.Log.d("SearchResultActivity", "ElasticSearch 결과 화면에 표시 완료")
             } else {
@@ -214,6 +224,7 @@ class SearchResultActivity : AppCompatActivity() {
                 tvAgentTitle.visibility = View.VISIBLE
                 tvAgentResponse.visibility = View.VISIBLE
                 tvAgentResponse.text = responseMessage
+                divider2.visibility = View.VISIBLE
             }
 
             // 노트 결과가 있으면 RecyclerView 표시
