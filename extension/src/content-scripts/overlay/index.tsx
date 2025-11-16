@@ -55,19 +55,23 @@ export function onExecute() {
     renderOverlay(false);
 
     // Background로부터 메시지 수신 (Content Script 레벨)
-    browser.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) => {
+    // TOGGLE_OVERLAY와 PING만 처리하는 전용 리스너
+    browser.runtime.onMessage.addListener(((message: unknown, _sender, sendResponse) => {
       const msg = message as { type: string };
 
       if (msg.type === 'TOGGLE_OVERLAY') {
         renderOverlay(!isOverlayVisible);
         sendResponse({ success: true });
-      } else if (msg.type === 'PING') {
-        // Content Script가 활성화되어 있음을 알리는 응답
-        sendResponse({ pong: true });
+        return true;
       }
 
-      return true; // 비동기 응답을 위해 true 반환
-    });
+      if (msg.type === 'PING') {
+        sendResponse({ pong: true });
+        return true;
+      }
+
+      // 처리하지 않은 메시지는 다른 리스너에게 위임
+    }) as browser.Runtime.OnMessageListener);
   } catch (error) {
     console.error('❌ [Content Script] Fatal error:', error);
     console.error('Stack trace:', (error as Error).stack);
