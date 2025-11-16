@@ -44,7 +44,7 @@ export function CompactSearchPopup({
         <div className="flex justify-end px-3 py-2">
           <button
             onClick={onClose}
-            className="rounded-full p-1.5 text-muted-foreground transition-all hover:bg-accent hover:text-foreground hover:rotate-90"
+            className="rounded-full p-1.5 text-muted-foreground transition-all hover:rotate-90 hover:bg-accent hover:text-foreground"
             aria-label="닫기"
           >
             <X className="h-4 w-4" />

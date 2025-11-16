@@ -148,7 +148,7 @@ export function DragSearchPanel({
             </h4>
 
             {/* 내용 미리보기 */}
-            <p className="line-clamp-1 mt-1 text-xs leading-relaxed text-black/70 dark:text-white/70">
+            <p className="mt-1 line-clamp-1 text-xs leading-relaxed text-black/70 dark:text-white/70">
               {note.content}
             </p>
           </div>
