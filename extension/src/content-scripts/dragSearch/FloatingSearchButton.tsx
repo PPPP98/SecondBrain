@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Search, X } from 'lucide-react';
 import type { FloatingButtonPosition } from '@/types/dragSearch';
 
@@ -14,13 +14,13 @@ interface FloatingSearchButtonProps {
  * 드래그 텍스트 검색 플로팅 버튼
  * 드래그 위치 근처에 표시되며, 클릭 시 검색 실행
  */
-export const FloatingSearchButton: React.FC<FloatingSearchButtonProps> = ({
+export function FloatingSearchButton({
   position,
   keyword,
   onSearch,
   onClose,
   autoHideMs,
-}) => {
+}: FloatingSearchButtonProps) {
   const [isVisible, setIsVisible] = useState(true);
 
   useEffect(() => {
@@ -52,4 +52,4 @@ export const FloatingSearchButton: React.FC<FloatingSearchButtonProps> = ({
       </button>
     </div>
   );
-};
+}

@@ -75,7 +75,22 @@ export function OverlayRoot({ isOpen, onToggle, shadowRoot }: OverlayRootProps) 
         payload?: { keyword?: string; results?: unknown; totalCount?: number; error?: string };
       }>,
     ) => {
-      if (event.data?.type === 'SECONDBRAIN_DRAG_SEARCH_RESULT' && event.data.payload) {
+      // dragSearchStore에 결과 저장 (Compact Popup과 Overlay 공유)
+      if (event.data?.type === 'SECONDBRAIN_SAVE_SEARCH_RESULT' && event.data.payload) {
+        const { keyword, results, totalCount } = event.data.payload;
+        if (keyword && Array.isArray(results) && typeof totalCount === 'number') {
+          setSearchResults(keyword, results as NoteSearchResult[], totalCount);
+        }
+      }
+      // Compact Popup에서 "전체 보기" 클릭 시
+      else if (event.data?.type === 'SECONDBRAIN_OPEN_OVERLAY_WITH_SEARCH') {
+        // Overlay 열기 (검색 결과는 이미 store에 저장됨)
+        if (!isOpen) {
+          onToggle(true);
+        }
+      }
+      // 기존 로직 (deprecated, Compact Popup으로 대체됨)
+      else if (event.data?.type === 'SECONDBRAIN_DRAG_SEARCH_RESULT' && event.data.payload) {
         const { keyword, results, totalCount } = event.data.payload;
         if (keyword && Array.isArray(results) && typeof totalCount === 'number') {
           setSearchResults(keyword, results as NoteSearchResult[], totalCount);

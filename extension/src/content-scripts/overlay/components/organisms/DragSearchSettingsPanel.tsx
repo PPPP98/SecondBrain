@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Settings, Plus, X, ChevronLeft } from 'lucide-react';
 import { Button } from '@/content-scripts/overlay/components/ui/button';
 import type { DragSearchSettings } from '@/types/dragSearch';
@@ -12,7 +12,7 @@ interface DragSearchSettingsPanelProps {
  * 드래그 검색 설정 패널
  * 자동 검색 On/Off, 최소 텍스트 길이, 제외 도메인 관리
  */
-export const DragSearchSettingsPanel: React.FC<DragSearchSettingsPanelProps> = ({ onClose }) => {
+export function DragSearchSettingsPanel({ onClose }: DragSearchSettingsPanelProps) {
   const [settings, setSettings] = useState<DragSearchSettings>({
     enabled: true,
     minTextLength: 2,
@@ -200,4 +200,4 @@ export const DragSearchSettingsPanel: React.FC<DragSearchSettingsPanelProps> = (
       </div>
     </div>
   );
-};
+}

@@ -86,12 +86,35 @@ export function ThemeProvider({ children, defaultTheme = 'system' }: ThemeProvid
     };
   }, [theme]);
 
+  // localStorage 변경 감지 (다른 ThemeProvider 인스턴스와 동기화)
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === STORAGE_KEY && e.newValue) {
+        setTheme(e.newValue as Theme);
+      }
+    };
+
+    const handleThemeChange = ((e: CustomEvent<Theme>) => {
+      setTheme(e.detail);
+    }) as EventListener;
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('theme-change', handleThemeChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('theme-change', handleThemeChange);
+    };
+  }, []);
+
   const value = {
     theme,
     resolvedTheme,
     setTheme: (newTheme: Theme) => {
       localStorage.setItem(STORAGE_KEY, newTheme);
       setTheme(newTheme);
+      // 다른 ThemeProvider 인스턴스에 알림
+      window.dispatchEvent(new CustomEvent('theme-change', { detail: newTheme }));
     },
   };
 
