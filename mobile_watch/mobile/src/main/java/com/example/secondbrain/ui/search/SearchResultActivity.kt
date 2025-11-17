@@ -88,7 +88,42 @@ class SearchResultActivity : AppCompatActivity() {
 
             initializeViews()
             setupRecyclerViews()
-            performSearch(query)
+
+            // 워치에서 전달받은 데이터가 있는지 확인
+            val fromWearable = intent.getBooleanExtra("FROM_WEARABLE", false)
+            if (fromWearable) {
+                android.util.Log.d("SearchResultActivity", "워치 데이터 사용 (API 호출 없음)")
+                handleWearableData()
+            } else {
+                // 일반 검색 (API 호출)
+                performSearch(query)
+            }
+        }
+    }
+
+    /**
+     * 워치에서 전달받은 검색 결과를 직접 표시 (API 호출 없음)
+     */
+    private fun handleWearableData() {
+        val query = intent.getStringExtra("SEARCH_QUERY") ?: ""
+        val responseMessage = intent.getStringExtra("SEARCH_RESPONSE") ?: ""
+        val searchResult = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            intent.getSerializableExtra("SEARCH_RESULT", com.example.secondbrain.data.model.AgentSearchResponse::class.java)
+        } else {
+            @Suppress("DEPRECATION")
+            intent.getSerializableExtra("SEARCH_RESULT") as? com.example.secondbrain.data.model.AgentSearchResponse
+        }
+
+        android.util.Log.d("SearchResultActivity", "워치 데이터: query='$query', response='$responseMessage', 노트=${searchResult?.documents?.size ?: 0}개")
+
+        // 검색어 표시
+        tvSearchQuery.text = query
+
+        // Agent 응답 및 노트 결과 표시
+        if (searchResult != null) {
+            displayAgentResults(searchResult.response, searchResult.documents ?: emptyList())
+        } else if (responseMessage.isNotEmpty()) {
+            displayAgentResults(responseMessage, emptyList())
         }
     }
 
