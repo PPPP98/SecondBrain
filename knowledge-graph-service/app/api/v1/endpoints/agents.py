@@ -3,6 +3,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import logging
 
 from typing import Optional, Dict
+import asyncio
 
 from app.services.note_summarize_service import note_summarize_service
 from app.services.agent_search_service import agent_search_service
@@ -144,11 +145,12 @@ async def agent_search(
     description="MCP서버에서 에이전트가 검색할 수 있도록 구축한 API ",
 )
 async def mcp_agent_search(
-    x_user_id: int = Header(..., alias="X-User-ID"),
+    x_api_key: str = Header(..., alias="X-API-Key"),
     search_params: MCPSearchRequest = Body(...),
 ) -> MCPSearchResponse:
     """MCP 에이전트 검색"""
-    user_id = get_user_id(x_user_id)
+    api_key_response = await external_service.get_user_id(api_key=x_api_key)
+    user_id = api_key_response.get("data", {}).get("userId")
 
     result = await agent_search_service.mcp_search(
         user_id=user_id,
@@ -163,9 +165,16 @@ async def mcp_agent_search(
             detail="검색 결과를 가져올 수 없습니다.",
         )
     documents = [DocumentSchema(**doc) for doc in result.get("documents", [])]
+
+    tasks = [
+        external_service.get_note_data(api_key=x_api_key, note_id=document.note_id)
+        for document in documents
+    ]
+    results = await asyncio.gather(*tasks)
+    documents_content = [result["data"] for result in results if result.get("data", "")]
+
     response = MCPSearchResponse(
         success=True,
-        documents=documents,
+        documents=documents_content,
     )
     return response
-

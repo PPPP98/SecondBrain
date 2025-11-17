@@ -128,7 +128,7 @@ class MCPSearchResponse(BaseModel):
     """검색 응답 스키마"""
 
     success: bool = Field(description="성공 여부")
-    documents: List[DocumentSchema] = Field(description="검색된 문서 정보")
+    documents: List[Dict] = Field(description="검색된 문서 정보")
 
     class Config:
         json_schema_extra = {
@@ -136,11 +136,13 @@ class MCPSearchResponse(BaseModel):
                 "success": True,
                 "documents": [
                     {
-                        "note_id": 123,
-                        "title": "React Hooks 기본",
-                        "content": "내용",
-                        "created_at": "2024-11-10T10:00:00+09:00",
-                        "updated_at": "2024-11-10T10:00:00+09:00",
+                        "noteId": 239,
+                        "title": "MCP 테스트",
+                        "content": "API key test for MCP server",
+                        "createdAt": "2025-11-17T13:49:35.028813",
+                        "updatedAt": "2025-11-17T13:49:35.028825",
+                        "remindAt": None,
+                        "remindCount": 0
                     },
                 ],
             }
