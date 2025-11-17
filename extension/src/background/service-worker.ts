@@ -22,7 +22,13 @@ type ExtensionMessage =
   | { type: 'LOGOUT' }
   | { type: 'OPEN_TAB'; url: string }
   | { type: 'AUTH_CHANGED' }
-  | { type: 'SAVE_CURRENT_PAGE'; url?: string; urls?: string[]; batchId?: string; batchTimestamp?: number }
+  | {
+      type: 'SAVE_CURRENT_PAGE';
+      url?: string;
+      urls?: string[];
+      batchId?: string;
+      batchTimestamp?: number;
+    }
   | DragSearchMessage;
 
 interface AuthResponse {

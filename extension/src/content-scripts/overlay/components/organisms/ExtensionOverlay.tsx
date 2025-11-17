@@ -153,7 +153,7 @@ export function ExtensionOverlay({ isOpen, onToggle }: ExtensionOverlayProps) {
   // Expanded 상태 또는 애니메이션 중: 전체 UI 표시
   return (
     <div
-      className="fixed top-4 right-4 z-[9999]"
+      className="fixed top-4 right-4 z-9999"
       style={{
         opacity: animationPhase === 'collapsing' ? 0 : 1,
         transform:
