@@ -4,6 +4,8 @@ from app.agents.search_agent.graph import Graph
 from app.agents.search_agent.state import State
 from app.core.config import get_settings
 
+from app.schemas.agents import TimeFilter
+
 settings = get_settings()
 
 logger = logging.getLogger(__name__)
@@ -61,7 +63,7 @@ class AgentSearchService:
     async def mcp_search(
         self,
         user_id: int,
-        timespan: Optional[Dict[str, str]] = None,
+        timespan: Optional[TimeFilter] = None,
         query: Optional[str] = None,
     ) -> Dict:
         """
@@ -85,8 +87,11 @@ class AgentSearchService:
                 "user_id": user_id,
             }
             if timespan:
-                initial_state["filters"] = timespan
+                if hasattr(timespan, 'model_dump'):
+                    timespan_dict = timespan.model_dump(exclude_none=True)
+                    initial_state["filters"] = {"timespan": timespan_dict}
             if query:
+                initial_state["query"] = query
                 initial_state["original_query"] = query
 
             result = await self.mcp_graph.ainvoke(initial_state)

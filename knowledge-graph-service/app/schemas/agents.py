@@ -128,7 +128,7 @@ class MCPSearchResponse(BaseModel):
     """검색 응답 스키마"""
 
     success: bool = Field(description="성공 여부")
-    documents: List[Dict] = Field(description="검색된 문서 정보")
+    documents: List[DocumentSchema] = Field(description="검색된 문서 정보")
 
     class Config:
         json_schema_extra = {

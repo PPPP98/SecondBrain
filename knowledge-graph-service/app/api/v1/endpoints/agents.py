@@ -147,13 +147,15 @@ async def mcp_agent_search(
     x_user_id: int = Header(..., alias="X-User-ID"),
     search_params: MCPSearchRequest = Body(...),
 ) -> MCPSearchResponse:
-    """ """
+    """MCP 에이전트 검색"""
     user_id = get_user_id(x_user_id)
 
     result = await agent_search_service.mcp_search(
         user_id=user_id,
-        **search_params.model_dump(exclude_none=True),
+        query=search_params.query,
+        timespan=search_params.timespan,
     )
+
     if result is None:
         logger.error(f"❌ 검색 결과 None - user_id: {user_id}")
         raise HTTPException(
