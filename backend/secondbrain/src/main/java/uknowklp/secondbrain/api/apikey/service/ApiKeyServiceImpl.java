@@ -6,6 +6,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import lombok.RequiredArgsConstructor;
+import uknowklp.secondbrain.api.apikey.dto.ApiKeyResponse;
+import uknowklp.secondbrain.api.apikey.dto.ApiKeyValidateResponse;
 import uknowklp.secondbrain.api.user.domain.User;
 import uknowklp.secondbrain.api.user.repository.UserRepository;
 import uknowklp.secondbrain.global.exception.BaseException;
@@ -21,7 +23,7 @@ public class ApiKeyServiceImpl implements ApiKeyService {
 	// 사용자에게 새로운 API Key 생성 또는 재발급
 	@Override
 	@Transactional
-	public String generateApiKey(Long userId) {
+	public ApiKeyResponse generateApiKey(Long userId) {
 		// 사용자 조회
 		User user = userRepository.findById(userId)
 			.orElseThrow(() -> new BaseException(BaseResponseStatus.USER_NOT_FOUND));
@@ -32,15 +34,17 @@ public class ApiKeyServiceImpl implements ApiKeyService {
 		// 기존 API Key가 있으면 덮어쓰기 (재발급)
 		user.setApiKey(apiKey);
 
-		return apiKey;
+		return new ApiKeyResponse(apiKey);
 	}
 
-	// API Key 검증 및 사용자 조회
+	// API Key 검증 및 userId 반환
 	@Override
-	public User validateApiKey(String apiKey) {
+	public ApiKeyValidateResponse validateApiKey(String apiKey) {
 		// API Key로 사용자 조회
-		return userRepository.findByApiKey(apiKey)
+		User user = userRepository.findByApiKey(apiKey)
 			.orElseThrow(() -> new BaseException(BaseResponseStatus.INVALID_API_KEY));
+
+		return new ApiKeyValidateResponse(user.getId());
 	}
 
 	// API Key 삭제
