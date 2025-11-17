@@ -513,3 +513,24 @@ class Nodes:
                 logger.warning(f"⚠️  폴백 응답: {fallback}")
                 
                 return {**state, "response": fallback}
+    
+    @staticmethod
+    async def check_search_type(state: State) -> State:
+        """
+        MCP agent node
+
+        1. 입력 쿼리가 있을 때
+        유사도 검색
+        2. timespan만 존재할 때
+        기간 검색
+        """
+        if state.query:
+            return {
+                **state,
+                "search_type": "similarity"
+            }
+        else:
+            return {
+                **state,
+                "search_type": "simple_lookup"
+            }
