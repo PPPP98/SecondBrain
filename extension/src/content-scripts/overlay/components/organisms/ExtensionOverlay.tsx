@@ -70,13 +70,6 @@ export function ExtensionOverlay({ isOpen, onToggle }: ExtensionOverlayProps) {
     return unwatch;
   }, [syncFromStorage]);
 
-  // Outside click 처리 - Shadow DOM에서는 비활성화
-  // (Shadow DOM 내부/외부 클릭 감지가 복잡하므로 Escape 키로만 닫기)
-  useEffect(() => {
-    // Outside click은 비활성화
-    return;
-  }, [isExpanded, isOpen, onToggle]);
-
   // Escape 키로 닫기
   useEffect(() => {
     if (!isExpanded || !isOpen) return;
@@ -99,6 +92,7 @@ export function ExtensionOverlay({ isOpen, onToggle }: ExtensionOverlayProps) {
     setAnimationPhase('expanding');
     setIsAnimating(true);
     void expand();
+    onToggle(true); // 부모의 isOpen 상태도 함께 업데이트
     setTimeout(() => {
       setIsAnimating(false);
       setAnimationPhase('idle');

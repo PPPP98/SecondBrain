@@ -21,7 +21,7 @@ interface OverlayRootProps {
 }
 
 export function OverlayRoot({ isOpen, onToggle, shadowRoot }: OverlayRootProps) {
-  const { setSearchResults, setError, setLoading, loadHistory } = useDragSearchStore();
+  const { setSearchResults, setError, loadHistory } = useDragSearchStore();
 
   // Inject animation keyframes into Shadow DOM
   useEffect(() => {
@@ -115,13 +115,17 @@ export function OverlayRoot({ isOpen, onToggle, shadowRoot }: OverlayRootProps) 
 
     window.addEventListener('message', handleMessage);
 
-    // 히스토리 로드
-    void loadHistory();
-
     return () => {
       window.removeEventListener('message', handleMessage);
     };
-  }, [setSearchResults, setError, setLoading, loadHistory, isOpen, onToggle]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Zustand 함수(setSearchResults, setError, onToggle, isOpen)는 안정적이므로 빈 배열 사용
+
+  // 히스토리 로드 (분리된 Effect)
+  useEffect(() => {
+    void loadHistory();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // loadHistory는 Zustand 함수로 안정적, 마운트 시 1번만 실행
 
   return (
     <ShadowRootProvider shadowRoot={shadowRoot}>
