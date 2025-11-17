@@ -33,7 +33,6 @@ class SearchActivity : AppCompatActivity() {
     private lateinit var btnVoiceSearch: ImageButton
     private lateinit var btnSearch: ImageButton
     private lateinit var tvVoiceStatus: TextView
-    private lateinit var tvWakeWordStatus: TextView
 
     // 음성 인식 결과 처리
     private val speechRecognizerLauncher = registerForActivityResult(
@@ -97,9 +96,9 @@ class SearchActivity : AppCompatActivity() {
         // 웨이크워드 서비스 시작 (백그라운드 음성 감지)
         checkAndRequestPermissionForService()
 
-        // 웨이크워드로 앱이 실행된 경우 표시
+        // 웨이크워드로 앱이 실행된 경우 로그 출력
         if (intent.getBooleanExtra("wake_word_detected", false)) {
-            showWakeWordDetected()
+            android.util.Log.d("SearchActivity", "웨이크워드 감지로 실행됨")
         }
 
         // 워치에서 전달된 검색 결과 처리
@@ -125,7 +124,6 @@ class SearchActivity : AppCompatActivity() {
         btnVoiceSearch = findViewById(R.id.btnVoiceSearch)
         btnSearch = findViewById(R.id.btnSearch)
         tvVoiceStatus = findViewById(R.id.tvVoiceStatus)
-        tvWakeWordStatus = findViewById(R.id.tvWakeWordStatus)
     }
 
     private fun setupListeners() {
@@ -373,24 +371,6 @@ class SearchActivity : AppCompatActivity() {
     }
 
     /**
-     * 웨이크워드 감지 표시
-     */
-    private fun showWakeWordDetected() {
-        try {
-            tvWakeWordStatus.text = "헤이스비 감지!"
-            tvWakeWordStatus.setTextColor(getColor(android.R.color.holo_green_dark))
-            tvWakeWordStatus.visibility = View.VISIBLE
-
-            // 3초 후 자동으로 숨김
-            tvWakeWordStatus.postDelayed({
-                tvWakeWordStatus.visibility = View.GONE
-            }, 3000)
-        } catch (e: Exception) {
-            android.util.Log.e("SearchActivity", "웨이크워드 감지 표시 실패", e)
-        }
-    }
-
-    /**
      * 앱이 이미 실행 중일 때 새로운 Intent로 호출된 경우
      */
     override fun onNewIntent(intent: Intent) {
@@ -399,9 +379,9 @@ class SearchActivity : AppCompatActivity() {
 
         android.util.Log.d("SearchActivity", "onNewIntent 호출됨")
 
-        // 웨이크워드로 다시 실행된 경우 표시
+        // 웨이크워드로 다시 실행된 경우
         if (intent.getBooleanExtra("wake_word_detected", false)) {
-            showWakeWordDetected()
+            android.util.Log.d("SearchActivity", "웨이크워드 재감지됨")
 
             // 웨이크워드 감지 시 자동으로 STT 시작
             if (intent.getBooleanExtra("auto_start_stt", false)) {
