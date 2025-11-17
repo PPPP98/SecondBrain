@@ -4,6 +4,7 @@ import { getCurrentUser } from '@/services/userService';
 import { saveCurrentPageWithStoredToken } from '@/services/noteService';
 import { handleDragSearchMessage } from './dragSearchHandler';
 import { env } from '@/config/env';
+import * as storage from '@/services/storageService';
 import type { UserInfo } from '@/types/auth';
 import type { SavePageResponse, SavePageError } from '@/types/note';
 import type { DragSearchMessage } from '@/types/dragSearch';
@@ -22,6 +23,7 @@ type ExtensionMessage =
   | { type: 'LOGOUT' }
   | { type: 'OPEN_TAB'; url: string }
   | { type: 'AUTH_CHANGED' }
+  | { type: 'ADD_PAGE_TO_COLLECTION'; url: string }
   | {
       type: 'SAVE_CURRENT_PAGE';
       url?: string;
@@ -34,6 +36,12 @@ type ExtensionMessage =
 interface AuthResponse {
   authenticated: boolean;
   user?: UserInfo;
+}
+
+interface AddPageResponse {
+  success: boolean;
+  duplicate?: boolean;
+  error?: string;
 }
 
 // chrome.storage에서 인증 상태 확인
@@ -333,7 +341,12 @@ browser.runtime.onMessage.addListener(
     message: unknown,
     sender: browser.Runtime.MessageSender,
     sendResponse: (
-      response: AuthResponse | { success: boolean } | SavePageResponse | SavePageError,
+      response:
+        | AuthResponse
+        | AddPageResponse
+        | { success: boolean }
+        | SavePageResponse
+        | SavePageError,
     ) => void,
   ) => {
     void (async () => {
@@ -354,6 +367,29 @@ browser.runtime.onMessage.addListener(
           case 'CHECK_AUTH': {
             const authResponse = await checkAuth();
             sendResponse(authResponse);
+            break;
+          }
+
+          case 'ADD_PAGE_TO_COLLECTION': {
+            try {
+              // pageCollectionStore 대신 storage 직접 접근
+              const pages = await storage.loadCollectedPages();
+
+              // 중복 체크
+              if (pages.includes(msg.url)) {
+                sendResponse({ success: false, duplicate: true });
+                break;
+              }
+
+              // 추가
+              await storage.addCollectedPage(msg.url);
+
+              // 성공 응답
+              sendResponse({ success: true, duplicate: false });
+            } catch (error) {
+              console.error('ADD_PAGE_TO_COLLECTION failed:', error);
+              sendResponse({ success: false, error: 'Failed to add page' });
+            }
             break;
           }
 
@@ -429,8 +465,10 @@ browser.runtime.onMessage.addListener(
               // URL 유효성 검증 및 필터링
               const validUrls = urlsToSave.filter((url) => {
                 if (!url || url.trim() === '') return false;
-                if (!url.startsWith('http://') && !url.startsWith('https://')) return false;
-                return true;
+                // URL 또는 메타데이터 포맷된 텍스트 허용
+                if (url.startsWith('http://') || url.startsWith('https://')) return true;
+                if (url.includes('=== 출처 정보 ===')) return true; // 메타데이터 포맷
+                return false;
               });
 
               if (validUrls.length === 0) {

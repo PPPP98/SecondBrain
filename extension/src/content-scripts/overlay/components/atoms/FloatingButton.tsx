@@ -15,8 +15,8 @@ interface FloatingButtonProps {
 }
 
 export function FloatingButton({ onClick }: FloatingButtonProps) {
-  const [isDarkMode, setIsDarkMode] = useState(() =>
-    window.matchMedia('(prefers-color-scheme: dark)').matches
+  const [isDarkMode, setIsDarkMode] = useState(
+    () => window.matchMedia('(prefers-color-scheme: dark)').matches,
   );
 
   useEffect(() => {
