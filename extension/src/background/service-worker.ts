@@ -22,7 +22,7 @@ type ExtensionMessage =
   | { type: 'LOGOUT' }
   | { type: 'OPEN_TAB'; url: string }
   | { type: 'AUTH_CHANGED' }
-  | { type: 'SAVE_CURRENT_PAGE'; url?: string; urls?: string[] }
+  | { type: 'SAVE_CURRENT_PAGE'; url?: string; urls?: string[]; batchId?: string; batchTimestamp?: number }
   | DragSearchMessage;
 
 interface AuthResponse {
@@ -51,6 +51,27 @@ async function checkAuth(): Promise<AuthResponse> {
 
 // 중복 로그인 방지 플래그
 let isLoginInProgress = false;
+
+/**
+ * 모든 탭에 메시지 브로드캐스트
+ * @param message 전송할 메시지
+ */
+async function broadcastToAllTabs(message: unknown): Promise<void> {
+  try {
+    const tabs = await browser.tabs.query({});
+    for (const tab of tabs) {
+      if (tab.id && tab.url && (tab.url.startsWith('http://') || tab.url.startsWith('https://'))) {
+        try {
+          await browser.tabs.sendMessage(tab.id, message);
+        } catch {
+          // Content script가 없는 탭은 무시
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Failed to broadcast message:', error);
+  }
+}
 
 /**
  * 새 탭에서 Google OAuth 인증 처리
@@ -416,13 +437,34 @@ browser.runtime.onMessage.addListener(
                 break;
               }
 
+              // batchId 및 timestamp (Content Script에서 전달되거나 새로 생성)
+              const batchId = msg.batchId || `batch_${Date.now()}`;
+              const batchTimestamp = msg.batchTimestamp || Date.now();
+
+              // 1. 모든 탭에 "저장 시작" 브로드캐스트
+              await broadcastToAllTabs({
+                type: 'SAVE_STATUS_STARTED',
+                urls: validUrls,
+                batchId,
+                batchTimestamp,
+              });
+
               // 2. Note Service 호출 (토큰 자동 획득)
               const response = await saveCurrentPageWithStoredToken(validUrls);
 
-              // 3. 성공 응답
+              // 3. 모든 탭에 "저장 완료" 브로드캐스트
+              await broadcastToAllTabs({
+                type: 'SAVE_STATUS_COMPLETED',
+                urls: validUrls,
+                batchId,
+                success: !('error' in response),
+                error: 'error' in response ? response.error : undefined,
+              });
+
+              // 4. 요청한 탭에 응답
               sendResponse(response);
             } catch (error) {
-              // 4. 에러 응답
+              // 5. 에러 응답
               console.error('SAVE_CURRENT_PAGE failed:', error);
 
               // SavePageError 타입 검증

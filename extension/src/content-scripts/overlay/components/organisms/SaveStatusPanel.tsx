@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import { Button } from '@/content-scripts/overlay/components/ui/button';
 import { SaveBatchGroup } from '@/content-scripts/overlay/components/molecules/SaveBatchGroup';
@@ -24,9 +25,30 @@ interface BatchGroup {
  * - 완료된 항목 자동 제거
  * - Shadow DOM 환경 최적화
  */
-export function SaveStatusPanel({ onClose }: SaveStatusPanelProps) {
+export function SaveStatusPanel({ isOpen, onClose }: SaveStatusPanelProps) {
   const { getRequestList, removeSaveRequest } = useSaveStatusStore();
   const requests = getRequestList();
+  const hadRequestsRef = useRef(false);
+
+  // 모든 항목이 처리되면 자동으로 패널 닫기
+  useEffect(() => {
+    // 요청이 있었다가 모두 사라진 경우에만 닫기
+    if (hadRequestsRef.current && requests.length === 0 && isOpen) {
+      // 마지막 항목의 페이드아웃 애니메이션(500ms)이 끝난 후 닫기
+      const timer = setTimeout(() => {
+        onClose();
+      }, 600);
+
+      return () => clearTimeout(timer);
+    }
+
+    // 요청이 있으면 플래그 설정
+    if (requests.length > 0) {
+      hadRequestsRef.current = true;
+    } else {
+      hadRequestsRef.current = false;
+    }
+  }, [requests.length, isOpen, onClose]);
 
   // batchId로 그룹화
   function groupByBatchId(requests: SaveRequest[]): BatchGroup[] {

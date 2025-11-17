@@ -31,3 +31,24 @@ export interface SaveRequest {
   /** 배치 타임스탬프 */
   batchTimestamp: number;
 }
+
+/**
+ * 저장 시작 브로드캐스트 메시지
+ */
+export interface SaveStatusStartedMessage {
+  type: 'SAVE_STATUS_STARTED';
+  urls: string[];
+  batchId: string;
+  batchTimestamp: number;
+}
+
+/**
+ * 저장 완료 브로드캐스트 메시지
+ */
+export interface SaveStatusCompletedMessage {
+  type: 'SAVE_STATUS_COMPLETED';
+  urls: string[];
+  batchId: string;
+  success: boolean;
+  error?: string;
+}

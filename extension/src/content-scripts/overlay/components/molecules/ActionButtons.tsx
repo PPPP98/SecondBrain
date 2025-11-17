@@ -39,8 +39,8 @@ interface ActionButtonsProps {
 }
 
 export function ActionButtons({ activePanel, onTogglePanel }: ActionButtonsProps) {
-  const { pages, addPage } = usePageCollectionStore();
-  const { addSaveRequest, updateSaveStatus, getSavingCount } = useSaveStatusStore();
+  const { pages, addPage, clearPages } = usePageCollectionStore();
+  const { getSavingCount } = useSaveStatusStore();
 
   async function handleAddPage(): Promise<void> {
     const currentUrl = window.location.href;
@@ -80,46 +80,36 @@ export function ActionButtons({ activePanel, onTogglePanel }: ActionButtonsProps
       const batchId = `batch_${Date.now()}`;
       const batchTimestamp = Date.now();
 
-      // 1. 각 URL을 Store에 'saving' 상태로 추가
-      const requestIds = finalUrls.map((url) => addSaveRequest(url, batchId, batchTimestamp));
-
-      // 2. 패널 자동 열기 (이미 열려있지 않으면)
+      // 1. 패널 자동 열기 (이미 열려있지 않으면)
       if (activePanel !== 'saveStatus') {
         onTogglePanel('saveStatus');
       }
 
-      // 3. Background Service Worker에 메시지 전송 (URLs 배열 포함)
+      // 2. Background Service Worker에 메시지 전송
+      // Background가 브로드캐스트하면 모든 탭(현재 탭 포함)에서 store 업데이트
       const rawResponse: unknown = await browser.runtime.sendMessage({
         type: 'SAVE_CURRENT_PAGE',
         urls: finalUrls,
+        batchId, // Background가 모든 탭에 브로드캐스트할 때 사용
+        batchTimestamp,
       });
 
       // 응답 타입 검증
       const response = rawResponse as SavePageResponse | SavePageError;
 
-      // 4. 응답에 따라 상태 업데이트
+      // 3. 응답에 따라 Toast만 표시 (상태 업데이트는 브로드캐스트로)
       if ('error' in response) {
-        // 에러 발생 - 모든 요청을 error 상태로
-        console.error('Save failed:', response);
         const errorMessage = getErrorMessage(response.error);
-        requestIds.forEach((id) => {
-          updateSaveStatus(id, 'error', errorMessage);
-        });
         showToast(`저장 실패: ${errorMessage}`, 'error');
       } else {
-        // 성공 - 모든 요청을 success 상태로
-        requestIds.forEach((id) => {
-          updateSaveStatus(id, 'success');
-        });
-
         const savedCount = finalUrls.length;
         showToast(
           savedCount > 1 ? `${savedCount}개 페이지가 저장되었습니다` : '페이지가 저장되었습니다',
           'success',
         );
 
-        // 성공 시 수집 목록 초기화
-        // clearPages는 ExtensionOverlay의 onClearAll에서 처리됨
+        // ✅ 성공 시 수집 목록 초기화
+        await clearPages();
       }
     } catch (error) {
       // 예외 처리 (Background 통신 실패)

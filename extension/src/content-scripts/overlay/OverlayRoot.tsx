@@ -4,6 +4,7 @@ import { ShadowRootProvider } from '@/contexts/ShadowRootContext';
 import { SimpleToastContainer } from '@/content-scripts/overlay/components/molecules/SimpleToast';
 import { useEffect } from 'react';
 import { useDragSearchStore } from '@/stores/dragSearchStore';
+import { useSaveStatusStore } from '@/stores/saveStatusStore';
 import type { NoteSearchResult } from '@/types/note';
 
 /**
@@ -22,6 +23,8 @@ interface OverlayRootProps {
 
 export function OverlayRoot({ isOpen, onToggle, shadowRoot }: OverlayRootProps) {
   const { setSearchResults, setError, loadHistory } = useDragSearchStore();
+  const { addSaveRequestsFromBroadcast, updateSaveStatusByUrls } =
+    useSaveStatusStore.getState();
 
   // Inject animation keyframes into Shadow DOM
   useEffect(() => {
@@ -67,12 +70,17 @@ export function OverlayRoot({ isOpen, onToggle, shadowRoot }: OverlayRootProps) 
     }
   }, [shadowRoot]);
 
-  // 드래그 검색 메시지 리스너
+  // 드래그 검색 메시지 리스너 + 저장 진행상황 브로드캐스트 리스너
   useEffect(() => {
     const handleMessage = (
       event: MessageEvent<{
         type: string;
         payload?: { keyword?: string; results?: unknown; totalCount?: number; error?: string };
+        urls?: string[];
+        batchId?: string;
+        batchTimestamp?: number;
+        success?: boolean;
+        error?: string;
       }>,
     ) => {
       // dragSearchStore에 결과 저장 (Compact Popup과 Overlay 공유)
@@ -109,6 +117,20 @@ export function OverlayRoot({ isOpen, onToggle, shadowRoot }: OverlayRootProps) 
           if (!isOpen) {
             onToggle(true);
           }
+        }
+      }
+      // 저장 시작 브로드캐스트 (다른 탭에서 Save 클릭)
+      else if (event.data?.type === 'SAVE_STATUS_STARTED') {
+        const { urls, batchId, batchTimestamp } = event.data;
+        if (urls && batchId && batchTimestamp) {
+          addSaveRequestsFromBroadcast(urls, batchId, batchTimestamp);
+        }
+      }
+      // 저장 완료 브로드캐스트
+      else if (event.data?.type === 'SAVE_STATUS_COMPLETED') {
+        const { urls, batchId, success, error } = event.data;
+        if (urls && batchId && typeof success === 'boolean') {
+          updateSaveStatusByUrls(urls, batchId, success, error);
         }
       }
     };

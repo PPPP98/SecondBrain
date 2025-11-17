@@ -42,6 +42,33 @@ interface SaveStatusStore {
    * 요청 목록 배열로 반환 (최신순)
    */
   getRequestList: () => SaveRequest[];
+
+  /**
+   * 외부(다른 탭)에서 저장 시작 브로드캐스트 받음
+   * @param urls 저장할 URL 배열
+   * @param batchId 배치 ID
+   * @param batchTimestamp 배치 타임스탬프
+   * @returns 생성된 요청 ID 배열
+   */
+  addSaveRequestsFromBroadcast: (
+    urls: string[],
+    batchId: string,
+    batchTimestamp: number,
+  ) => string[];
+
+  /**
+   * 외부(다른 탭)에서 저장 완료 브로드캐스트 받음
+   * @param urls 저장된 URL 배열
+   * @param batchId 배치 ID
+   * @param success 성공 여부
+   * @param error 에러 메시지 (선택적)
+   */
+  updateSaveStatusByUrls: (
+    urls: string[],
+    batchId: string,
+    success: boolean,
+    error?: string,
+  ) => void;
 }
 
 /**
@@ -118,5 +145,63 @@ export const useSaveStatusStore = create<SaveStatusStore>((set, get) => ({
 
   getRequestList: () => {
     return Array.from(get().saveRequests.values()).sort((a, b) => b.startTime - a.startTime);
+  },
+
+  addSaveRequestsFromBroadcast: (urls: string[], batchId: string, batchTimestamp: number) => {
+    const requestIds: string[] = [];
+
+    set((state) => {
+      const newRequests = new Map(state.saveRequests);
+
+      urls.forEach((url) => {
+        // 고유 ID 생성 (batchTimestamp + URL 해시)
+        const urlHash = url.slice(8, 20).replace(/[^a-zA-Z0-9]/g, '');
+        const id = `save-${batchTimestamp}-${urlHash}`;
+
+        // 중복 방지 (이미 있으면 스킵)
+        if (!newRequests.has(id)) {
+          const request: SaveRequest = {
+            id,
+            url,
+            status: 'saving',
+            startTime: Date.now(),
+            batchId,
+            batchTimestamp,
+          };
+          newRequests.set(id, request);
+          requestIds.push(id);
+        }
+      });
+
+      return { saveRequests: newRequests };
+    });
+
+    return requestIds;
+  },
+
+  updateSaveStatusByUrls: (
+    urls: string[],
+    batchId: string,
+    success: boolean,
+    error?: string,
+  ) => {
+    set((state) => {
+      const newRequests = new Map(state.saveRequests);
+      const status: SaveRequestStatus = success ? 'success' : 'error';
+
+      // batchId가 일치하고 URL이 포함된 모든 요청 업데이트
+      for (const [id, request] of newRequests.entries()) {
+        if (request.batchId === batchId && urls.includes(request.url)) {
+          newRequests.set(id, {
+            ...request,
+            status,
+            completedTime: Date.now(),
+            error,
+          });
+        }
+      }
+
+      return { saveRequests: newRequests };
+    });
   },
 }));

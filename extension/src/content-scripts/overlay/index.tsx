@@ -55,7 +55,7 @@ export function onExecute() {
     renderOverlay(false);
 
     // Background로부터 메시지 수신 (Content Script 레벨)
-    // TOGGLE_OVERLAY와 PING만 처리하는 전용 리스너
+    // TOGGLE_OVERLAY, PING, SAVE_STATUS 브로드캐스트 처리
     browser.runtime.onMessage.addListener(((message: unknown, _sender, sendResponse) => {
       const msg = message as { type: string };
 
@@ -67,6 +67,15 @@ export function onExecute() {
 
       if (msg.type === 'PING') {
         sendResponse({ pong: true });
+        return true;
+      }
+
+      // 저장 진행상황 브로드캐스트 → React로 전달 (window.postMessage)
+      if (msg.type === 'SAVE_STATUS_STARTED' || msg.type === 'SAVE_STATUS_COMPLETED') {
+        // browser.runtime.onMessage → window.postMessage 브리지
+        // OverlayRoot의 window.addEventListener('message')로 전달됨
+        window.postMessage(msg, '*');
+        sendResponse({ success: true });
         return true;
       }
 
