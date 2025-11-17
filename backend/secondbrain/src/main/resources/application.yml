@@ -70,6 +70,14 @@ spring:
       s3:
         bucket: ${BUCKET_NAME}
 
+  ai:
+    openai:
+      api-key: ${GMS_API_KEY}
+      base-url: ${GMS_OPENAI_BASE_URL}
+      embedding:
+        options:
+          model: ${GMS_EMBEDDING_MODEL}
+
 server:
   port: 8080
 
@@ -109,6 +117,7 @@ gms:
   model: ${GMS_MODEL}
   embedding-model: ${GMS_EMBEDDING_MODEL}
   base-url: ${GMS_BASE_URL}
+  openai-base-url: ${GMS_OPENAI_BASE_URL}
   max-tokens: ${GMS_MAX_TOKENS}
   temperature: ${GMS_TEMPERATURE}
 
