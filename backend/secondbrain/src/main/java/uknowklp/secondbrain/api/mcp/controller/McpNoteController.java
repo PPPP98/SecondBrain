@@ -5,8 +5,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -26,9 +26,9 @@ public class McpNoteController {
 
 	// 노트 생성 (API Key 인증)
 	@PostMapping
-	@Operation(summary = "MCP - 노트 생성", description = "API Key로 인증하여 노트를 생성합니다")
+	@Operation(summary = "MCP - 노트 생성", description = "X-API-Key 헤더로 인증하여 노트를 생성합니다")
 	public ResponseEntity<BaseResponse<NoteResponse>> createNote(
-		@RequestParam String apiKey,
+		@RequestHeader("X-API-Key") String apiKey,
 		@RequestBody NoteRequest request
 	) {
 		NoteResponse response = mcpNoteService.createNote(apiKey, request);
@@ -37,9 +37,9 @@ public class McpNoteController {
 
 	// 노트 조회 (API Key 인증)
 	@GetMapping("/{noteId}")
-	@Operation(summary = "MCP - 노트 조회", description = "API Key로 인증하여 노트를 조회합니다")
+	@Operation(summary = "MCP - 노트 조회", description = "X-API-Key 헤더로 인증하여 노트를 조회합니다")
 	public ResponseEntity<BaseResponse<NoteResponse>> getNote(
-		@RequestParam String apiKey,
+		@RequestHeader("X-API-Key") String apiKey,
 		@PathVariable Long noteId
 	) {
 		NoteResponse response = mcpNoteService.getNote(apiKey, noteId);
