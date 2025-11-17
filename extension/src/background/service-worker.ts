@@ -448,6 +448,10 @@ browser.runtime.onMessage.addListener(
               'user',
               'authenticated',
             ]);
+
+            // 모든 탭에 인증 상태 변경 알림
+            await broadcastToAllTabs({ type: 'AUTH_CHANGED' });
+
             sendResponse({ success: true });
             break;
           }
