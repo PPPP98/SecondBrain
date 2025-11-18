@@ -4,6 +4,9 @@
  * - ExtensionOverlay와 동일한 테마 변수 사용
  */
 
+/* Tailwind CSS 로드 */
+@import 'tailwindcss';
+
 /* 기본 리셋 */
 *,
 *::before,

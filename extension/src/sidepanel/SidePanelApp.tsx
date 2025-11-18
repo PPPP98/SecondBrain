@@ -1,35 +1,29 @@
 import { useEffect, useState } from 'react';
 import { Loader2, FileText } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import rehypeHighlight from 'rehype-highlight';
+import MarkdownPreview from '@uiw/react-markdown-preview/nohighlight';
 import browser from 'webextension-polyfill';
 import type { NoteDetail } from '@/types/noteSearch';
 import { getNoteDetail } from '@/services/noteSearchService';
-import 'highlight.js/styles/github-dark.css';
 
 /**
  * Side Panel 메인 앱
  * - Chrome Side Panel에서 노트 전체 내용 표시
- * - 마크다운 렌더링 (react-markdown)
- * - 다크모드 지원
+ * - @uiw/react-markdown-preview로 GitHub 스타일 마크다운 렌더링
+ * - 시스템 다크모드 자동 감지
  */
 export function SidePanelApp() {
   const [noteId, setNoteId] = useState<number | null>(null);
   const [note, setNote] = useState<NoteDetail | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [colorMode, setColorMode] = useState<'light' | 'dark'>('light');
 
-  // Storage에서 noteId 및 theme 읽기
+  // Storage에서 noteId 읽기
   useEffect(() => {
     // 초기 로드
-    void browser.storage.local.get(['currentNoteId', 'theme']).then((result) => {
+    void browser.storage.local.get(['currentNoteId']).then((result) => {
       if (result.currentNoteId) {
         setNoteId(result.currentNoteId as number);
-      }
-      if (result.theme) {
-        setTheme(result.theme as 'light' | 'dark');
       }
     });
 
@@ -42,9 +36,6 @@ export function SidePanelApp() {
         if (changes.currentNoteId) {
           setNoteId(changes.currentNoteId.newValue as number);
         }
-        if (changes.theme) {
-          setTheme(changes.theme.newValue as 'light' | 'dark');
-        }
       }
     };
 
@@ -55,10 +46,31 @@ export function SidePanelApp() {
     };
   }, []);
 
-  // 다크모드 클래스 적용
+  // 시스템 다크모드 감지 및 적용
   useEffect(() => {
-    document.documentElement.classList.toggle('dark', theme === 'dark');
-  }, [theme]);
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+
+    // 초기 설정
+    const applyTheme = (isDark: boolean) => {
+      const mode = isDark ? 'dark' : 'light';
+      setColorMode(mode);
+      document.documentElement.setAttribute('data-color-mode', mode);
+      document.documentElement.classList.toggle('dark', isDark);
+    };
+
+    applyTheme(mediaQuery.matches);
+
+    // 시스템 테마 변경 감지
+    const handleChange = (e: MediaQueryListEvent) => {
+      applyTheme(e.matches);
+    };
+
+    mediaQuery.addEventListener('change', handleChange);
+
+    return () => {
+      mediaQuery.removeEventListener('change', handleChange);
+    };
+  }, []);
 
   // Note 데이터 가져오기
   useEffect(() => {
@@ -87,10 +99,10 @@ export function SidePanelApp() {
   // 로딩 상태
   if (isLoading || !note) {
     return (
-      <div className="flex h-screen items-center justify-center bg-background">
+      <div className="flex h-screen items-center justify-center bg-white dark:bg-gray-900">
         <div className="flex flex-col items-center gap-3">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground">노트를 불러오는 중...</p>
+          <Loader2 className="h-8 w-8 animate-spin text-blue-600 dark:text-blue-400" />
+          <p className="text-sm text-gray-500 dark:text-gray-400">노트를 불러오는 중...</p>
         </div>
       </div>
     );
@@ -99,14 +111,14 @@ export function SidePanelApp() {
   // 에러 상태
   if (error) {
     return (
-      <div className="flex h-screen items-center justify-center bg-background p-6 text-center">
+      <div className="flex h-screen items-center justify-center bg-white p-6 text-center dark:bg-gray-900">
         <div className="flex flex-col items-center gap-3">
           <div className="rounded-full bg-red-50 p-3 dark:bg-red-950">
             <FileText className="h-12 w-12 text-red-500" />
           </div>
           <div>
-            <p className="mb-2 text-base font-medium text-foreground">오류 발생</p>
-            <p className="text-sm text-muted-foreground">{error}</p>
+            <p className="mb-2 text-base font-medium text-gray-900 dark:text-gray-100">오류 발생</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{error}</p>
           </div>
         </div>
       </div>
@@ -115,11 +127,10 @@ export function SidePanelApp() {
 
   // 노트 표시
   return (
-    <div className="flex h-screen flex-col bg-background">
-      {/* Header */}
-      <div className="flex-shrink-0 border-b border-border bg-card p-4">
-        <h1 className="mb-1 text-xl font-semibold text-foreground">{note.title}</h1>
-        <div className="text-xs text-muted-foreground">
+    <div className="flex h-screen flex-col bg-white dark:bg-gray-900">
+      {/* Header - 날짜 정보만 표시 */}
+      <div className="shrink-0 border-b border-gray-200 bg-gray-50 px-8 py-4 dark:border-gray-700 dark:bg-gray-800">
+        <div className="text-xs text-gray-500 dark:text-gray-400">
           생성: {new Date(note.createdAt).toLocaleDateString('ko-KR')}
           {note.updatedAt && note.updatedAt !== note.createdAt && (
             <> · 수정: {new Date(note.updatedAt).toLocaleDateString('ko-KR')}</>
@@ -127,15 +138,18 @@ export function SidePanelApp() {
         </div>
       </div>
 
-      {/* Content - Markdown 렌더링 */}
-      <div className="scrollbar-custom flex-1 overflow-y-auto p-6">
-        <ReactMarkdown
-          remarkPlugins={[remarkGfm]}
-          rehypePlugins={[rehypeHighlight]}
-          className="prose prose-sm dark:prose-invert prose-headings:text-foreground prose-p:text-foreground prose-a:text-primary prose-a:no-underline hover:prose-a:underline prose-strong:text-foreground prose-code:text-foreground prose-code:bg-muted prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-pre:bg-muted prose-pre:border prose-pre:border-border prose-blockquote:border-l-primary prose-blockquote:text-muted-foreground prose-ul:text-foreground prose-ol:text-foreground prose-li:text-foreground prose-table:text-foreground prose-th:border-border prose-th:bg-muted prose-td:border-border max-w-none"
-        >
-          {note.content}
-        </ReactMarkdown>
+      {/* Content - GitHub 스타일 마크다운 렌더링 */}
+      <div className="scrollbar-custom flex-1 overflow-y-auto px-6 py-4">
+        <MarkdownPreview
+          source={note.content}
+          wrapperElement={{
+            'data-color-mode': colorMode,
+          }}
+          style={{
+            backgroundColor: 'transparent',
+            padding: '0 8px',
+          }}
+        />
       </div>
     </div>
   );
