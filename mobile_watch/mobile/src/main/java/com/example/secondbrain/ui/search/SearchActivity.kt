@@ -1,40 +1,30 @@
 package com.example.secondbrain.ui.search
 
 import android.Manifest
+import android.app.NotificationManager
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.speech.RecognizerIntent
 import android.view.View
 import android.view.WindowManager
 import android.widget.EditText
 import android.widget.ImageButton
-import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.lifecycleScope
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 import com.example.secondbrain.R
-import com.example.secondbrain.data.local.TokenManager
-import com.example.secondbrain.data.model.AgentNoteResult
 import com.example.secondbrain.data.model.AgentSearchResponse
-import com.example.secondbrain.data.model.NoteSearchResult
-import com.example.secondbrain.data.network.RetrofitClient
-import com.example.secondbrain.ui.note.NoteDetailActivity
-import kotlinx.coroutines.async
-import kotlinx.coroutines.launch
-import java.util.Locale
+import com.example.secondbrain.service.WakeWordService
 
 /**
- * 음성 및 텍스트 검색 화면
+ * 검색 입력 화면
  * - 텍스트 검색 및 STT(음성) 검색 지원
- * - ElasticSearch와 FastAPI Agent를 병렬로 호출
- * - ElasticSearch 결과를 먼저 표시하고, Agent 결과가 오면 추가 표시
+ * - 워치 검색 결과 처리 및 SearchResultActivity로 전달
  */
 class SearchActivity : AppCompatActivity() {
 
@@ -43,24 +33,15 @@ class SearchActivity : AppCompatActivity() {
     private lateinit var btnVoiceSearch: ImageButton
     private lateinit var btnSearch: ImageButton
     private lateinit var tvVoiceStatus: TextView
-    private lateinit var progressBar: ProgressBar
-    private lateinit var tvResultsTitle: TextView
-    private lateinit var tvElasticTitle: TextView
-    private lateinit var tvAgentTitle: TextView
-    private lateinit var tvAgentLoading: TextView
-    private lateinit var tvAgentResponse: TextView
-    private lateinit var rvElasticResults: RecyclerView
-    private lateinit var rvAgentResults: RecyclerView
-    private lateinit var tvNoResults: TextView
-    private lateinit var tvError: TextView
 
-    // 어댑터
-    private lateinit var elasticAdapter: SearchResultAdapter
-    private lateinit var agentAdapter: AgentResultAdapter
+    // SharedPreferences - 권한 요청 상태 저장
+    private val prefs by lazy {
+        getSharedPreferences("app_preferences", MODE_PRIVATE)
+    }
 
-    // 데이터
-    private lateinit var tokenManager: TokenManager
-    private var userId: Long = -1
+    companion object {
+        private const val PREF_FIRST_LAUNCH = "is_first_launch"
+    }
 
     // 음성 인식 결과 처리
     private val speechRecognizerLauncher = registerForActivityResult(
@@ -91,42 +72,78 @@ class SearchActivity : AppCompatActivity() {
         }
     }
 
+    // 마이크 권한 요청 (웨이크워드 서비스용)
+    private val requestMicPermissionForService = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            checkNotificationPermission()
+        } else {
+            android.util.Log.w("SearchActivity", "웨이크워드 서비스: 마이크 권한 거부됨")
+        }
+    }
+
+    // 알람 권한 요청 (Android 13+)
+    private val requestNotificationPermission = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            android.util.Log.i("SearchActivity", "알람 권한 승인됨")
+            checkFullScreenIntentPermission()
+        } else {
+            android.util.Log.w("SearchActivity", "알람 권한 거부됨")
+            // 권한이 거부되어도 다음 단계로 진행
+            checkFullScreenIntentPermission()
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_search)
 
-        tokenManager = TokenManager(this)
+        // Full-Screen Intent로 열릴 때 화면 켜기 및 잠금 해제
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+            setShowWhenLocked(true)
+            setTurnScreenOn(true)
+        } else {
+            @Suppress("DEPRECATION")
+            window.addFlags(
+                WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
+                WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
+            )
+        }
 
-        // userId를 코루틴에서 가져오기
-        lifecycleScope.launch {
-            userId = tokenManager.getUserId() ?: -1
+        initializeViews()
+        setupListeners()
 
-            if (userId == -1L) {
-                Toast.makeText(this@SearchActivity, "사용자 정보를 찾을 수 없습니다", Toast.LENGTH_SHORT).show()
-                finish()
-                return@launch
-            }
+        // 앱 첫 실행 시 환영 메시지 및 권한 안내
+        if (isFirstLaunch()) {
+            showWelcomeDialog()
+        } else {
+            // 웨이크워드 서비스 시작 (백그라운드 음성 감지)
+            checkAndRequestPermissionForService()
+        }
 
-            initializeViews()
-            setupRecyclerViews()
-            setupListeners()
+        // 웨이크워드로 앱이 실행된 경우 로그 출력
+        if (intent.getBooleanExtra("wake_word_detected", false)) {
+            android.util.Log.d("SearchActivity", "웨이크워드 감지로 실행됨")
+        }
 
-            // 워치에서 전달된 검색 결과 처리
-            if (intent.getBooleanExtra("FROM_WEARABLE", false)) {
-                handleWearableSearchResult()
-            }
-            // 워치 알림에서 Deep Link로 실행된 경우
-            else if (intent.action == Intent.ACTION_VIEW && intent.data != null) {
-                handleDeepLink()
-            }
-            // 웨이크워드로 실행된 경우 자동으로 STT 시작
-            else if (intent.getBooleanExtra("auto_start_stt", false)) {
-                android.util.Log.d("SearchActivity", "웨이크워드 감지로 실행됨 - STT 자동 시작")
-                // UI가 완전히 준비된 후 STT 시작
-                btnVoiceSearch.postDelayed({
-                    checkMicPermissionAndStartVoice()
-                }, 500)
-            }
+        // 워치에서 전달된 검색 결과 처리
+        if (intent.getBooleanExtra("FROM_WEARABLE", false)) {
+            handleWearableSearchResult()
+        }
+        // 워치 알림에서 Deep Link로 실행된 경우
+        else if (intent.action == Intent.ACTION_VIEW && intent.data != null) {
+            handleDeepLink()
+        }
+        // 웨이크워드로 실행된 경우 자동으로 STT 시작
+        else if (intent.getBooleanExtra("auto_start_stt", false)) {
+            android.util.Log.d("SearchActivity", "웨이크워드 감지로 실행됨 - STT 자동 시작")
+            // UI가 완전히 준비된 후 STT 시작
+            btnVoiceSearch.postDelayed({
+                checkMicPermissionAndStartVoice()
+            }, 500)
         }
     }
 
@@ -135,36 +152,6 @@ class SearchActivity : AppCompatActivity() {
         btnVoiceSearch = findViewById(R.id.btnVoiceSearch)
         btnSearch = findViewById(R.id.btnSearch)
         tvVoiceStatus = findViewById(R.id.tvVoiceStatus)
-        progressBar = findViewById(R.id.progressBar)
-        tvResultsTitle = findViewById(R.id.tvResultsTitle)
-        tvElasticTitle = findViewById(R.id.tvElasticTitle)
-        tvAgentTitle = findViewById(R.id.tvAgentTitle)
-        tvAgentLoading = findViewById(R.id.tvAgentLoading)
-        tvAgentResponse = findViewById(R.id.tvAgentResponse)
-        rvElasticResults = findViewById(R.id.rvElasticResults)
-        rvAgentResults = findViewById(R.id.rvAgentResults)
-        tvNoResults = findViewById(R.id.tvNoResults)
-        tvError = findViewById(R.id.tvError)
-    }
-
-    private fun setupRecyclerViews() {
-        // ElasticSearch 결과 어댑터
-        elasticAdapter = SearchResultAdapter { noteId ->
-            navigateToNoteDetail(noteId)
-        }
-        rvElasticResults.apply {
-            layoutManager = LinearLayoutManager(this@SearchActivity)
-            adapter = elasticAdapter
-        }
-
-        // AI Agent 결과 어댑터
-        agentAdapter = AgentResultAdapter { noteId ->
-            navigateToNoteDetail(noteId)
-        }
-        rvAgentResults.apply {
-            layoutManager = LinearLayoutManager(this@SearchActivity)
-            adapter = agentAdapter
-        }
     }
 
     private fun setupListeners() {
@@ -229,139 +216,17 @@ class SearchActivity : AppCompatActivity() {
         }
     }
 
-    /**
-     * 병렬 검색 실행
-     * 1. ElasticSearch (SpringBoot)와 AI Agent (FastAPI)를 동시에 호출
-     * 2. ElasticSearch 결과를 먼저 표시
-     * 3. AI Agent 결과가 오면 비동기로 추가 표시
-     */
     private fun performSearch(query: String) {
-        hideAllResults()
-        progressBar.visibility = View.VISIBLE
-        tvError.visibility = View.GONE
-
-        lifecycleScope.launch {
-            try {
-                // TokenManager에서 토큰 가져오기
-                val apiService = RetrofitClient.createApiService { tokenManager.getAccessToken() }
-                val fastApiService = RetrofitClient.createFastApiService { tokenManager.getAccessToken() }
-
-                // 병렬 API 호출 (각각 독립적으로 실행)
-                launch {
-                    // ElasticSearch 결과 처리
-                    try {
-                        val apiResponse = apiService.searchNotes(query)
-                        apiResponse.data?.let { searchResponse ->
-                            displayElasticResults(searchResponse.results)
-                        }
-                    } catch (e: Exception) {
-                        android.util.Log.e("SearchActivity", "ElasticSearch 실패: ${e.message}", e)
-                        tvError.text = "검색 실패: ${e.message}"
-                        tvError.visibility = View.VISIBLE
-                    } finally {
-                        progressBar.visibility = View.GONE
-                    }
-                }
-
-                launch {
-                    // AI Agent 결과 처리 (독립적)
-                    try {
-                        // AI 로딩 상태 표시
-                        showAgentLoading()
-
-                        val agentResponse = fastApiService.searchWithAgent(query, userId)
-
-                        // 로딩 상태 숨기고 결과 표시
-                        hideAgentLoading()
-                        displayAgentResults(agentResponse.response, agentResponse.documents ?: emptyList())
-                    } catch (e: Exception) {
-                        android.util.Log.e("SearchActivity", "Agent 검색 실패: ${e.message}", e)
-                        hideAgentLoading()
-                        // Agent 실패는 조용히 처리 (선택적 기능)
-                    }
-                }
-
-            } catch (e: Exception) {
-                android.util.Log.e("SearchActivity", "검색 중 오류: ${e.message}", e)
-                progressBar.visibility = View.GONE
-                tvError.text = "검색 중 오류 발생: ${e.message}"
-                tvError.visibility = View.VISIBLE
-            }
+        // 검색 결과 페이지로 이동
+        val intent = Intent(this, SearchResultActivity::class.java).apply {
+            putExtra("SEARCH_QUERY", query)
         }
-    }
-
-    private fun displayElasticResults(results: List<NoteSearchResult>) {
-        runOnUiThread {
-            android.util.Log.d("SearchActivity", "displayElasticResults 호출: ${results.size}개")
-            android.util.Log.d("SearchActivity", "첫 번째 결과: ${results.firstOrNull()?.title}")
-            if (results.isNotEmpty()) {
-                tvResultsTitle.visibility = View.VISIBLE
-                tvElasticTitle.visibility = View.VISIBLE
-                rvElasticResults.visibility = View.VISIBLE
-                elasticAdapter.updateResults(results)
-                rvElasticResults.post {
-                    android.util.Log.d("SearchActivity", "어댑터 itemCount: ${elasticAdapter.itemCount}")
-                    android.util.Log.d("SearchActivity", "RecyclerView visibility: ${rvElasticResults.visibility}")
-                    android.util.Log.d("SearchActivity", "RecyclerView height: ${rvElasticResults.height}")
-                    android.util.Log.d("SearchActivity", "RecyclerView childCount: ${rvElasticResults.childCount}")
-                }
-                android.util.Log.d("SearchActivity", "ElasticSearch 결과 화면에 표시 완료")
-            } else {
-                android.util.Log.d("SearchActivity", "ElasticSearch 결과가 비어있음")
-            }
-        }
-    }
-
-    private fun showAgentLoading() {
-        runOnUiThread {
-            tvResultsTitle.visibility = View.VISIBLE
-            tvAgentTitle.visibility = View.VISIBLE
-            tvAgentLoading.visibility = View.VISIBLE
-        }
-    }
-
-    private fun hideAgentLoading() {
-        runOnUiThread {
-            tvAgentLoading.visibility = View.GONE
-        }
-    }
-
-    private fun displayAgentResults(responseMessage: String, results: List<AgentNoteResult>) {
-        runOnUiThread {
-            android.util.Log.d("SearchActivity", "displayAgentResults 호출: 메시지='$responseMessage', 결과=${results.size}개")
-
-            // AI 응답 메시지는 항상 표시
-            if (responseMessage.isNotEmpty()) {
-                tvResultsTitle.visibility = View.VISIBLE
-                tvAgentTitle.visibility = View.VISIBLE
-                tvAgentResponse.visibility = View.VISIBLE
-                tvAgentResponse.text = responseMessage
-            }
-
-            // 노트 결과가 있으면 RecyclerView 표시
-            if (results.isNotEmpty()) {
-                rvAgentResults.visibility = View.VISIBLE
-                agentAdapter.submitList(results.toList())
-                android.util.Log.d("SearchActivity", "Agent 노트 결과 ${results.size}개 화면에 표시 완료")
-            } else {
-                android.util.Log.d("SearchActivity", "Agent 노트 결과가 비어있음 (메시지만 표시)")
-            }
-        }
-    }
-
-    private fun hideAllResults() {
-        tvResultsTitle.visibility = View.GONE
-        tvElasticTitle.visibility = View.GONE
-        tvAgentTitle.visibility = View.GONE
-        tvAgentLoading.visibility = View.GONE
-        tvAgentResponse.visibility = View.GONE
-        rvElasticResults.visibility = View.GONE
-        rvAgentResults.visibility = View.GONE
-        tvNoResults.visibility = View.GONE
+        startActivity(intent)
     }
 
     /**
      * 워치에서 전달된 검색 결과 처리
+     * SearchResultActivity로 데이터 전달
      */
     private fun handleWearableSearchResult() {
         try {
@@ -389,26 +254,17 @@ class SearchActivity : AppCompatActivity() {
 
             android.util.Log.d("SearchActivity", "워치 검색 결과 수신: query='$query', response='$responseMessage'")
 
-            // 검색어를 입력창에 표시
-            etSearchQuery.setText(query)
-
-            // 결과 표시
-            hideAllResults()
-
-            if (searchResult != null) {
-                displayAgentResults(
-                    searchResult.response,
-                    searchResult.documents ?: emptyList()
-                )
-                android.util.Log.d("SearchActivity", "워치 검색 결과 표시 완료: ${searchResult.documents?.size ?: 0}개 노트")
-            } else {
-                // 검색 결과가 없는 경우 메시지만 표시
-                tvResultsTitle.visibility = View.VISIBLE
-                tvAgentTitle.visibility = View.VISIBLE
-                tvAgentResponse.visibility = View.VISIBLE
-                tvAgentResponse.text = responseMessage
-                android.util.Log.d("SearchActivity", "워치 검색 메시지만 표시: $responseMessage")
+            // SearchResultActivity로 이동하여 결과 표시
+            val resultIntent = Intent(this, SearchResultActivity::class.java).apply {
+                putExtra("SEARCH_QUERY", query)
+                putExtra("FROM_WEARABLE", true)
+                putExtra("SEARCH_RESPONSE", responseMessage)
+                if (searchResult != null) {
+                    putExtra("SEARCH_RESULT", searchResult)
+                }
             }
+            startActivity(resultIntent)
+            finish() // SearchActivity 종료
 
         } catch (e: Exception) {
             android.util.Log.e("SearchActivity", "워치 검색 결과 처리 실패", e)
@@ -442,15 +298,14 @@ class SearchActivity : AppCompatActivity() {
                 val message = uri.getQueryParameter("message")
                 android.util.Log.d("SearchActivity", "Deep Link 메시지: '$message'")
 
-                // 결과 표시
-                hideAllResults()
-
+                // SearchResultActivity로 이동하여 메시지 표시
                 if (!message.isNullOrBlank()) {
-                    tvResultsTitle.visibility = View.VISIBLE
-                    tvAgentTitle.visibility = View.VISIBLE
-                    tvAgentResponse.visibility = View.VISIBLE
-                    tvAgentResponse.text = message
-                    android.util.Log.d("SearchActivity", "Deep Link 메시지 표시 완료")
+                    val resultIntent = Intent(this, SearchResultActivity::class.java).apply {
+                        putExtra("FROM_WEARABLE", true)
+                        putExtra("SEARCH_RESPONSE", message)
+                    }
+                    startActivity(resultIntent)
+                    finish() // SearchActivity 종료
                 }
             } else {
                 android.util.Log.w("SearchActivity", "알 수 없는 Deep Link: $uri")
@@ -462,10 +317,203 @@ class SearchActivity : AppCompatActivity() {
         }
     }
 
-    private fun navigateToNoteDetail(noteId: Long) {
-        val intent = Intent(this, NoteDetailActivity::class.java).apply {
-            putExtra("NOTE_ID", noteId)
+    // ========== 웨이크워드 서비스 관련 메서드 ==========
+
+    /**
+     * 앱이 처음 실행되는지 확인
+     */
+    private fun isFirstLaunch(): Boolean {
+        return prefs.getBoolean(PREF_FIRST_LAUNCH, true)
+    }
+
+    /**
+     * 첫 실행 상태를 false로 설정
+     */
+    private fun setFirstLaunchComplete() {
+        prefs.edit().putBoolean(PREF_FIRST_LAUNCH, false).apply()
+    }
+
+    /**
+     * 앱 첫 실행 시 환영 메시지 및 권한 안내
+     */
+    private fun showWelcomeDialog() {
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("Second Brain에 오신 것을 환영합니다!")
+            .setMessage(
+                "Second Brain은 음성 인식과 AI 검색 기능을 제공합니다.\n\n" +
+                "원활한 사용을 위해 다음 권한이 필요합니다:\n" +
+                "• 마이크: 음성 검색 및 웨이크워드 감지\n" +
+                "• 알림: 검색 결과 및 워치 알림\n" +
+                "• 전체 화면 알림: 웨이크워드 감지 시 자동 실행\n\n" +
+                "권한 설정을 진행하시겠습니까?"
+            )
+            .setPositiveButton("권한 설정하기") { _, _ ->
+                setFirstLaunchComplete()
+                checkAndRequestPermissionForService()
+            }
+            .setNegativeButton("나중에") { dialog, _ ->
+                setFirstLaunchComplete()
+                dialog.dismiss()
+            }
+            .setCancelable(false)
+            .show()
+    }
+
+    /**
+     * 웨이크워드 서비스를 위한 권한 확인 및 요청
+     */
+    private fun checkAndRequestPermissionForService() {
+        when {
+            ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.RECORD_AUDIO
+            ) == PackageManager.PERMISSION_GRANTED -> {
+                // 마이크 권한 있음 - 알람 권한 확인
+                checkNotificationPermission()
+            }
+            else -> {
+                // 마이크 권한 요청
+                requestMicPermissionForService.launch(Manifest.permission.RECORD_AUDIO)
+            }
         }
-        startActivity(intent)
+    }
+
+    /**
+     * 알람 권한 확인 및 요청 (Android 13+)
+     */
+    private fun checkNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) { // Android 13+
+            when {
+                ContextCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) == PackageManager.PERMISSION_GRANTED -> {
+                    android.util.Log.i("SearchActivity", "알람 권한 이미 허용됨")
+                    checkFullScreenIntentPermission()
+                }
+                shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS) -> {
+                    // 이전에 거부한 경우 - 왜 필요한지 설명
+                    showNotificationPermissionRationale()
+                }
+                else -> {
+                    // 처음 요청하는 경우
+                    android.util.Log.i("SearchActivity", "알람 권한 요청 중")
+                    requestNotificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+                }
+            }
+        } else {
+            // Android 12 이하는 알람 권한 불필요
+            checkFullScreenIntentPermission()
+        }
+    }
+
+    /**
+     * 알람 권한이 필요한 이유 설명 다이얼로그
+     */
+    private fun showNotificationPermissionRationale() {
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("알림 권한 필요")
+            .setMessage("웨이크워드 감지 시 알림을 보내고, 워치에서 전송된 검색 결과를 알려드리기 위해 알림 권한이 필요합니다.")
+            .setPositiveButton("허용") { _, _ ->
+                requestNotificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+            .setNegativeButton("나중에") { dialog, _ ->
+                dialog.dismiss()
+                checkFullScreenIntentPermission()
+            }
+            .setCancelable(false)
+            .show()
+    }
+
+    /**
+     * Full-Screen Intent 권한 확인 (Android 14+)
+     */
+    private fun checkFullScreenIntentPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) { // Android 14+
+            val notificationManager = getSystemService(NotificationManager::class.java)
+            if (!notificationManager.canUseFullScreenIntent()) {
+                android.util.Log.w("SearchActivity", "Full-Screen Intent 권한 없음 - 설정으로 안내")
+
+                // 사용자를 설정 화면으로 안내
+                try {
+                    val intent = Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT).apply {
+                        data = android.net.Uri.parse("package:$packageName")
+                    }
+
+                    // 안내 다이얼로그 표시
+                    androidx.appcompat.app.AlertDialog.Builder(this)
+                        .setTitle("권한 필요")
+                        .setMessage("웨이크워드 감지 시 자동으로 앱을 열기 위해서는 '전체 화면 알림' 권한이 필요합니다.\n\n설정 화면에서 허용해주세요.")
+                        .setPositiveButton("설정으로 이동") { _, _ ->
+                            startActivity(intent)
+                        }
+                        .setNegativeButton("나중에") { dialog, _ ->
+                            dialog.dismiss()
+                            startWakeWordService()
+                        }
+                        .show()
+                } catch (e: Exception) {
+                    android.util.Log.e("SearchActivity", "설정 화면 열기 실패", e)
+                    // 설정 화면을 열 수 없으면 일반 설정으로 이동
+                    startActivity(Intent(Settings.ACTION_SETTINGS))
+                    startWakeWordService()
+                }
+            } else {
+                android.util.Log.i("SearchActivity", "Full-Screen Intent 권한 있음")
+                startWakeWordService()
+            }
+        } else {
+            // Android 13 이하는 권한 불필요
+            startWakeWordService()
+        }
+    }
+
+    /**
+     * 웨이크워드 감지 서비스 시작
+     */
+    private fun startWakeWordService() {
+        try {
+            val serviceIntent = Intent(this, WakeWordService::class.java)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(serviceIntent)
+            } else {
+                startService(serviceIntent)
+            }
+            android.util.Log.i("SearchActivity", "웨이크워드 서비스 시작됨")
+        } catch (e: Exception) {
+            android.util.Log.e("SearchActivity", "웨이크워드 서비스 시작 실패", e)
+        }
+    }
+
+    /**
+     * 앱이 이미 실행 중일 때 새로운 Intent로 호출된 경우
+     */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+
+        android.util.Log.d("SearchActivity", "onNewIntent 호출됨")
+
+        // 웨이크워드로 다시 실행된 경우
+        if (intent.getBooleanExtra("wake_word_detected", false)) {
+            android.util.Log.d("SearchActivity", "웨이크워드 재감지됨")
+
+            // 웨이크워드 감지 시 자동으로 STT 시작
+            if (intent.getBooleanExtra("auto_start_stt", false)) {
+                android.util.Log.d("SearchActivity", "웨이크워드 재감지 - STT 자동 시작")
+                btnVoiceSearch.postDelayed({
+                    checkMicPermissionAndStartVoice()
+                }, 500)
+            }
+        }
+
+        // 워치에서 전달된 검색 결과 처리
+        if (intent.getBooleanExtra("FROM_WEARABLE", false)) {
+            handleWearableSearchResult()
+        }
+        // 워치 알림에서 Deep Link로 실행된 경우
+        else if (intent.action == Intent.ACTION_VIEW && intent.data != null) {
+            handleDeepLink()
+        }
     }
 }
