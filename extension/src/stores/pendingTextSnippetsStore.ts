@@ -30,29 +30,36 @@ interface PendingTextSnippetsStore {
  * - 페이지 새로고침 후에도 유지
  * - Optimistic Update 패턴으로 즉각적인 UI 반응
  */
-export const usePendingTextSnippetsStore = create<PendingTextSnippetsStore>((set, get) => ({
-  snippets: [],
-  isLoading: false,
-  error: null,
-
-  /**
-   * Store 초기화
-   * - chrome.storage에서 저장된 텍스트 조각 목록 불러오기
-   * - 컴포넌트 마운트 시 한 번만 호출
-   */
-  initialize: async () => {
-    set({ isLoading: true, error: null });
+export const usePendingTextSnippetsStore = create<PendingTextSnippetsStore>((set, get) => {
+  // Store 생성 시 자동 초기화 (IIFE)
+  void (async () => {
     try {
       const savedSnippets = await storage.loadPendingSnippets();
       set({ snippets: savedSnippets, isLoading: false });
     } catch (error) {
-      console.error('[PendingTextSnippetsStore] Failed to initialize:', error);
-      set({
-        error: 'Failed to load snippets',
-        isLoading: false,
-      });
+      console.error('[PendingTextSnippetsStore] Failed to auto-initialize:', error);
+      set({ error: 'Failed to load snippets', isLoading: false });
     }
-  },
+  })();
+
+  // Storage 변경 감지 (자동 등록)
+  storage.watchStorageChanges((key, newValue) => {
+    if (key === storage.STORAGE_KEYS.PENDING_TEXT_SNIPPETS) {
+      set({ snippets: newValue as PendingTextSnippet[] });
+    }
+  });
+
+  return {
+    snippets: [],
+    isLoading: true, // 초기화 중
+    error: null,
+
+    /**
+     * Store 초기화 (레거시 호환용 - 실제로는 자동 초기화됨)
+     */
+    initialize: async () => {
+      // 이미 자동 초기화되므로 아무것도 안 함
+    },
 
   /**
    * 텍스트 조각 추가 (Optimistic Update)
@@ -153,4 +160,5 @@ export const usePendingTextSnippetsStore = create<PendingTextSnippetsStore>((set
   getSnippetCount: () => {
     return get().snippets.length;
   },
-}));
+  };
+});

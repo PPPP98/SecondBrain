@@ -1,9 +1,23 @@
 import { create } from 'zustand';
 import type { SaveRequest, SaveRequestStatus } from '@/types/save';
+import * as storage from '@/services/storageService';
 
 interface SaveStatusStore {
   /** 진행 중인 저장 요청 맵 (id → SaveRequest) */
   saveRequests: Map<string, SaveRequest>;
+
+  /**
+   * Store 초기화
+   * - chrome.storage에서 저장된 요청 목록 불러오기
+   * - 컴포넌트 마운트 시 한 번만 호출
+   */
+  initialize: () => Promise<void>;
+
+  /**
+   * Storage 동기화 (storage.onChanged용)
+   * - 다른 탭에서 변경된 내용을 현재 탭에 반영
+   */
+  syncFromStorage: (requests: SaveRequest[]) => void;
 
   /**
    * 새 저장 요청 추가
@@ -77,8 +91,43 @@ interface SaveStatusStore {
  * - 실시간 상태 업데이트
  * - UI 시각화를 위한 전역 상태
  */
-export const useSaveStatusStore = create<SaveStatusStore>((set, get) => ({
-  saveRequests: new Map(),
+export const useSaveStatusStore = create<SaveStatusStore>((set, get) => {
+  // Store 생성 시 자동 초기화 (IIFE)
+  void (async () => {
+    try {
+      const savedRequests = await storage.loadSaveStatusRequests();
+      const requestsMap = new Map(savedRequests.map((req) => [req.id, req]));
+      set({ saveRequests: requestsMap });
+    } catch (error) {
+      console.error('[SaveStatusStore] Failed to auto-initialize:', error);
+    }
+  })();
+
+  // Storage 변경 감지 (자동 등록)
+  storage.watchStorageChanges((key, newValue) => {
+    if (key === storage.STORAGE_KEYS.SAVE_STATUS_REQUESTS) {
+      const requestsMap = new Map((newValue as SaveRequest[]).map((req) => [req.id, req]));
+      set({ saveRequests: requestsMap });
+    }
+  });
+
+  return {
+    saveRequests: new Map(),
+
+    /**
+     * Store 초기화 (레거시 호환용 - 실제로는 자동 초기화됨)
+     */
+    initialize: async () => {
+      // 이미 자동 초기화되므로 아무것도 안 함
+    },
+
+    /**
+     * Storage 동기화 (레거시 호환용)
+     */
+    syncFromStorage: (requests: SaveRequest[]) => {
+      const requestsMap = new Map(requests.map((req) => [req.id, req]));
+      set({ saveRequests: requestsMap });
+    },
 
   addSaveRequest: (url: string, batchId: string, batchTimestamp: number) => {
     const id = `save-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
@@ -94,6 +143,13 @@ export const useSaveStatusStore = create<SaveStatusStore>((set, get) => ({
     set((state) => {
       const newRequests = new Map(state.saveRequests);
       newRequests.set(id, request);
+
+      // chrome.storage에 저장
+      const requestsArray = Array.from(newRequests.values());
+      storage.saveSaveStatusRequests(requestsArray).catch((err) =>
+        console.error('[SaveStatusStore] Failed to save to storage:', err),
+      );
+
       return { saveRequests: newRequests };
     });
 
@@ -114,6 +170,13 @@ export const useSaveStatusStore = create<SaveStatusStore>((set, get) => ({
 
       const newRequests = new Map(state.saveRequests);
       newRequests.set(id, updatedRequest);
+
+      // chrome.storage에 저장
+      const requestsArray = Array.from(newRequests.values());
+      storage.saveSaveStatusRequests(requestsArray).catch((err) =>
+        console.error('[SaveStatusStore] Failed to save to storage:', err),
+      );
+
       return { saveRequests: newRequests };
     });
   },
@@ -122,6 +185,13 @@ export const useSaveStatusStore = create<SaveStatusStore>((set, get) => ({
     set((state) => {
       const newRequests = new Map(state.saveRequests);
       newRequests.delete(id);
+
+      // chrome.storage에 저장
+      const requestsArray = Array.from(newRequests.values());
+      storage.saveSaveStatusRequests(requestsArray).catch((err) =>
+        console.error('[SaveStatusStore] Failed to save to storage:', err),
+      );
+
       return { saveRequests: newRequests };
     });
   },
@@ -134,6 +204,13 @@ export const useSaveStatusStore = create<SaveStatusStore>((set, get) => ({
           newRequests.delete(id);
         }
       }
+
+      // chrome.storage에 저장
+      const requestsArray = Array.from(newRequests.values());
+      storage.saveSaveStatusRequests(requestsArray).catch((err) =>
+        console.error('[SaveStatusStore] Failed to save to storage:', err),
+      );
+
       return { saveRequests: newRequests };
     });
   },
@@ -173,6 +250,12 @@ export const useSaveStatusStore = create<SaveStatusStore>((set, get) => ({
         }
       });
 
+      // chrome.storage에 저장
+      const requestsArray = Array.from(newRequests.values());
+      storage.saveSaveStatusRequests(requestsArray).catch((err) =>
+        console.error('[SaveStatusStore] Failed to save to storage:', err),
+      );
+
       return { saveRequests: newRequests };
     });
 
@@ -196,7 +279,14 @@ export const useSaveStatusStore = create<SaveStatusStore>((set, get) => ({
         }
       }
 
+      // chrome.storage에 저장
+      const requestsArray = Array.from(newRequests.values());
+      storage.saveSaveStatusRequests(requestsArray).catch((err) =>
+        console.error('[SaveStatusStore] Failed to save to storage:', err),
+      );
+
       return { saveRequests: newRequests };
     });
   },
-}));
+  };
+});
