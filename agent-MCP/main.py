@@ -3,12 +3,14 @@
 import logging
 import os
 from typing import Optional
+from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
 from fastmcp import FastMCP
 from pydantic import Field
 
 from services.search_service import SearchService
+from utils.external_client import external_client
 
 # 환경 변수 로드
 load_dotenv()
@@ -24,8 +26,24 @@ API_KEY = os.getenv("API_KEY")
 if not API_KEY or not API_BASE_URL:
     raise ValueError("환경변수 API_BASE_URL과 API_KEY가 필요합니다")
 
+
+@asynccontextmanager
+async def lifespan(app):
+    """서버 시작/종료 시 실행되는 이벤트"""
+
+    yield
+
+    # 종료 시
+    logger.info("🛑 FastMCP 서버 종료 중...")
+    await external_client.close()  # ✅ 클라이언트 정리
+    logger.info("✅ 리소스 정리 완료")
+
+
 # FastMCP 서버 초기화
-mcp = FastMCP("Personal Notes Search Server: Second Brain")
+mcp = FastMCP(
+    "Personal Notes Search Server: Second Brain",
+    lifespan=lifespan,
+)
 
 # 검색 서비스 인스턴스
 search_service = SearchService(api_base_url=API_BASE_URL, api_key=API_KEY)
