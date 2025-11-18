@@ -269,13 +269,13 @@ class SearchResultActivity : AppCompatActivity() {
         runOnUiThread {
             tvResultsTitle.visibility = View.VISIBLE
             tvAgentTitle.visibility = View.VISIBLE
-            tvAgentLoading.visibility = View.VISIBLE
+            layoutAgentLoading.visibility = View.VISIBLE
         }
     }
 
     private fun hideAgentLoading() {
         runOnUiThread {
-            tvAgentLoading.visibility = View.GONE
+            layoutAgentLoading.visibility = View.GONE
         }
     }
 
@@ -314,7 +314,7 @@ class SearchResultActivity : AppCompatActivity() {
         tvResultsTitle.visibility = View.GONE
         tvElasticTitle.visibility = View.GONE
         tvAgentTitle.visibility = View.GONE
-        tvAgentLoading.visibility = View.GONE
+        layoutAgentLoading.visibility = View.GONE
         tvAgentResponse.visibility = View.GONE
         rvElasticResults.visibility = View.GONE
         rvAgentResults.visibility = View.GONE
