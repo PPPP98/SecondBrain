@@ -94,13 +94,13 @@ fastmcp install claude-desktop main.py --name personal-notes
 
 ### 방법 2: 수동 설정
 
-1. **설정 파일 열기**
+### 1. **설정 파일 열기**
 Windows:
 ```
 %APPDATA%\Claude\claude_desktop_config.json
 ```
 
-2. **설정 추가**
+### 2. **설정 추가**
 ```
 uv run python generate_config.py
 ```
@@ -124,10 +124,20 @@ uv run python generate_config.py
 
 > ⚠️ 경로를 실제 프로젝트 위치로 변경하세요!
 
-3. **Claude Desktop 재시작**
+### 3. **Claude Desktop 재시작**
 
 - Claude Desktop 완전 종료
 - 다시 실행
+
+### 4. **설치 확인**
+
+![alt text](img/setting.png)
+- 이름 -> 설정
+![alt text](img/devset.png)
+- 개발자 모드에서 로컬 MCP 구동 확인 가능
+![alt text](img/chatset.png)
+- 채팅창 도구에서 설정 확인 가능
+
 
 ## 📖 사용 방법
 
