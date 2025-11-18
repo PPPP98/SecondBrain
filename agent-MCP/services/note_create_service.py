@@ -37,12 +37,11 @@ class NoteCreateService:
                 "title": title,
                 "content": content,
             }
-            json_data = json.dumps(payload, ensure_ascii=False)
 
             async with httpx.AsyncClient(timeout=60.0) as client:
                 response = await client.post(
-                    f"{self.api_base_url}/api/mcp/notes",
-                    json=json_data,
+                    f"{self.api_base_url}api/mcp/notes",
+                    json=payload,
                     headers={
                         "X-API-Key": self.api_key,
                         "Content-Type": "application/json",
