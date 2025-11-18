@@ -3,7 +3,6 @@
 import httpx
 import logging
 from typing import Optional
-from utils.external_client import external_client
 
 logger = logging.getLogger(__name__)
 
@@ -53,14 +52,14 @@ class SearchService:
                 logger.info(f"📅 시간 필터: {payload['timespan']}")
 
             # API 호출
-            client = await external_client.get_client()
-            response = await client.post(
-                f"{self.api_base_url}/mcp-search",
-                json=payload,
-                headers={"X-API-Key": self.api_key, "Content-Type": "application/json"},
-            )
-            response.raise_for_status()
-            result = response.json()
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                response = await client.post(
+                    f"{self.api_base_url}/mcp-search",
+                    json=payload,
+                    headers={"X-API-Key": self.api_key, "Content-Type": "application/json"},
+                )
+                response.raise_for_status()
+                result = response.json()
 
             # 응답 처리
             if not result.get("success"):
