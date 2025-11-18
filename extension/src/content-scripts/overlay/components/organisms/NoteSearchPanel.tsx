@@ -1,39 +1,32 @@
-import { Loader2, Sparkles, FileText } from 'lucide-react';
+import { Loader2, FileText } from 'lucide-react';
 import { NoteListItem } from '@/content-scripts/overlay/components/molecules/NoteListItem';
-import {
-  AiAnswerSkeleton,
-  NoteListSkeleton,
-} from '@/content-scripts/overlay/components/atoms/Skeleton';
+import { NoteListSkeleton } from '@/content-scripts/overlay/components/atoms/Skeleton';
 import type { NoteSearchResult } from '@/types/note';
 
 /**
- * AiSearchPanel (Organism)
- * - AI 검색 결과 패널
- * - AI 답변 (3줄) + Elasticsearch 노트 목록 (5개)
+ * NoteSearchPanel (Organism)
+ * - 노트 검색 결과 패널
+ * - Elasticsearch 노트 목록 표시
  * - 로딩/에러 상태 처리
  * - [전체보기] → Side Panel 열기
  */
-interface AiSearchPanelProps {
+interface NoteSearchPanelProps {
   keyword: string;
-  aiResponse: string;
   notesList: NoteSearchResult[];
   isLoading: boolean;
-  esCompleted: boolean;
   error: string | null;
   onViewDetail: (noteId: number) => void;
 }
 
-export function AiSearchPanel({
+export function NoteSearchPanel({
   keyword,
-  aiResponse,
   notesList,
   isLoading,
-  esCompleted,
   error,
   onViewDetail,
-}: AiSearchPanelProps) {
+}: NoteSearchPanelProps) {
   // 에러 상태 (검색 시작 전)
-  if (error && !isLoading && !aiResponse && notesList.length === 0) {
+  if (error && !isLoading && notesList.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-8 text-center">
         <div className="mb-2 rounded-full bg-red-50 p-2 dark:bg-red-950">
@@ -45,8 +38,8 @@ export function AiSearchPanel({
     );
   }
 
-  // 로딩 중이면서 아무 결과도 없을 때만 로딩 스피너 (ES도 완료 안됨)
-  if (isLoading && !esCompleted && !aiResponse && notesList.length === 0) {
+  // 로딩 중이면서 아무 결과도 없을 때만 로딩 스피너
+  if (isLoading && notesList.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-8">
         <div className="flex flex-col items-center gap-2">
@@ -57,8 +50,8 @@ export function AiSearchPanel({
     );
   }
 
-  // 모든 검색 완료했지만 결과 없음 (ES와 AI 모두 완료)
-  if (!isLoading && !aiResponse && notesList.length === 0 && esCompleted) {
+  // 모든 검색 완료했지만 결과 없음
+  if (!isLoading && notesList.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-8 text-center">
         <div className="mb-2 rounded-full bg-muted p-2">
@@ -72,10 +65,10 @@ export function AiSearchPanel({
     );
   }
 
-  // 검색 결과 표시 (Progressive: 관련 노트를 먼저 표시)
+  // 검색 결과 표시
   return (
     <div className="flex w-[400px] flex-col gap-4">
-      {/* 관련 노트 섹션 - 우선 표시 (빠른 피드백) */}
+      {/* 관련 노트 섹션 */}
       {notesList.length > 0 ? (
         <div>
           <div className="mb-3 flex items-center justify-between">
@@ -97,33 +90,8 @@ export function AiSearchPanel({
             ))}
           </div>
         </div>
-      ) : esCompleted ? (
-        <div className="rounded-lg border border-border bg-card p-4">
-          <div className="mb-2 flex items-center gap-2">
-            <FileText className="h-4 w-4 text-muted-foreground" />
-            <h3 className="text-sm font-semibold text-foreground">관련 노트</h3>
-          </div>
-          <p className="text-sm text-muted-foreground">검색 결과가 없습니다</p>
-        </div>
       ) : isLoading ? (
         <NoteListSkeleton count={5} />
-      ) : null}
-
-      {/* AI 답변 섹션 - 보조 정보로 나중에 표시 */}
-      {aiResponse ? (
-        <div className="rounded-lg border border-border bg-card p-4">
-          <div className="mb-2 flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-primary" />
-            <h3 className="text-sm font-semibold text-foreground">AI 답변</h3>
-          </div>
-          <div className="max-h-[200px] overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted [&::-webkit-scrollbar-thumb]:hover:bg-muted-foreground/50 [&::-webkit-scrollbar-track]:bg-transparent">
-            <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
-              {aiResponse}
-            </p>
-          </div>
-        </div>
-      ) : isLoading ? (
-        <AiAnswerSkeleton />
       ) : null}
     </div>
   );

@@ -4,8 +4,8 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
 import browser from 'webextension-polyfill';
-import type { NoteDetail } from '@/types/aiSearch';
-import { getNoteDetail } from '@/services/aiSearchService';
+import type { NoteDetail } from '@/types/noteSearch';
+import { getNoteDetail } from '@/services/noteSearchService';
 import 'highlight.js/styles/github-dark.css';
 
 /**
