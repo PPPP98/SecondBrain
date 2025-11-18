@@ -273,6 +273,15 @@ class SearchResultActivity : AppCompatActivity() {
             return
         }
 
+        // 이전 에러 메시지 숨기기
+        tvError.visibility = View.GONE
+
+        // 기존 검색 결과 초기화
+        hideAllResults()
+        elasticAdapter.updateResults(emptyList())
+        agentAdapter.submitList(emptyList())
+        agentResponseText = ""
+
         // 키보드 숨기기
         val imm = getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
         imm.hideSoftInputFromWindow(etSearchQuery.windowToken, 0)
