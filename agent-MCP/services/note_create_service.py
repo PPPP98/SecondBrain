@@ -1,4 +1,4 @@
-# services/search_service.py
+# services/note_create_service.py
 """LLM 대화 노트 생성 서비스"""
 import httpx
 import logging
@@ -58,7 +58,7 @@ class NoteCreateService:
             if not note:
                 return f"노트 생성에 문제가 있습니다. {title} / {content}"
 
-            return f"제목 : {note.get("title", "")} \n 대화 내용 노트가 생성되었습니다."
+            return f"제목 : {note.get('title', '')} \n 대화 내용 노트가 생성되었습니다."
 
         except httpx.TimeoutException:
             logger.error("⏰ 요청 타임아웃")
