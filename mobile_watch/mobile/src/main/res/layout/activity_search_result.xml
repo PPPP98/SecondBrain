@@ -102,16 +102,32 @@
             android:padding="24dp">
 
             <!-- AI 에이전트 로딩 상태 -->
-            <TextView
-                android:id="@+id/tvAgentLoading"
+            <LinearLayout
+                android:id="@+id/layoutAgentLoading"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="AI 추천 검색 중..."
-                android:textSize="14sp"
-                android:textColor="#9090A0"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
                 android:paddingTop="8dp"
                 android:paddingBottom="8dp"
-                android:visibility="gone" />
+                android:visibility="gone">
+
+                <ProgressBar
+                    android:id="@+id/progressAgentLoading"
+                    style="?android:attr/progressBarStyleSmall"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_marginEnd="12dp"
+                    android:indeterminateTint="#9090A0" />
+
+                <TextView
+                    android:id="@+id/tvAgentLoading"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="AI 추천 검색 중..."
+                    android:textSize="14sp"
+                    android:textColor="#9090A0" />
+            </LinearLayout>
 
             <!-- AI 응답 박스 + TTS 버튼 (우측 상단 오버레이) -->
             <FrameLayout
