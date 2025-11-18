@@ -35,11 +35,13 @@ class SearchResultActivity : AppCompatActivity() {
 
     // UI 컴포넌트
     private lateinit var btnBack: TextView
+    private lateinit var tvTitle: View
     private lateinit var tvSearchQuery: TextView
     private lateinit var progressBar: ProgressBar
     private lateinit var tvResultsTitle: TextView
     private lateinit var tvElasticTitle: TextView
     private lateinit var tvAgentTitle: TextView
+    private lateinit var layoutAgentLoading: View
     private lateinit var tvAgentLoading: TextView
     private lateinit var tvAgentResponse: TextView
     private lateinit var rvElasticResults: RecyclerView
@@ -129,11 +131,13 @@ class SearchResultActivity : AppCompatActivity() {
 
     private fun initializeViews() {
         btnBack = findViewById(R.id.btnBack)
+        tvTitle = findViewById(R.id.tvTitle)
         tvSearchQuery = findViewById(R.id.tvSearchQuery)
         progressBar = findViewById(R.id.progressBar)
         tvResultsTitle = findViewById(R.id.tvResultsTitle)
         tvElasticTitle = findViewById(R.id.tvElasticTitle)
         tvAgentTitle = findViewById(R.id.tvAgentTitle)
+        layoutAgentLoading = findViewById(R.id.layoutAgentLoading)
         tvAgentLoading = findViewById(R.id.tvAgentLoading)
         tvAgentResponse = findViewById(R.id.tvAgentResponse)
         rvElasticResults = findViewById(R.id.rvElasticResults)
@@ -151,6 +155,11 @@ class SearchResultActivity : AppCompatActivity() {
         // 뒤로가기 버튼 클릭 리스너
         btnBack.setOnClickListener {
             finish()
+        }
+
+        // 검색창 클릭 리스너 - SearchActivity로 복귀하여 재검색 가능
+        tvTitle.setOnClickListener {
+            finish() // 현재 화면 종료하여 SearchActivity로 복귀
         }
 
         // TTS 재생 버튼 클릭 리스너
