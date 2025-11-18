@@ -52,6 +52,8 @@ export function ActionButtons({ activePanel, onTogglePanel }: ActionButtonsProps
 
   // Local state로 검색어 관리 (즉시 반응)
   const [localKeyword, setLocalKeyword] = useState('');
+  // 포커스 상태 (너비 확장용)
+  const [isFocused, setIsFocused] = useState(false);
 
   // 실시간 검색을 위한 debounced search
   const debouncedSearchRef = useRef(
@@ -62,8 +64,8 @@ export function ActionButtons({ activePanel, onTogglePanel }: ActionButtonsProps
     }, 300),
   );
 
-  // 파생 상태: activePanel로부터 계산
-  const isSearchMode = activePanel === 'noteSearch';
+  // 파생 상태: 포커스 또는 검색 모드일 때 확장
+  const isSearchMode = isFocused || activePanel === 'noteSearch';
 
   // 키워드 입력 핸들러 - 실시간 검색
   function handleKeywordChange(newKeyword: string) {
@@ -85,6 +87,7 @@ export function ActionButtons({ activePanel, onTogglePanel }: ActionButtonsProps
 
   function handleSearchFocus() {
     setFocused(true);
+    setIsFocused(true);
 
     // 포커스 시 다른 패널 닫기
     if (activePanel !== null && activePanel !== 'noteSearch') {
@@ -97,10 +100,19 @@ export function ActionButtons({ activePanel, onTogglePanel }: ActionButtonsProps
     }
   }
 
+  function handleSearchBlur() {
+    setFocused(false);
+    // 검색어가 없으면 포커스 상태도 해제
+    if (!localKeyword.trim()) {
+      setIsFocused(false);
+    }
+  }
+
   function handleSearchCancel() {
     setLocalKeyword('');
     clearSearch();
     setFocused(false);
+    setIsFocused(false);
     onTogglePanel(null as never);
   }
 
@@ -207,7 +219,7 @@ ${snippet.text}`;
           value={localKeyword}
           onChange={handleKeywordChange}
           onFocus={handleSearchFocus}
-          onBlur={() => setFocused(false)}
+          onBlur={handleSearchBlur}
           onSearch={handleSearch}
           onCancel={handleSearchCancel}
           placeholder="노트 검색..."

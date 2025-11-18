@@ -78,8 +78,8 @@ export function NoteSearchPanel({
             </h3>
           </div>
 
-          {/* 노트 리스트에만 스크롤 적용 - 최대 5개 노트 표시, 약 400px */}
-          <div className="flex max-h-[400px] flex-col gap-2 overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted [&::-webkit-scrollbar-thumb]:hover:bg-muted-foreground/50 [&::-webkit-scrollbar-track]:bg-transparent">
+          {/* 노트 리스트에만 스크롤 적용 - 3개 초과시에만 스크롤 */}
+          <div className={`flex flex-col gap-2 ${notesList.length > 3 ? 'max-h-[240px] overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted [&::-webkit-scrollbar-thumb]:hover:bg-muted-foreground/50 [&::-webkit-scrollbar-track]:bg-transparent' : ''}`}>
             {notesList.map((note) => (
               <NoteListItem
                 key={note.id}

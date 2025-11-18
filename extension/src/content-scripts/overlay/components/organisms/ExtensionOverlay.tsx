@@ -230,7 +230,7 @@ export function ExtensionOverlay({ isOpen, onToggle }: ExtensionOverlayProps) {
                   activePanel === 'settings'
                     ? 'mt-4 max-h-[600px] opacity-100'
                     : activePanel === 'noteSearch'
-                      ? 'mt-4 max-h-[800px] w-[400px] overflow-y-auto opacity-100 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted [&::-webkit-scrollbar-thumb]:hover:bg-muted-foreground/50 [&::-webkit-scrollbar-track]:bg-transparent'
+                      ? 'mt-4 w-[400px] opacity-100'
                       : activePanel
                         ? 'mt-4 max-h-[400px] opacity-100'
                         : 'max-h-0 opacity-0'
