@@ -60,7 +60,6 @@ class SearchResultActivity : AppCompatActivity() {
     private lateinit var tvNoResults: TextView
     private lateinit var tvError: TextView
     private lateinit var divider1: View
-    private lateinit var divider2: View
     private lateinit var btnPlayTts: ImageButton
 
     // 어댑터
@@ -185,7 +184,6 @@ class SearchResultActivity : AppCompatActivity() {
         tvNoResults = findViewById(R.id.tvNoResults)
         tvError = findViewById(R.id.tvError)
         divider1 = findViewById(R.id.divider1)
-        divider2 = findViewById(R.id.divider2)
         btnPlayTts = findViewById(R.id.btnPlayTts)
 
         // 검색어 표시
@@ -404,7 +402,6 @@ class SearchResultActivity : AppCompatActivity() {
                 tvAgentTitle.visibility = View.VISIBLE
                 tvAgentResponse.visibility = View.VISIBLE
                 tvAgentResponse.text = responseMessage
-                divider2.visibility = View.VISIBLE
 
                 // 응답 텍스트 저장 및 TTS 버튼 표시
                 agentResponseText = responseMessage
