@@ -129,164 +129,164 @@ export const useSaveStatusStore = create<SaveStatusStore>((set, get) => {
       set({ saveRequests: requestsMap });
     },
 
-  addSaveRequest: (url: string, batchId: string, batchTimestamp: number) => {
-    const id = `save-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-    const request: SaveRequest = {
-      id,
-      url,
-      status: 'saving',
-      startTime: Date.now(),
-      batchId,
-      batchTimestamp,
-    };
-
-    set((state) => {
-      const newRequests = new Map(state.saveRequests);
-      newRequests.set(id, request);
-
-      // chrome.storage에 저장
-      const requestsArray = Array.from(newRequests.values());
-      storage.saveSaveStatusRequests(requestsArray).catch((err) =>
-        console.error('[SaveStatusStore] Failed to save to storage:', err),
-      );
-
-      return { saveRequests: newRequests };
-    });
-
-    return id;
-  },
-
-  updateSaveStatus: (id: string, status: SaveRequestStatus, error?: string) => {
-    set((state) => {
-      const request = state.saveRequests.get(id);
-      if (!request) return state;
-
-      const updatedRequest: SaveRequest = {
-        ...request,
-        status,
-        completedTime: status === 'success' || status === 'error' ? Date.now() : undefined,
-        error: error || request.error,
+    addSaveRequest: (url: string, batchId: string, batchTimestamp: number) => {
+      const id = `save-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+      const request: SaveRequest = {
+        id,
+        url,
+        status: 'saving',
+        startTime: Date.now(),
+        batchId,
+        batchTimestamp,
       };
 
-      const newRequests = new Map(state.saveRequests);
-      newRequests.set(id, updatedRequest);
+      set((state) => {
+        const newRequests = new Map(state.saveRequests);
+        newRequests.set(id, request);
 
-      // chrome.storage에 저장
-      const requestsArray = Array.from(newRequests.values());
-      storage.saveSaveStatusRequests(requestsArray).catch((err) =>
-        console.error('[SaveStatusStore] Failed to save to storage:', err),
-      );
+        // chrome.storage에 저장
+        const requestsArray = Array.from(newRequests.values());
+        storage
+          .saveSaveStatusRequests(requestsArray)
+          .catch((err) => console.error('[SaveStatusStore] Failed to save to storage:', err));
 
-      return { saveRequests: newRequests };
-    });
-  },
-
-  removeSaveRequest: (id: string) => {
-    set((state) => {
-      const newRequests = new Map(state.saveRequests);
-      newRequests.delete(id);
-
-      // chrome.storage에 저장
-      const requestsArray = Array.from(newRequests.values());
-      storage.saveSaveStatusRequests(requestsArray).catch((err) =>
-        console.error('[SaveStatusStore] Failed to save to storage:', err),
-      );
-
-      return { saveRequests: newRequests };
-    });
-  },
-
-  clearCompletedRequests: () => {
-    set((state) => {
-      const newRequests = new Map(state.saveRequests);
-      for (const [id, request] of newRequests.entries()) {
-        if (request.status === 'success' || request.status === 'error') {
-          newRequests.delete(id);
-        }
-      }
-
-      // chrome.storage에 저장
-      const requestsArray = Array.from(newRequests.values());
-      storage.saveSaveStatusRequests(requestsArray).catch((err) =>
-        console.error('[SaveStatusStore] Failed to save to storage:', err),
-      );
-
-      return { saveRequests: newRequests };
-    });
-  },
-
-  getSavingCount: () => {
-    const requests = Array.from(get().saveRequests.values());
-    return requests.filter((r) => r.status === 'saving').length;
-  },
-
-  getRequestList: () => {
-    return Array.from(get().saveRequests.values()).sort((a, b) => b.startTime - a.startTime);
-  },
-
-  addSaveRequestsFromBroadcast: (urls: string[], batchId: string, batchTimestamp: number) => {
-    const requestIds: string[] = [];
-
-    set((state) => {
-      const newRequests = new Map(state.saveRequests);
-
-      urls.forEach((url) => {
-        // 고유 ID 생성 (batchTimestamp + URL 해시)
-        const urlHash = url.slice(8, 20).replace(/[^a-zA-Z0-9]/g, '');
-        const id = `save-${batchTimestamp}-${urlHash}`;
-
-        // 중복 방지 (이미 있으면 스킵)
-        if (!newRequests.has(id)) {
-          const request: SaveRequest = {
-            id,
-            url,
-            status: 'saving',
-            startTime: Date.now(),
-            batchId,
-            batchTimestamp,
-          };
-          newRequests.set(id, request);
-          requestIds.push(id);
-        }
+        return { saveRequests: newRequests };
       });
 
-      // chrome.storage에 저장
-      const requestsArray = Array.from(newRequests.values());
-      storage.saveSaveStatusRequests(requestsArray).catch((err) =>
-        console.error('[SaveStatusStore] Failed to save to storage:', err),
-      );
+      return id;
+    },
 
-      return { saveRequests: newRequests };
-    });
+    updateSaveStatus: (id: string, status: SaveRequestStatus, error?: string) => {
+      set((state) => {
+        const request = state.saveRequests.get(id);
+        if (!request) return state;
 
-    return requestIds;
-  },
+        const updatedRequest: SaveRequest = {
+          ...request,
+          status,
+          completedTime: status === 'success' || status === 'error' ? Date.now() : undefined,
+          error: error || request.error,
+        };
 
-  updateSaveStatusByUrls: (urls: string[], batchId: string, success: boolean, error?: string) => {
-    set((state) => {
-      const newRequests = new Map(state.saveRequests);
-      const status: SaveRequestStatus = success ? 'success' : 'error';
+        const newRequests = new Map(state.saveRequests);
+        newRequests.set(id, updatedRequest);
 
-      // batchId가 일치하고 URL이 포함된 모든 요청 업데이트
-      for (const [id, request] of newRequests.entries()) {
-        if (request.batchId === batchId && urls.includes(request.url)) {
-          newRequests.set(id, {
-            ...request,
-            status,
-            completedTime: Date.now(),
-            error,
-          });
+        // chrome.storage에 저장
+        const requestsArray = Array.from(newRequests.values());
+        storage
+          .saveSaveStatusRequests(requestsArray)
+          .catch((err) => console.error('[SaveStatusStore] Failed to save to storage:', err));
+
+        return { saveRequests: newRequests };
+      });
+    },
+
+    removeSaveRequest: (id: string) => {
+      set((state) => {
+        const newRequests = new Map(state.saveRequests);
+        newRequests.delete(id);
+
+        // chrome.storage에 저장
+        const requestsArray = Array.from(newRequests.values());
+        storage
+          .saveSaveStatusRequests(requestsArray)
+          .catch((err) => console.error('[SaveStatusStore] Failed to save to storage:', err));
+
+        return { saveRequests: newRequests };
+      });
+    },
+
+    clearCompletedRequests: () => {
+      set((state) => {
+        const newRequests = new Map(state.saveRequests);
+        for (const [id, request] of newRequests.entries()) {
+          if (request.status === 'success' || request.status === 'error') {
+            newRequests.delete(id);
+          }
         }
-      }
 
-      // chrome.storage에 저장
-      const requestsArray = Array.from(newRequests.values());
-      storage.saveSaveStatusRequests(requestsArray).catch((err) =>
-        console.error('[SaveStatusStore] Failed to save to storage:', err),
-      );
+        // chrome.storage에 저장
+        const requestsArray = Array.from(newRequests.values());
+        storage
+          .saveSaveStatusRequests(requestsArray)
+          .catch((err) => console.error('[SaveStatusStore] Failed to save to storage:', err));
 
-      return { saveRequests: newRequests };
-    });
-  },
+        return { saveRequests: newRequests };
+      });
+    },
+
+    getSavingCount: () => {
+      const requests = Array.from(get().saveRequests.values());
+      return requests.filter((r) => r.status === 'saving').length;
+    },
+
+    getRequestList: () => {
+      return Array.from(get().saveRequests.values()).sort((a, b) => b.startTime - a.startTime);
+    },
+
+    addSaveRequestsFromBroadcast: (urls: string[], batchId: string, batchTimestamp: number) => {
+      const requestIds: string[] = [];
+
+      set((state) => {
+        const newRequests = new Map(state.saveRequests);
+
+        urls.forEach((url) => {
+          // 고유 ID 생성 (batchTimestamp + URL 해시)
+          const urlHash = url.slice(8, 20).replace(/[^a-zA-Z0-9]/g, '');
+          const id = `save-${batchTimestamp}-${urlHash}`;
+
+          // 중복 방지 (이미 있으면 스킵)
+          if (!newRequests.has(id)) {
+            const request: SaveRequest = {
+              id,
+              url,
+              status: 'saving',
+              startTime: Date.now(),
+              batchId,
+              batchTimestamp,
+            };
+            newRequests.set(id, request);
+            requestIds.push(id);
+          }
+        });
+
+        // chrome.storage에 저장
+        const requestsArray = Array.from(newRequests.values());
+        storage
+          .saveSaveStatusRequests(requestsArray)
+          .catch((err) => console.error('[SaveStatusStore] Failed to save to storage:', err));
+
+        return { saveRequests: newRequests };
+      });
+
+      return requestIds;
+    },
+
+    updateSaveStatusByUrls: (urls: string[], batchId: string, success: boolean, error?: string) => {
+      set((state) => {
+        const newRequests = new Map(state.saveRequests);
+        const status: SaveRequestStatus = success ? 'success' : 'error';
+
+        // batchId가 일치하고 URL이 포함된 모든 요청 업데이트
+        for (const [id, request] of newRequests.entries()) {
+          if (request.batchId === batchId && urls.includes(request.url)) {
+            newRequests.set(id, {
+              ...request,
+              status,
+              completedTime: Date.now(),
+              error,
+            });
+          }
+        }
+
+        // chrome.storage에 저장
+        const requestsArray = Array.from(newRequests.values());
+        storage
+          .saveSaveStatusRequests(requestsArray)
+          .catch((err) => console.error('[SaveStatusStore] Failed to save to storage:', err));
+
+        return { saveRequests: newRequests };
+      });
+    },
   };
 });
