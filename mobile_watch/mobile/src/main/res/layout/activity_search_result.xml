@@ -50,15 +50,21 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
-        <!-- 검색 텍스트 -->
-        <TextView
-            android:id="@+id/tvSearchQuery"
+        <!-- 검색 입력창 -->
+        <EditText
+            android:id="@+id/etSearchQuery"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:textColor="#FFFFFF"
+            android:textColorHint="#9090A0"
             android:textSize="16sp"
-            android:padding="12dp" />
+            android:padding="12dp"
+            android:background="@android:color/transparent"
+            android:hint="질문 내용을 입력하세요"
+            android:inputType="text"
+            android:imeOptions="actionSearch"
+            android:maxLines="1" />
 
         <!-- 검색 아이콘 -->
         <ImageButton
@@ -68,6 +74,17 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@android:drawable/ic_menu_search"
             android:contentDescription="검색"
+            android:tint="#9090A0"
+            android:padding="8dp" />
+
+        <!-- 음성 인식 버튼 -->
+        <ImageButton
+            android:id="@+id/btnVoiceSearch"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@android:drawable/ic_btn_speak_now"
+            android:contentDescription="음성 검색"
             android:tint="#9090A0"
             android:padding="8dp" />
     </LinearLayout>

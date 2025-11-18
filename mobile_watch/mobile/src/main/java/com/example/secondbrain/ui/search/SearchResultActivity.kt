@@ -1,12 +1,21 @@
 package com.example.secondbrain.ui.search
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Bundle
+import android.speech.RecognizerIntent
+import android.view.KeyEvent
 import android.view.View
+import android.view.inputmethod.EditorInfo
+import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.ProgressBar
 import android.widget.TextView
+import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
@@ -36,7 +45,9 @@ class SearchResultActivity : AppCompatActivity() {
     // UI 컴포넌트
     private lateinit var btnBack: TextView
     private lateinit var tvTitle: View
-    private lateinit var tvSearchQuery: TextView
+    private lateinit var etSearchQuery: EditText
+    private lateinit var btnSearch: ImageButton
+    private lateinit var btnVoiceSearch: ImageButton
     private lateinit var progressBar: ProgressBar
     private lateinit var tvResultsTitle: TextView
     private lateinit var tvElasticTitle: TextView
@@ -64,6 +75,33 @@ class SearchResultActivity : AppCompatActivity() {
     private var exoPlayer: ExoPlayer? = null
     private var agentResponseText: String = ""
     private var currentTempFile: File? = null
+
+    // 음성 인식 결과 처리
+    private val speechRecognizerLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == RESULT_OK) {
+            val matches = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+            if (!matches.isNullOrEmpty()) {
+                val recognizedText = matches[0]
+                etSearchQuery.setText(recognizedText)
+                performSearchFromInput()
+            }
+        } else {
+            Toast.makeText(this, "음성 인식 실패", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    // 마이크 권한 요청
+    private val requestMicPermission = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            startVoiceRecognition()
+        } else {
+            Toast.makeText(this, "마이크 권한이 필요합니다", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -119,7 +157,7 @@ class SearchResultActivity : AppCompatActivity() {
         android.util.Log.d("SearchResultActivity", "워치 데이터: query='$query', response='$responseMessage', 노트=${searchResult?.documents?.size ?: 0}개")
 
         // 검색어 표시
-        tvSearchQuery.text = query
+        etSearchQuery.setText(query)
 
         // Agent 응답 및 노트 결과 표시
         if (searchResult != null) {
@@ -132,7 +170,9 @@ class SearchResultActivity : AppCompatActivity() {
     private fun initializeViews() {
         btnBack = findViewById(R.id.btnBack)
         tvTitle = findViewById(R.id.tvTitle)
-        tvSearchQuery = findViewById(R.id.tvSearchQuery)
+        etSearchQuery = findViewById(R.id.etSearchQuery)
+        btnSearch = findViewById(R.id.btnSearch)
+        btnVoiceSearch = findViewById(R.id.btnVoiceSearch)
         progressBar = findViewById(R.id.progressBar)
         tvResultsTitle = findViewById(R.id.tvResultsTitle)
         tvElasticTitle = findViewById(R.id.tvElasticTitle)
@@ -150,22 +190,52 @@ class SearchResultActivity : AppCompatActivity() {
 
         // 검색어 표시
         val query = intent.getStringExtra("SEARCH_QUERY") ?: ""
-        tvSearchQuery.text = query
+        etSearchQuery.setText(query)
 
         // 뒤로가기 버튼 클릭 리스너
         btnBack.setOnClickListener {
             finish()
         }
 
-        // 검색창 클릭 리스너 - SearchActivity로 복귀하여 재검색 가능
-        tvTitle.setOnClickListener {
-            finish() // 현재 화면 종료하여 SearchActivity로 복귀
+        // 검색 버튼 클릭 리스너 - 재검색
+        btnSearch.setOnClickListener {
+            performSearchFromInput()
+        }
+
+        // 키보드 엔터키로 검색
+        etSearchQuery.setOnEditorActionListener { _, actionId, event ->
+            if (actionId == EditorInfo.IME_ACTION_SEARCH ||
+                (event?.keyCode == KeyEvent.KEYCODE_ENTER && event.action == KeyEvent.ACTION_DOWN)) {
+                performSearchFromInput()
+                true
+            } else {
+                false
+            }
         }
 
         // TTS 재생 버튼 클릭 리스너
         btnPlayTts.setOnClickListener {
             toggleTtsPlayback()
         }
+    }
+
+    /**
+     * 입력창의 검색어로 재검색 수행
+     */
+    private fun performSearchFromInput() {
+        val query = etSearchQuery.text.toString().trim()
+        if (query.isEmpty()) {
+            tvError.text = "검색어를 입력하세요"
+            tvError.visibility = View.VISIBLE
+            return
+        }
+
+        // 키보드 숨기기
+        val imm = getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+        imm.hideSoftInputFromWindow(etSearchQuery.windowToken, 0)
+
+        // 재검색 수행
+        performSearch(query)
     }
 
     private fun setupRecyclerViews() {
