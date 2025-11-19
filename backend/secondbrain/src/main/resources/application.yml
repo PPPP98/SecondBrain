@@ -1,0 +1,134 @@
+spring:
+  application:
+    name: SecondBrain
+
+  profiles:
+    active: local
+
+  datasource:
+    url: ${POSTGRES_DB_URL}
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+      password: ${REDIS_PASSWORD}
+      ssl:
+        enabled: false
+
+  elasticsearch:
+    uris: ${ELASTICSEARCH_URIS}
+    username: ${ELASTICSEARCH_USERNAME}
+    password: ${ELASTICSEARCH_PASSWORD}
+
+  neo4j:
+    uri: ${NEO4J_URI:bolt+s://brainsecond.site:7687}
+    authentication:
+      username: ${NEO4J_USERNAME}
+      password: ${NEO4J_PASSWORD}
+
+  rabbitmq:
+    host: ${RABBITMQ_HOST}
+    port: ${RABBITMQ_PORT}
+    username: ${RABBITMQ_USERNAME}
+    password: ${RABBITMQ_PASSWORD}
+    virtual-host: ${RABBITMQ_VIRTUAL_HOST}
+    ssl:
+      enabled: ${RABBITMQ_SSL_ENABLED}
+
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            scope:
+              - email
+              - profile
+            redirect-uri: "${BASE_URL}/login/oauth2/code/google"
+
+  cloud:
+    aws:
+      credentials:
+        access-key: ${ACCESS_KEY}
+        secret-key: ${SECRET_ACCESS_KEY}
+      region:
+        static: ${REGION}
+      s3:
+        bucket: ${BUCKET_NAME}
+
+  ai:
+    openai:
+      api-key: ${GMS_API_KEY}
+      base-url: ${GMS_OPENAI_BASE_URL}
+      embedding:
+        options:
+          model: ${GMS_EMBEDDING_MODEL}
+
+server:
+  port: 8080
+
+jwt:
+  secret: ${JWT_SECRET}
+  algorithm: HS256
+  expire-time:
+    access: 30d  # 개발 편의를 위해 1달로 설정 (프로덕션에서는 1h 권장)
+    refresh: 7d
+
+secondbrain:
+  oauth2:
+    redirect-url: ${OAUTH2_REDIRECT_URL}
+    failure-redirect-url: ${OAUTH2_FAILURE_REDIRECT_URL:${OAUTH2_REDIRECT_URL}?error=true}
+    authorization-code:
+      ttl-seconds: 300 # Authorization Code 유효 시간 (5분)
+
+security:
+  jwt:
+    cookie:
+      secure: ${JWT_COOKIE_SECURE} # HTTPS 환경에서 쿠키 보안 설정
+  cors:
+    allowed-origins:
+      - ${CORS_ALLOWED_ORIGIN:*}
+
+swagger:
+  url: ${BASE_URL}
+
+logging:
+  level:
+    root: INFO
+    uknowklp.secondbrain: DEBUG
+
+# GMS API 설정
+gms:
+  api-key: ${GMS_API_KEY}
+  model: ${GMS_MODEL}
+  embedding-model: ${GMS_EMBEDDING_MODEL}
+  base-url: ${GMS_BASE_URL}
+  openai-base-url: ${GMS_OPENAI_BASE_URL}
+  max-tokens: ${GMS_MAX_TOKENS}
+  temperature: ${GMS_TEMPERATURE}
+
+# Naver Clova Voice TTS 설정
+clova:
+  voice:
+    client-id: ${CLOVA_CLIENT_ID}
+    client-secret: ${CLOVA_CLIENT_SECRET}
+    api-url: https://naveropenapi.apigw.ntruss.com/tts-premium/v1/tts
+    default-speaker: nara
+    default-volume: 0
+    default-speed: 0
+    default-pitch: 0
+    default-format: mp3
