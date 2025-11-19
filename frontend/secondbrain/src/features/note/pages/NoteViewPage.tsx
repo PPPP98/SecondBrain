@@ -86,6 +86,7 @@ export function NoteViewPage() {
           onDelete={handleDelete}
           mode={viewMode}
           onToggleMode={handleToggleMode}
+          hideSidePeekButton
         />
 
         {/* 중앙 컨텐츠: Title + Editor (전체 스크롤) */}
