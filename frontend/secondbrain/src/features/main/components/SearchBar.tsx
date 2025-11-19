@@ -12,7 +12,6 @@ import { useDebounce } from '@/features/main/hooks/useDebounce';
 export function SearchBar() {
   const startSearch = useSearchPanelStore((state) => state.startSearch);
   const closePanel = useSearchPanelStore((state) => state.closePanel);
-  const mode = useSearchPanelStore((state) => state.mode);
 
   // 로컬 상태로 검색어 관리
   const [searchInput, setSearchInput] = useState('');
@@ -24,8 +23,9 @@ export function SearchBar() {
     const trimmedInput = debouncedSearchInput.trim();
 
     if (!trimmedInput) {
-      // 검색어 없음 → search 모드에서만 패널 닫기 (recent 모드는 유지)
-      if (mode === 'search') {
+      // store에서 직접 현재 mode 확인 (의존성 배열에서 제거하여 race condition 방지)
+      const currentMode = useSearchPanelStore.getState().mode;
+      if (currentMode === 'search') {
         closePanel();
       }
       return;
@@ -33,7 +33,7 @@ export function SearchBar() {
 
     // 검색어 변경 시에만 검색 패널 열기
     startSearch(debouncedSearchInput);
-  }, [debouncedSearchInput, mode, closePanel, startSearch]);
+  }, [debouncedSearchInput, closePanel, startSearch]);
 
   return (
     <div className="flex items-center gap-3">
