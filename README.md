@@ -2,7 +2,9 @@
 
 # Second Brain
 
-<img src="./readme-assets/LogoIMG.png" />
+<div style="display: inline-block; background-color: black; border-radius: 50%; padding: 20px;">
+    <img src="./readme-assets/LogoIMG.png" width="300" />
+</div>
 
 </div>
 
@@ -49,26 +51,26 @@
 <table>
     <tr>
         <td width="33%" align="center"> <a href="https://github.com/01seok">
-            <img src="./readme-assets/" width="160px" /> <br> 이석재 <br>(Backend) </a> <br></td>
+            <img src="./readme-assets/이석재.jpg" width="160px" /> <br> 이석재 <br>(Backend) </a> <br></td>
         <td width="33%" align="center"> <a href="https://github.com/soomkim00">
-            <img src="./readme-assets/" width="160px" /> <br> 김수민 <br>(Backend) </a> <br></td>
+            <img src="./readme-assets/김수민.jpg" width="160px" /> <br> 김수민 <br>(Backend) </a> <br></td>
         <td width="33%" align="center"> <a href="https://github.com/CometAve">
             <img src="./readme-assets/" width="160px" /> <br> 노혜성 <br>(Backend & Frontend) </a> <br></td>
     </tr>
     <tr>
       <td width="280px">
         <sub>
-          -  <br>
-          -  <br>
-          -  <br>
-          - 
+          - Elasticsearch와 Neo4j를 결합한 하이브리드 검색 엔진(RRF) 및 병렬 처리 구현<br>
+          - RabbitMQ 기반의 비동기 메시지 처리를 통한 데이터 파이프라인 구축 및 트랜잭션 최적화<br>
+          - Spring Scheduler와 STOMP 프로토콜을 활용한 실시간 리마인더 및 알림 시스템 개발<br>
+          - 모바일 앱 백엔드 연동
         </sub>
       </td>
       <td width="280px">
         <sub>
-          -  <br>
-          -  <br>
-          - 
+          - 노트 CRUD API 구현<br>
+          - 사용자 알림 설정 및 최근 노트 목록 조회 API 구현<br>
+          - 발표 & 자료
         </sub>
       </td>
       <td width="280px">
@@ -95,9 +97,9 @@
     <tr>
         <td width="280px">
           <sub>
-            -  <br>
-            -  <br>
-            - 
+            - FastAPI를 활용해 Agent & Neo4j 로직 서비스 제공<br>
+            - Neo4j 그래프 연결 비동기 처리를 위한 RabbitMQ 이벤트 컨슈머 워커 구성<br>
+            - LangChain/LangGraph를 활용한 Agent 워크플로우 설계 및 구현
           </sub>
         </td>
         <td width="280px">
@@ -140,78 +142,103 @@
 
 <a name="techStack"></a>
 
-### 🌕 Frontend
+<div align="center">
+
+<a href="/exec/porting_manual.pdf" style="font-size:30px;">📃 **포팅 메뉴얼**</a>
+
+</div>
+
+---
 
 <div align="center">
 
-![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
-![HTML5](https://img.shields.io/badge/html5-%23E34F26.svg?style=for-the-badge&logo=html5&logoColor=white)
-![CSS3](https://img.shields.io/badge/css3-%231572B6.svg?style=for-the-badge&logo=css3&logoColor=white)<br>
-![React](https://img.shields.io/badge/react-61DAFB?style=for-the-badge&logo=react&logoColor=white)
-![Vite](https://img.shields.io/badge/vite-%23646CFF.svg?style=for-the-badge&logo=vite&logoColor=white)
-![React Router](https://img.shields.io/badge/React_Router-CA4245?style=for-the-badge&logo=react-router&logoColor=white)
+### 🌕 Frontend
+
+![Vite](https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white)
+![React](https://img.shields.io/badge/React-61DAFB?style=for-the-badge&logo=react&logoColor=black)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)<br>
+![Shadcn UI](https://img.shields.io/badge/Shadcn_UI-000000?style=for-the-badge&logo=shadcn&logoColor=white)
+![Zod](https://img.shields.io/badge/Zod-000000?style=for-the-badge&logo=zod&logoColor=white)
+![Zustand](https://img.shields.io/badge/Zustand-000000?style=for-the-badge&logo=zustand&logoColor=white)<br>
+![TanStack Query](https://img.shields.io/badge/TanStack_Query-FF4154?style=for-the-badge&logo=tanstack&logoColor=white)
+![TanStack Router](https://img.shields.io/badge/TanStack_Router-FF4154?style=for-the-badge&logo=tanstack&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-06B6D4?style=for-the-badge&logo=tailwind-css&logoColor=white)
+
+|    **Category**     |            **Version**            |
+| :-----------------: | :-------------------------------: |
+|     **React**      |               v18               |
+|    **Tailwind CSS**       |              v3(web) / v4(Chrome Extension)               |
 
 <br>
 
-|      **Category**       |                                                 **Stack**                                                  |
-| :---------------------: | :--------------------------------------------------------------------------------------------------------: |
-|      **Language**       |                                                                                                            |
-| **Runtime Environment** |                                                                                                            |
-|      **Framework**      |                                                                                                            |
-|       **Library**       |                                                                                                            |
-
 </div>
+
+---
+
+<div align="center">
 
 ### 🌑 Backend
 
-<div align="center">
+![Spring Boot](https://img.shields.io/badge/SpringBoot-6DB33F?style=for-the-badge&logo=springboot&logoColor=white)
+![JWT](https://img.shields.io/badge/JWT-000000?style=for-the-badge&logo=jwt&logoColor=white)
+![Spring Security](https://img.shields.io/badge/SpringSecurity-6DB33F?style=for-the-badge&logo=springsecurity&logoColor=white)<br>
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
+![Redis](https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white)
+![RabbitMQ](https://img.shields.io/badge/RabbitMQ-FF6600?style=for-the-badge&logo=rabbitmq&logoColor=white)<br>
+![Elasticsearch](https://img.shields.io/badge/Elasticsearch-005571?style=for-the-badge&logo=elasticsearch&logoColor=white)
+![Swagger](https://img.shields.io/badge/Swagger-85EA2D?style=for-the-badge&logo=swagger&logoColor=black)
+![OpenAI](https://img.shields.io/badge/OpenAI-412991?style=for-the-badge&logo=openai&logoColor=white)
 
-![IntelliJ IDEA](https://img.shields.io/badge/intellijidea-000000.svg?&style=for-the-badge&logo=intellijidea&logoColor=white)
-![Java](https://img.shields.io/badge/java-%23ED8B00.svg?style=for-the-badge&logo=openjdk&logoColor=white)
-![Gradle](https://img.shields.io/badge/Gradle-02303A.svg?style=for-the-badge&logo=Gradle&logoColor=white)<br>
-![MySQL](https://img.shields.io/badge/PostgreSQL-4479A1.svg?&style=for-the-badge&logo=PostgreSQL&logoColor=white)
-![Redis](https://img.shields.io/badge/redis-%23DD0031.svg?style=for-the-badge&logo=redis&logoColor=white)<br>
-![Spring Boot](https://img.shields.io/badge/springboot-6DB33F.svg?&style=for-the-badge&logo=springboot&logoColor=white)
-![Spring Security](https://img.shields.io/badge/springsecurity-6DB33F?style=for-the-badge&logo=springsecurity&logoColor=white)
-![JWT](https://img.shields.io/badge/JWT-black?style=for-the-badge&logo=JSON%20web%20tokens)
-![Hibernate](https://img.shields.io/badge/Hibernate-59666C?style=for-the-badge&logo=Hibernate&logoColor=white)
-![Swagger](https://img.shields.io/badge/-Swagger-%23Clojure?style=for-the-badge&logo=swagger&logoColor=white)<br>
+|    **Category**     |            **Version**            |
+| :-----------------: | :-------------------------------: |
+|    **Java**       |               17             |
+|    **Spring Boot**       |            3.5.7                |
+|    **Elasticsearch**       |           8.7.1               |
 
-|      **Category**       |                                                 **Stack**                                                  |
-| :---------------------: | :--------------------------------------------------------------------------------------------------------: |
-|      **Language**       |                                                                                                            |
-|      **Framework**      |                                                                                                            |
-|       **Library**       |                                                                                                            |
-|      **Database**       |                                                                                                            |
 </div>
 
-### 🤖 AI
+---
 
 <div align="center">
 
-![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)<br>
-![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi)
+### 🤖 AI - Backend
+
+![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)<br>
+![Neo4j](https://img.shields.io/badge/Neo4j-4479A1?style=for-the-badge&logo=neo4j&logoColor=white)
+![RabbitMQ](https://img.shields.io/badge/RabbitMQ-FF6600?style=for-the-badge&logo=rabbitmq&logoColor=white)<br>
+![LangChain](https://img.shields.io/badge/LangChain-4CAF50?style=for-the-badge&logo=langchain&logoColor=white)
+![LangGraph](https://img.shields.io/badge/LangGraph-4CAF50?style=for-the-badge&logo=langgraph&logoColor=white)
+![OpenAI](https://img.shields.io/badge/OpenAI-412991?style=for-the-badge&logo=openai&logoColor=white)
+
+|    **Category**     |            **Version**            |
+| :-----------------: | :-------------------------------: |
+|     **Python**      |               3.13+               |
+
+
+<a href="/knowledge-graph-service/README.md" style="font-size:20px;">README-AI-Backend</a><br>
+<a href="/agent-MCP/README.md" style="font-size:20px;">README-MCP-Server</a>
+
 <br>
-
-|      **Category**       |                                                 **Stack**                                                  |
-| :---------------------: | :--------------------------------------------------------------------------------------------------------: |
-|      **Language**       |                                                                                                            |
-|      **Framework**      |                                                                                                            |
-|       **Library**       |                                                                                                            |
-|      **Database**       |                                                                                                            |
-
 </div>
+
+---
+
+<div align="center">
 
 ### ⚙️ DevOps
 
-<div align="center">
+![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+![AWS EC2](https://img.shields.io/badge/AWS%20EC2-FF9900?style=for-the-badge&logo=amazonaws&logoColor=white)
+![AWS S3](https://img.shields.io/badge/AWS%20S3-569A31?style=for-the-badge&logo=amazonaws&logoColor=white)<br>
+![Jenkins](https://img.shields.io/badge/Jenkins-D24939?style=for-the-badge&logo=jenkins&logoColor=white)
+![Kibana](https://img.shields.io/badge/Kibana-005571?style=for-the-badge&logo=kibana&logoColor=white)
+![Grafana](https://img.shields.io/badge/Grafana-F46800?style=for-the-badge&logo=grafana&logoColor=white)
+![Prometheus](https://img.shields.io/badge/Prometheus-E6522C?style=for-the-badge&logo=prometheus&logoColor=white)<br>
+![Nginx](https://img.shields.io/badge/Nginx-269539?style=for-the-badge&logo=nginx&logoColor=white)
+![Cloudflare](https://img.shields.io/badge/Cloudflare-F38020?style=for-the-badge&logo=cloudflare&logoColor=white)
+![n8n](https://img.shields.io/badge/n8n-FF3E00?style=for-the-badge&logo=n8n&logoColor=white)
 
-![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)
-![Jenkins](https://img.shields.io/badge/jenkins-%232C5263.svg?style=for-the-badge&logo=jenkins&logoColor=white)
-![Nginx](https://img.shields.io/badge/nginx-%23009639.svg?style=for-the-badge&logo=nginx&logoColor=white)<br>
-![Ubuntu](https://img.shields.io/badge/Ubuntu-E95420?style=for-the-badge&logo=ubuntu&logoColor=white)
-![Amazon EC2](https://img.shields.io/badge/amazonec2-FF9900.svg?style=for-the-badge&logo=amazonec2&logoColor=white)
-![Amazon S3](https://img.shields.io/badge/Amazon%20S3-FF9900?style=for-the-badge&logo=amazons3&logoColor=white)
 
 |    **Category**     |             **Spec**              |
 | :-----------------: | :-------------------------------: |
@@ -238,6 +265,7 @@
 ![Jira](https://img.shields.io/badge/jira-%230A0FFF.svg?style=for-the-badge&logo=jira&logoColor=white)
 
 </div>
+
 <br>
 
 ## 📂 프로젝트 구조도
@@ -357,4 +385,6 @@ S13P31E107/...
   </div>
 </details>
 
+<h3><a href="https://lemon-parrotfish-cb5.notion.site/2921d7b5e16e8090a358dce66d4f1d2c" target="_blank">🗓️ 일정표</a></h3>
+<h3><a href="https://lemon-parrotfish-cb5.notion.site/2841d7b5e16e8133ace2e1505b37ca66" target="_blank">✅ 요구사항 정의서</a></h3>
 <h3><a href="https://lemon-parrotfish-cb5.notion.site/2841d7b5e16e81a1a4dcc03071016a08" target="_blank">📋 기능 명세서</a></h3>
