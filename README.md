@@ -25,7 +25,6 @@
 
 <div>
 
-### <a href="#developers">🌟 팀원 구성</a>
 
 ### <a href="#skills">📲 기능 구성</a>
 
@@ -35,95 +34,15 @@
 
 ### <a href="#systemArchitecture">🌐 시스템 아키텍처</a>
 
+### <a href="#developers">🌟 팀원 구성</a>
+
 ### <a href="#projectDeliverables">📦 프로젝트 산출물</a>
 
 </div>
 
 <br>
 
-## 🌟 팀원 구성
 
-<a name="developers"></a>
-
-<div align="center">
-
-<div align="center">
-<table>
-    <tr>
-        <td width="33%" align="center"> <a href="https://github.com/01seok">
-            <img src="./readme-assets/이석재.jpg" width="160px" /> <br> 이석재 <br>(Backend) </a> <br></td>
-        <td width="33%" align="center"> <a href="https://github.com/soomkim00">
-            <img src="./readme-assets/김수민.jpg" width="160px" /> <br> 김수민 <br>(Backend) </a> <br></td>
-        <td width="33%" align="center"> <a href="https://github.com/CometAve">
-            <img src="./readme-assets/" width="160px" /> <br> 노혜성 <br>(Backend & Frontend) </a> <br></td>
-    </tr>
-    <tr>
-      <td width="280px">
-        <sub>
-          - Elasticsearch와 Neo4j를 결합한 하이브리드 검색 엔진(RRF) 및 병렬 처리 구현<br>
-          - RabbitMQ 기반의 비동기 메시지 처리를 통한 데이터 파이프라인 구축 및 트랜잭션 최적화<br>
-          - Spring Scheduler와 STOMP 프로토콜을 활용한 실시간 리마인더 및 알림 시스템 개발<br>
-          - 모바일 앱 백엔드 연동
-        </sub>
-      </td>
-      <td width="280px">
-        <sub>
-          - 노트 CRUD API 구현<br>
-          - 사용자 알림 설정 및 최근 노트 목록 조회 API 구현<br>
-          - 발표 & 자료
-        </sub>
-      </td>
-      <td width="280px">
-        <sub>
-          -  <br>
-          -  <br>
-          -  <br>
-          - 
-        </sub>
-      </td>
-    </tr>
-
-</table>
-
-<table>
-    <tr>
-        <td width="33%" align="center"> <a href="https://github.com/PPPP98">
-        <img src="./readme-assets/" width="160px" /> <br> 박진호 <br>(Backend & AI) </a> <br></td>
-        <td width="33%" align="center"> <a href="https://github.com/yeneua">
-        <img src="./readme-assets/" width="160px" /> <br> 김예나 <br>(Frontend) </a> <br></td>
-        <td width="33%" align="center"> <a href="https://github.com/seok0205">
-        <img src="./readme-assets/" width="160px" /> <br> 유정석 <br>(DevOps) </a> <br></td>
-    </tr>
-    <tr>
-        <td width="280px">
-          <sub>
-            - FastAPI를 활용해 Agent & Neo4j 로직 서비스 제공<br>
-            - Neo4j 그래프 연결 비동기 처리를 위한 RabbitMQ 이벤트 컨슈머 워커 구성<br>
-            - LangChain/LangGraph를 활용한 Agent 워크플로우 설계 및 구현
-          </sub>
-        </td>
-        <td width="280px">
-          <sub>
-            -  <br>
-            -  <br>
-            -  <br>
-            - 
-          </sub>
-        </td>
-        <td width="280px">
-          <sub>
-            -  <br>
-            -  <br>
-            - 
-          </sub>
-        </td>
-    </tr>
-
-</table>
-</div>
-<br>
-
-</div>
 
 ## 📲 기능 구성
 
@@ -131,8 +50,97 @@
 
 <div align="center">
 
-## 지식을 연결하고 시각화 할 수 있습니다.
+<div>
 
+## Web
+
+![메인화면](/readme-assets/웹/gif/메인화면.gif)
+![메인화면탐색](/readme-assets/웹/gif/메인화면탐색.gif)
+
+> 지식 노트는 연관성에 따라 연결되어 시각화 됩니다.<br>
+> 노트는 저장되는 즉시 자동으로 관련 지식과 연결됩니다.
+
+<details>
+<summary>노트 작성 / 삭제 / 검색 보기</summary>
+<div markdown="1">
+
+![노트작성](/readme-assets/웹/gif/노트작성.gif)
+![노트수정](/readme-assets/웹/gif/노트수정.gif)
+![노트삭제](/readme-assets/웹/gif/노트삭제.gif)
+![노트검색](/readme-assets/웹/gif/검색후이동.gif)
+
+</div>
+</details>
+
+</div>
+
+<div>
+
+## Chrome Extension
+
+크롬 익스텐션을 통해 웹에서 쉽게 정보를 저장하고 꺼내볼 수 있습니다
+  
+![드래그저장](/readme-assets/익스텐션/gif/드래그저장.gif)
+![드래그추가](/readme-assets/익스텐션/gif/드래그추가.gif)
+![페이지저장](/readme-assets/익스텐션/gif/추가한%20페이지%20노트로%20저장.gif)
+
+>저장하고 싶은 정보를 드래그하여 context로 추가하거나 노트로 저장할 수 있고 URL 전체를 노트로 저장할 수 있습니다. <br>
+> URL과 내용을 파싱하여 LLM을 통해 정리하고 노트로 저장합니다.
+
+저장한 노트를 검색하고 내 SecondBrain에 이미 저장되어 있는지 확인할 수 있습니다.
+
+![노트검색](/readme-assets/익스텐션/gif/노트검색.gif)
+![드래그검색](/readme-assets/익스텐션/gif/드래그검색.gif)
+
+추가적으로 어떤 내용을 저장할 것인지 익스텐션을 통해 관리할 수 있습니다.
+
+![추가페이지](/readme-assets/익스텐션/gif/페이지%20추가.gif)
+![이미추가된페이지](/readme-assets/익스텐션/gif/이미추가된페이지.gif)
+![추가한페이지삭제](/readme-assets/익스텐션/gif/추가한%20페이지%20삭제.gif)
+![임시노트삭제](/readme-assets/익스텐션/gif/임시노트삭제.gif)
+
+</div>
+
+<div>
+
+## MCP
+
+내 Second Brain을 LLM서비스와 연결하여 지식을 생성하고 꺼내서 새로운 인사이트를 얻어보세요
+
+![저장요청](/readme-assets/MCP/gif/1_저장요청.gif)
+![노트생성성공](/readme-assets/MCP/gif/2_노트생성성공캡처.png)
+![다중노트생성](/readme-assets/MCP/gif/4_다중노트생성요청캡처.png)
+
+> 저장 요청을 통해 새로 알게된 지식이나 대화 내용을 요약하여 노트로 저장합니다.
+
+<br>
+
+![그래프형성](/readme-assets/MCP/gif/3_그래프형성캡처.png)
+> 저장된 노트는 관련성 있는 노트들과 자동으로 연결됩니다.
+
+<br>
+
+![노트검색](/readme-assets/MCP/gif/5_노트검색및연관노트조회새로운인사이트제공.gif)
+![노트검색결과](/readme-assets/MCP/gif/6_노트검색과연관노트검색.png)
+
+> Graph 검색을 지원하여 LLM이 더 많은 context와 연결성을 이해하고 답변할 수 있습니다.
+
+</div>
+
+<div>
+
+## Watch & Mobile
+
+워치와 모바일에서 내가 저장한 노트를 자연어로 검색하고 확인할 수 있습니다.
+
+![모바일검색](/readme-assets/모바일/gif/모바일검색.gif)
+![워치검색](/readme-assets/워치/워치%20음성인식1.png)
+![워치검색](/readme-assets/워치/워치알림2.png)
+![검색결과](/readme-assets/모바일/gif/노트%20스와이프.gif)
+
+> 검색 결과를 모바일에서 확인하고 스와이프를 통해 연관 노트를 계속해서 서칭할 수 있습니다.
+
+</div>
 
 
 </div>
@@ -164,10 +172,10 @@
 ![TanStack Router](https://img.shields.io/badge/TanStack_Router-FF4154?style=for-the-badge&logo=tanstack&logoColor=white)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-06B6D4?style=for-the-badge&logo=tailwind-css&logoColor=white)
 
-|    **Category**     |            **Version**            |
-| :-----------------: | :-------------------------------: |
-|     **React**      |               v18               |
-|    **Tailwind CSS**       |              v3(web) / v4(Chrome Extension)               |
+|   **Category**   |          **Version**           |
+| :--------------: | :----------------------------: |
+|    **React**     |              v18               |
+| **Tailwind CSS** | v3(web) / v4(Chrome Extension) |
 
 <br>
 
@@ -189,11 +197,11 @@
 ![Swagger](https://img.shields.io/badge/Swagger-85EA2D?style=for-the-badge&logo=swagger&logoColor=black)
 ![OpenAI](https://img.shields.io/badge/OpenAI-412991?style=for-the-badge&logo=openai&logoColor=white)
 
-|    **Category**     |            **Version**            |
-| :-----------------: | :-------------------------------: |
-|    **Java**       |               17             |
-|    **Spring Boot**       |            3.5.7                |
-|    **Elasticsearch**       |           8.7.1               |
+|   **Category**    | **Version** |
+| :---------------: | :---------: |
+|     **Java**      |     17      |
+|  **Spring Boot**  |    3.5.7    |
+| **Elasticsearch** |    8.7.1    |
 
 </div>
 
@@ -211,9 +219,9 @@
 ![LangGraph](https://img.shields.io/badge/LangGraph-4CAF50?style=for-the-badge&logo=langgraph&logoColor=white)
 ![OpenAI](https://img.shields.io/badge/OpenAI-412991?style=for-the-badge&logo=openai&logoColor=white)
 
-|    **Category**     |            **Version**            |
-| :-----------------: | :-------------------------------: |
-|     **Python**      |               3.13+               |
+| **Category** | **Version** |
+| :----------: | :---------: |
+|  **Python**  |    3.13+    |
 
 
 <a href="/knowledge-graph-service/README.md" style="font-size:20px;">README-AI-Backend</a><br>
@@ -240,16 +248,16 @@
 ![n8n](https://img.shields.io/badge/n8n-FF3E00?style=for-the-badge&logo=n8n&logoColor=white)
 
 
-|    **Category**     |             **Spec**              |
-| :-----------------: | :-------------------------------: |
-|  **Instance Type**  |             T2.XLARGE             |
-|       **CPU**       |              4 vCPUs              |
-|       **RAM**       |               16 GB               |
-| **Storage (Disk)**  |      SSD: 320 GB, HDD: 6 TB       |
-|     **Docker**      |              v28.1.1              |
-| **Docker Compose**  |              v2.38.2              |
-|     **Jenkins**     |               2.520               |
-|      **Nginx**      |           nginx/1.18.0            |
+|    **Category**    |        **Spec**        |
+| :----------------: | :--------------------: |
+| **Instance Type**  |       T2.XLARGE        |
+|      **CPU**       |        4 vCPUs         |
+|      **RAM**       |         16 GB          |
+| **Storage (Disk)** | SSD: 320 GB, HDD: 6 TB |
+|     **Docker**     |        v28.1.1         |
+| **Docker Compose** |        v2.38.2         |
+|    **Jenkins**     |         2.520          |
+|     **Nginx**      |      nginx/1.18.0      |
 
 </div>
 
@@ -356,6 +364,94 @@ S13P31E107/...
     <td align="center"><img src="./readme-assets/MRgenerated.png"/></td>
   </tr>
 </table>
+
+</div>
+
+<br>
+
+## 🌟 팀원 구성
+
+<a name="developers"></a>
+
+<div align="center">
+
+<div align="center">
+<table>
+    <tr>
+        <td width="33%" align="center"> <a href="https://github.com/01seok">
+            <img src="./readme-assets/이석재.jpg" width="160px" /> <br> 이석재 <br>(Backend) </a> <br></td>
+        <td width="33%" align="center"> <a href="https://github.com/soomkim00">
+            <img src="./readme-assets/김수민.jpg" width="160px" /> <br> 김수민 <br>(Backend) </a> <br></td>
+        <td width="33%" align="center"> <a href="https://github.com/CometAve">
+            <img src="./readme-assets/" width="160px" /> <br> 노혜성 <br>(Backend & Frontend) </a> <br></td>
+    </tr>
+    <tr>
+      <td width="280px">
+        <sub>
+          - Elasticsearch와 Neo4j를 결합한 하이브리드 검색 엔진(RRF) 및 병렬 처리 구현<br>
+          - RabbitMQ 기반의 비동기 메시지 처리를 통한 데이터 파이프라인 구축 및 트랜잭션 최적화<br>
+          - Spring Scheduler와 STOMP 프로토콜을 활용한 실시간 리마인더 및 알림 시스템 개발<br>
+          - 모바일 앱 백엔드 연동
+        </sub>
+      </td>
+      <td width="280px">
+        <sub>
+          - 노트 CRUD, 다중 삭제 API 구현<br>
+          - RabbitMQ 기반 리마인더 알림, 활성화 목록 조회 API 구현<br>
+          - AWS S3 연결 및 파일 업로드 기능 구현<br>
+          - 기능 단위 테스트 코드 작성<br>
+          - 발표 스크립트 작성 및 발표
+        </sub>
+      </td>
+      <td width="280px">
+        <sub>
+          -  <br>
+          -  <br>
+          -  <br>
+          - 
+        </sub>
+      </td>
+    </tr>
+
+</table>
+
+<table>
+    <tr>
+        <td width="33%" align="center"> <a href="https://github.com/PPPP98">
+        <img src="./readme-assets/" width="160px" /> <br> 박진호 <br>(Backend & AI) </a> <br></td>
+        <td width="33%" align="center"> <a href="https://github.com/yeneua">
+        <img src="./readme-assets/" width="160px" /> <br> 김예나 <br>(Frontend) </a> <br></td>
+        <td width="33%" align="center"> <a href="https://github.com/seok0205">
+        <img src="./readme-assets/" width="160px" /> <br> 유정석 <br>(DevOps) </a> <br></td>
+    </tr>
+    <tr>
+        <td width="280px">
+          <sub>
+            - FastAPI를 활용해 Agent & Neo4j 로직 서비스 제공<br>
+            - Neo4j 그래프 연결 비동기 처리를 위한 RabbitMQ 이벤트 컨슈머 워커 구성<br>
+            - LangChain/LangGraph를 활용한 Agent 워크플로우 설계 및 구현
+          </sub>
+        </td>
+        <td width="280px">
+          <sub>
+            -  <br>
+            -  <br>
+            -  <br>
+            - 
+          </sub>
+        </td>
+        <td width="280px">
+          <sub>
+            -  <br>
+            -  <br>
+            - 
+          </sub>
+        </td>
+    </tr>
+
+</table>
+</div>
+<br>
 
 </div>
 
