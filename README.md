@@ -2,9 +2,7 @@
 
 # Second Brain
 
-<div style="display: inline-block; background-color: black; border-radius: 50%; padding: 20px;">
-    <img src="./readme-assets/LogoIMG.png" width="300" />
-</div>
+<img src="./readme-assets/Logo.png" width="340" />
 
 </div>
 
@@ -405,7 +403,7 @@ S13P31E107/...
         <td width="33%" align="center"> <a href="https://github.com/soomkim00">
             <img src="./readme-assets/김수민.jpg" width="160px" /> <br> 김수민 <br>(Backend) </a> <br></td>
         <td width="33%" align="center"> <a href="https://github.com/CometAve">
-            <img src="./readme-assets/" width="160px" /> <br> 노혜성 <br>(Backend & Frontend) </a> <br></td>
+            <img src="./readme-assets/노혜성.jpg" width="160px" /> <br> 노혜성 <br>(Full Stack) </a> <br></td>
     </tr>
     <tr>
       <td width="280px">
@@ -427,10 +425,12 @@ S13P31E107/...
       </td>
       <td width="280px">
         <sub>
-          -  <br>
-          -  <br>
-          -  <br>
-          - 
+          - Authorization Code Pattern 기반 JWT 인증 및 Redis Refresh Token 로테이션 구현 <br>
+          - Redis 기반 실시간 Draft 저장 시스템 구현 (멱등성 보장) <br>
+          - 크롬 익스텐션 UI 개발 <br>
+          - 크롬 익스텐션: Shadow DOM 격리, Drag-to-Search, OAuth 2.0 New Tab 방식 구현 <br>
+          - Milkdown 에디어 통합, 성능 최적화 (3D UI, Vite)<br>
+          - Docker 기반 로컬 개발 환경 구축
         </sub>
       </td>
     </tr>
