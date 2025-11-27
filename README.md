@@ -14,7 +14,7 @@
 > 정보과부화 시대에 정보들은 기억 속에서 사라지거나 메모장 어딘가에 묻혀버려 장기기억으로 전환되지 못한다는 **문제의식**에서 출발했습니다. 우리의 서비스는 LLM과 인터넷을 통해 얻은 지식과 정보를 저장하고 연결하여 지식을 구조화하고, 쉽게 꺼내쓰면서 마치 **두 번째 뇌**를 가진 것과 같은 경험을 하게 해줍니다.
 
 - **개발 기간** : 2025.10.02 ~ 2025.11.20 **(7주)**
-- **플랫폼** : Web & App & Chrome extension & wear OS
+- **플랫폼** : Web & App & Chrome Extension & Wear OS
 - **개발 인원** : 6명 <br><br>
 
 </div> <br>
@@ -356,7 +356,7 @@ S13P31E107/...
 <img src="./readme-assets/architecture.png"/>
 </div>
 
-### 🚀 Code review pipeline - n8n
+### 🚀 Code Review Pipeline - n8n
 
 <div align="center">
 
