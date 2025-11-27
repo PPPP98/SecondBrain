@@ -360,7 +360,29 @@ S13P31E107/...
 
 <div align="center">
 
-<img src="./readme-assets/"/>
+<table>
+  <tr>
+    <td align="center" width="50%"><b>Quick Review</b></td>
+    <td align="center" width="50%"><b>Deep Review</b></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="./readme-assets/n8n/n8n_quick_review.png"/></td>
+    <td align="center"><img src="./readme-assets/n8n/n8n_detail_review.png"/></td>
+  </tr>
+</table>
+<table>
+  <tr>
+    <td align="center" width="33%"><b>Main Workflow</b></td>
+    <td align="center" width="33%"><b>Quick Review Workflow</b></td>
+    <td align="center" width="33%"><b>Detail Review Workflow</b></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="./readme-assets/n8n/n8n_e107.png"/></td>
+    <td align="center"><img src="./readme-assets/n8n/n8n_quickeye.png"/></td>
+    <td align="center"><img src="./readme-assets/n8n/n8n_deepdive.png"/></td>
+  </tr>
+</table>
+
 </div>
 
 ### 📢 Collaboration & Event Notification
@@ -383,6 +405,14 @@ S13P31E107/...
   <tr>
     <td align="center"><img src="./readme-assets/JiraHook.png"/></td>
     <td align="center"><img src="./readme-assets/MRgenerated.png"/></td>
+  </tr>
+  <tr>
+    <td align="center" width="50%"><b>Server Resource Notification - Fireing</b></td>
+    <td align="center" width="50%"><b>Server Resource Notification - Resolved</b></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="./readme-assets/alertmanager_fire.png"/></td>
+    <td align="center"><img src="./readme-assets/alertmanager_resolve.png"/></td>
   </tr>
 </table>
 
@@ -445,7 +475,7 @@ S13P31E107/...
         <td width="33%" align="center"> <a href="https://github.com/yeneua">
         <img src="./readme-assets/" width="160px" /> <br> 김예나 <br>(Frontend) </a> <br></td>
         <td width="33%" align="center"> <a href="https://github.com/seok0205">
-        <img src="./readme-assets/" width="160px" /> <br> 유정석 <br>(DevOps) </a> <br></td>
+        <img src="./readme-assets/jungseok.jpg" width="160px" /> <br> 유정석 <br>(DevOps) </a> <br></td>
     </tr>
     <tr>
         <td width="280px">
@@ -465,9 +495,12 @@ S13P31E107/...
         </td>
         <td width="280px">
           <sub>
-            -  <br>
-            -  <br>
-            - 
+            - Android 앱 개발: Retrofit을 이용한 REST API 연동, 음성 인식 및 검색 기능 구현<br>
+            - Wear OS 앱 개발: Wear Compose UI 구현, 음성 인식(STT) 및 모바일 기기와의 데이터 동기화(Data Layer API)<br>
+            - Blue/Green 무중단 배포 파이프라인 구축 및 자동 롤백 시스템 구현<br>
+            - n8n 기반 AI 코드 리뷰 자동화 워크플로우 구축<br>
+            - Prometheus & Grafana 기반의 서버 리소스 모니터링 대시보드 구축<br>
+            - MR, Server Resource 관련 이벤트, 오류 등을 MatterMost를 통해 자동 알림 구현
           </sub>
         </td>
     </tr>
