@@ -675,10 +675,13 @@ S13P31E107/...
         </td>
         <td width="280px">
           <sub>
-            -  <br>
-            -  <br>
-            -  <br>
-            - 
+            - 3D 그래프 시각화 및 인터렉션 구현<br> 
+            - Glass UI 공통 컴포넌트 개발 및 최적화<br> 
+            - 검색 기능 구현: 디바운싱, 무한 스크롤 적용을 통한 UX 최적화<br> 
+            - 무한 스크롤 성능 최적화 (Intersection Observer 활용)<br> 
+            - Android 앱 UX/UI 개발<br>
+            - 서비스 전반 디자인 컨셉 수립<br>
+            - 프로젝트 관리 및 문서화: Notion 기반 프로젝트 문서화, Jira 이슈 및 일정 운영
           </sub>
         </td>
         <td width="280px">
